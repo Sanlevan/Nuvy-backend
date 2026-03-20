@@ -52,8 +52,28 @@ async function generatePassBuffer(tampons, clientNom, serialNumber, boutiqueNom)
 app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'login.html')))
 app.get('/dashboard', (req, res) => res.sendFile(path.resolve(__dirname, 'dashboard.html')))
 app.get('/join/:slug', (req, res) => res.sendFile(path.resolve(__dirname, 'join.html')))
+app.get('/nuvy-ceo-portal', (req, res) => res.sendFile(path.resolve(__dirname, 'admin.html')))
 
-// --- AUTH ---
+// --- API CEO : CRÉATION DE BOUTIQUE ---
+app.post('/admin/create-boutique', async (req, res) => {
+    const { nom, username, password, ceoKey } = req.body;
+
+    // Vérification de sécurité CEO
+    if (ceoKey !== process.env.CEO_KEY) {
+        return res.status(403).json({ message: "Accès refusé : Code CEO invalide" });
+    }
+
+    const slug = nom.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+
+    const { data, error } = await supabase.from('boutiques').insert([{ 
+        nom: nom, slug: slug, username: username, password: password 
+    }]).select().single();
+
+    if (error) return res.status(400).json(error);
+    res.json({ success: true, boutique: data });
+});
+
+// --- API AUTH COMMERÇANT ---
 app.post('/auth/login', async (req, res) => {
     const { user, pass } = req.body
     const { data: b } = await supabase.from('boutiques').select('*').eq('username', user).eq('password', pass).single()
@@ -61,7 +81,7 @@ app.post('/auth/login', async (req, res) => {
     else res.status(401).send()
 })
 
-// --- DATA & STATS ---
+// --- API DATA ---
 app.get('/boutiques/:id/clients', async (req, res) => {
     const { data } = await supabase.from('clients').select('*').eq('boutique_id', req.params.id).order('last_visit', { ascending: false })
     res.json(data || [])
@@ -72,7 +92,6 @@ app.get('/boutiques/:id/visites', async (req, res) => {
     res.json(data || [])
 })
 
-// --- ACTION TAMPON (+/-) ---
 app.post('/clients/:id/tampon', async (req, res) => {
     const { nb } = req.body
     const { data: client } = await supabase.from('clients').select('id, boutique_id, tampons, serial_number').eq('id', req.params.id).single()
@@ -82,7 +101,7 @@ app.post('/clients/:id/tampon', async (req, res) => {
     const { data: updated } = await supabase.from('clients').update({ tampons: nouveaux, last_visit: new Date().toISOString() }).eq('id', req.params.id).select().single()
     await supabase.from('visites').insert([{ client_id: client.id, boutique_id: client.boutique_id, points_ajoutes: parseInt(nb) }])
     
-    // Notifications Push (Apple Wallet)
+    // Notifications Push Apple WWS
     const { data: devices } = await supabase.from('devices').select('push_token').eq('serial_number', client.serial_number)
     if (devices && devices.length > 0) {
         const p8 = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8')
@@ -91,13 +110,14 @@ app.post('/clients/:id/tampon', async (req, res) => {
         for (const d of devices) { await provider.send(notification, d.push_token) }
         provider.shutdown()
     }
+    
     res.json(updated)
 })
 
-// --- NFC TAP LOGIC ---
+// --- FLUX NFC ---
 app.get('/tap/:slug', async (req, res) => {
     const slug = req.params.slug;
-    res.send("<html><body style='background:#0A0A0A;'><script>const t = localStorage.getItem('nuvy_token'); if(!t) { window.location.href='/join/" + slug + "'; } else { fetch('/tap/" + slug + "/notify?token='+t, {method:'POST'}); window.location.href='/pass/'+t; }</script></body></html>")
+    res.send("<html><body style='background:#FAF8F5;'><script>const t = localStorage.getItem('nuvy_token'); if(!t) { window.location.href='/join/" + slug + "'; } else { fetch('/tap/" + slug + "/notify?token='+t, {method:'POST'}); window.location.href='/pass/'+t; }</script></body></html>")
 })
 
 app.post('/tap/:slug/notify', async (req, res) => {
@@ -106,16 +126,12 @@ app.post('/tap/:slug/notify', async (req, res) => {
     else res.status(404).send()
 })
 
-// --- CREATION CLIENT ---
 app.post('/join/:slug/create', async (req, res) => {
     const { prenom, nom, telephone } = req.body
     const { data: b } = await supabase.from('boutiques').select('id').eq('slug', req.params.slug).single()
     const token = crypto.randomUUID()
     const serial = 'NUVY-' + token.split('-')[0].toUpperCase()
-    
-    // Concaténation classique 100% sécurisée (zéro syntax error)
     const full = prenom + " " + nom;
-    
     const { data } = await supabase.from('clients').insert([{ boutique_id: b.id, nom: full, telephone: telephone, tampons: 0, token: token, serial_number: serial, last_visit: new Date().toISOString() }]).select().single()
     res.json({ token: token, serialNumber: data.serial_number })
 })
@@ -141,6 +157,5 @@ app.get('/v1/passes/:pId/:sN', async (req,res) => {
     res.set('Content-Type', 'application/vnd.apple.pkpass').set('Last-Modified', new Date().toUTCString()).send(buffer)
 })
 
-// --- DEMARRAGE RAILWAY ---
 const PORT = process.env.PORT || 8080
 server.listen(PORT, '0.0.0.0', () => console.log("Nuvy Master branché sur le port " + PORT))
