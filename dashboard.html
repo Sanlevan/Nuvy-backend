@@ -1,48 +1,29 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuvy — Dashboard</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuvy Dashboard</title>
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #C0392B; --bg: #0A0A0A; --card: #141414; --border: #222; --text-dim: #888; }
-        * { box-sizing: border-box; transition: all 0.2s ease; }
         body { font-family: 'Manrope', sans-serif; background: var(--bg); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* SIDEBAR NAVIGATION */
         .sidebar { width: 260px; border-right: 1px solid var(--border); padding: 40px 20px; display: flex; flex-direction: column; gap: 40px; }
-        .logo { font-family: 'DM Serif Display', serif; font-size: 28px; padding-left: 15px; }
-        .logo span { color: var(--primary); }
-        .nav-links { display: flex; flex-direction: column; gap: 10px; }
-        .nav-item { padding: 14px 20px; border-radius: 12px; cursor: pointer; color: var(--text-dim); font-weight: 500; display: flex; align-items: center; gap: 12px; }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .logo { font-family: 'DM Serif Display', serif; font-size: 28px; } .logo span { color: var(--primary); }
+        .nav-item { padding: 14px 20px; border-radius: 12px; cursor: pointer; color: var(--text-dim); font-weight: 600; display: flex; align-items: center; gap: 12px; }
         .nav-item.active { background: var(--primary); color: white; }
-        .logout-btn { margin-top: auto; color: #555; font-size: 13px; cursor: pointer; padding-left: 20px; }
-
-        /* MAIN CONTENT */
         .main-content { flex: 1; padding: 60px; overflow-y: auto; }
-        .view { display: none; animation: fadeIn 0.3s ease; }
-        .view.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* COMPOSANTS */
-        .status-badge { font-size: 11px; background: #111; border: 1px solid var(--border); padding: 5px 12px; border-radius: 100px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px; }
-        .dot { width: 6px; height: 6px; border-radius: 50%; background: #444; }
-        .live-card { background: var(--primary); padding: 40px; border-radius: 28px; margin-bottom: 40px; border: 1px solid rgba(255,255,255,0.1); }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { text-align: left; color: var(--text-dim); font-size: 12px; text-transform: uppercase; padding: 15px; border-bottom: 1px solid var(--border); }
-        td { padding: 20px 15px; border-bottom: 1px solid #111; font-size: 14px; }
-        
-        .stat-grid { display: grid; grid-template-cols: repeat(3, 1fr); gap: 20px; }
+        .view { display: none; } .view.active { display: block; }
+        .live-card { background: var(--primary); padding: 40px; border-radius: 28px; }
+        .stat-grid { display: grid; grid-template-cols: repeat(2, 1fr); gap: 20px; }
         .stat-card { background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid var(--border); }
-        .stat-val { font-family: 'DM Serif Display'; font-size: 32px; color: var(--primary); }
+        .stat-val { font-family: 'DM Serif Display'; font-size: 38px; color: var(--primary); margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+        th { text-align: left; color: var(--text-dim); font-size: 11px; padding: 15px; border-bottom: 1px solid var(--border); text-transform: uppercase; }
+        td { padding: 20px 15px; border-bottom: 1px solid #111; font-size: 14px; }
     </style>
 </head>
 <body>
-
     <div class="sidebar">
         <div class="logo">Nu<span>vy</span></div>
         <div class="nav-links">
@@ -50,50 +31,38 @@
             <div class="nav-item" onclick="showView('clients-view', this)">👥 Mes Clients</div>
             <div class="nav-item" onclick="showView('stats-view', this)">📊 Statistiques</div>
         </div>
-        <div class="logout-btn" onclick="logout()">Se déconnecter</div>
+        <div style="margin-top:auto; color:#444; cursor:pointer;" onclick="localStorage.clear();location.href='/'">Déconnexion</div>
     </div>
 
     <div class="main-content">
-        <div class="status-badge"><div id="status-dot" class="dot"></div> <span id="status-text">Hors ligne</span></div>
-
         <div id="live-view" class="view active">
-            <h1 style="font-family:'DM Serif Display'; font-size: 40px; margin: 0 0 40px 0;">Flux en direct</h1>
-            <div id="no-client" style="color:var(--text-dim); border: 2px dashed #222; padding: 60px; border-radius: 28px; text-align: center;">
-                En attente d'un scan client...
-            </div>
+            <h1 style="font-family:'DM Serif Display'; font-size: 42px;">Flux en direct</h1>
+            <div id="no-client" style="border: 2px dashed #222; padding: 80px; border-radius: 28px; text-align: center; color: var(--text-dim);">En attente de scan client...</div>
             <div id="live-notification" class="live-card" style="display:none;">
-                <div style="font-weight: 800; font-size: 11px; opacity: 0.8;">CLIENT DÉTECTÉ</div>
-                <div id="live-name" style="font-size: 48px; font-family: 'DM Serif Display'; margin: 10px 0;">...</div>
-                <div id="live-points" style="font-size: 18px; margin-bottom: 30px;">Points : 0 / 10</div>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="updatePoints(1)" style="background:white; color:black; border:none; padding: 15px 30px; border-radius: 12px; font-weight: 700; cursor:pointer;">+1 TAMPON</button>
-                    <button onclick="closeLive()" style="background:rgba(0,0,0,0.2); color:white; border:none; padding: 15px 20px; border-radius: 12px; cursor:pointer;">Ignorer</button>
+                <div id="live-name" style="font-size:48px; font-family:'DM Serif Display';">...</div>
+                <div id="live-points" style="font-size:20px; margin-bottom: 30px;">0 / 10 tampons</div>
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:12px; display:flex; gap:15px; font-size:24px; font-weight:800;">
+                        <button onclick="changeCounter(-1)" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">-</button>
+                        <span id="tampon-counter">1</span>
+                        <button onclick="changeCounter(1)" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">+</button>
+                    </div>
+                    <button id="validate-btn" onclick="confirmAction()" style="flex:1; background:white; color:black; border:none; padding:20px; border-radius:12px; font-weight:800; cursor:pointer;">VALIDER +1</button>
+                    <button onclick="closeLive()" style="background:rgba(255,255,255,0.1); border:none; color:white; padding:20px; border-radius:12px; cursor:pointer;">Ignorer</button>
                 </div>
             </div>
         </div>
 
         <div id="clients-view" class="view">
-            <h1 style="font-family:'DM Serif Display'; font-size: 40px;">Annuaire Clients</h1>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Prénom / Nom</th>
-                        <th>Téléphone</th>
-                        <th>Points</th>
-                        <th>Dernier passage</th>
-                    </tr>
-                </thead>
-                <tbody id="clients-table-body">
-                    </tbody>
-            </table>
+            <h1 style="font-family:'DM Serif Display'; font-size: 42px;">Annuaire Clients</h1>
+            <table><thead><tr><th>Nom</th><th>Téléphone</th><th>Points</th><th>Dernière Visite</th></tr></thead><tbody id="clients-table-body"></tbody></table>
         </div>
 
         <div id="stats-view" class="view">
-            <h1 style="font-family:'DM Serif Display'; font-size: 40px;">Performance</h1>
+            <h1 style="font-family:'DM Serif Display'; font-size: 42px;">Performances</h1>
             <div class="stat-grid">
-                <div class="stat-card"><div class="stat-dim">Total Clients</div><div id="stat-total" class="stat-val">0</div></div>
-                <div class="stat-card"><div class="stat-dim">Tampons donnés</div><div id="stat-tampons" class="stat-val">0</div></div>
-                <div class="stat-card"><div class="stat-dim">Récompenses prêtes</div><div id="stat-ready" class="stat-val">0</div></div>
+                <div class="stat-card"><div style="color:var(--text-dim); font-size:12px; font-weight:800; text-transform:uppercase;">Taux de Rétention</div><div id="stat-retention" class="stat-val">0%</div></div>
+                <div class="stat-card"><div style="color:var(--text-dim); font-size:12px; font-weight:800; text-transform:uppercase;">Fréquentation Totale</div><div id="stat-visits" class="stat-val">0</div></div>
             </div>
         </div>
     </div>
@@ -101,74 +70,75 @@
     <script>
         const bId = localStorage.getItem('nuvy_boutique_id');
         const bSlug = localStorage.getItem('nuvy_boutique_slug');
-        if(!bId) window.location.href = '/';
-
+        if(!bId) location.href='/';
+        
         const socket = io();
         let currentClient = null;
-        let allClients = [];
+        let countToAdd = 1;
 
-        socket.on('connect', () => {
-            document.getElementById('status-dot').style.background = '#27ae60';
-            document.getElementById('status-text').innerText = 'En direct';
-            socket.emit('join-boutique', bSlug);
+        socket.on('connect', () => socket.emit('join-boutique', bSlug));
+        
+        socket.on('client-detected', (c) => {
+            currentClient = c; 
+            countToAdd = 1;
+            document.getElementById('no-client').style.display='none';
+            document.getElementById('live-notification').style.display='block';
+            updateUI();
+            new Audio(c.tampons >= 10 ? 'https://www.myinstants.com/media/sounds/ta-da.mp3' : 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{});
         });
 
-        socket.on('client-detected', (client) => {
-            currentClient = client;
-            document.getElementById('no-client').style.display = 'none';
-            document.getElementById('live-notification').style.display = 'block';
-            document.getElementById('live-name').innerText = client.nom;
-            document.getElementById('live-points').innerText = `Points : ${client.tampons} / 10`;
-            new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{});
-        });
-
-        function showView(viewId, el) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active');
+        function showView(id, el) {
+            document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+            document.getElementById(id).classList.add('active'); 
             el.classList.add('active');
-            if(viewId === 'clients-view' || viewId === 'stats-view') loadData();
-        }
-
-        async function loadData() {
-            const res = await fetch(`/boutiques/${bId}/clients`);
-            allClients = await res.json();
             
-            // Remplir le tableau
-            document.getElementById('clients-table-body').innerHTML = allClients.map(c => `
-                <tr>
-                    <td style="font-weight:600">${c.nom}</td>
-                    <td style="color:#666">${c.telephone || 'Non renseigné'}</td>
-                    <td style="color:var(--primary); font-weight:700">${c.tampons} / 10</td>
-                    <td style="font-size:12px; color:#444">${new Date(c.created_at).toLocaleDateString()}</td>
-                </tr>
-            `).join('');
-
-            // Calculer les stats
-            document.getElementById('stat-total').innerText = allClients.length;
-            document.getElementById('stat-tampons').innerText = allClients.reduce((acc, c) => acc + c.tampons, 0);
-            document.getElementById('stat-ready').innerText = allClients.filter(c => c.tampons >= 10).length;
+            if(id === 'clients-view') loadClients();
+            if(id === 'stats-view') loadStats();
         }
 
-        async function updatePoints(nb) {
-            if(!currentClient) return;
-            const res = await fetch(`/clients/${currentClient.id}/tampon`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ nb })
+        function changeCounter(v) { 
+            countToAdd = Math.max(-10, Math.min(10, countToAdd + v)); 
+            updateUI(); 
+        }
+
+        function updateUI() {
+            document.getElementById('tampon-counter').innerText = Math.abs(countToAdd);
+            document.getElementById('live-name').innerText = currentClient.nom;
+            document.getElementById('live-points').innerText = currentClient.tampons + " / 10 tampons";
+            const btn = document.getElementById('validate-btn');
+            btn.innerText = countToAdd >= 0 ? "VALIDER +" + countToAdd : "ANNULER " + Math.abs(countToAdd);
+            btn.style.background = countToAdd >= 0 ? 'white' : '#ff4d4d';
+        }
+
+        async function confirmAction() {
+            if(countToAdd === 0) return;
+            const res = await fetch("/clients/" + currentClient.id + "/tampon", { 
+                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nb:countToAdd}) 
             });
-            const data = await res.json();
-            document.getElementById('live-points').innerText = `Points : ${data.tampons} / 10`;
-            setTimeout(closeLive, 1500);
+            if(res.ok) closeLive();
         }
 
-        function closeLive() {
-            document.getElementById('live-notification').style.display = 'none';
-            document.getElementById('no-client').style.display = 'block';
+        function closeLive() { 
+            document.getElementById('live-notification').style.display='none'; 
+            document.getElementById('no-client').style.display='block'; 
             currentClient = null;
         }
 
-        function logout() { localStorage.clear(); window.location.href = '/'; }
+        async function loadClients() {
+            const res = await fetch("/boutiques/" + bId + "/clients");
+            const data = await res.json();
+            document.getElementById('clients-table-body').innerHTML = data.map(c => "<tr><td><b style='color:white;'>" + c.nom + "</b></td><td>" + (c.telephone||'-') + "</td><td style='color:var(--primary); font-weight:800;'>" + c.tampons + "/10</td><td>" + new Date(c.last_visit).toLocaleDateString() + "</td></tr>").join('');
+        }
+
+        async function loadStats() {
+            const [cRes, vRes] = await Promise.all([fetch("/boutiques/" + bId + "/clients"), fetch("/boutiques/" + bId + "/visites")]);
+            const clients = await cRes.json();
+            const visites = await vRes.json();
+            const loyal = clients.filter(c => c.tampons > 1).length;
+            document.getElementById('stat-retention').innerText = (clients.length > 0 ? Math.round((loyal/clients.length)*100) : 0) + "%";
+            document.getElementById('stat-visits').innerText = visites.length;
+        }
     </script>
 </body>
 </html>

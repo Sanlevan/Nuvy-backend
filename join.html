@@ -1,86 +1,47 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Rejoindre Nuvy</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nuvy - Création de carte</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Manrope', sans-serif; background: #0A0A0A; color: white; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        .container { width: 90%; max-width: 400px; text-align: center; }
-        h1 { font-family: 'DM Serif Display', serif; font-size: 38px; margin-bottom: 10px; }
-        p { color: #888; margin-bottom: 40px; line-height: 1.5; }
-        
-        .input-group { margin-bottom: 20px; text-align: left; }
-        label { display: block; font-size: 12px; font-weight: 800; color: #555; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        input { width: 100%; background: #141414; border: 1px solid #222; padding: 18px; border-radius: 16px; color: white; font-size: 16px; outline: none; }
+        body { font-family: 'Manrope', sans-serif; background: #0A0A0A; color: white; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
+        .box { width: 100%; max-width: 400px; text-align: center; }
+        h1 { font-family: 'DM Serif Display', serif; font-size: 42px; margin-bottom: 30px; }
+        .group { margin-bottom: 20px; text-align: left; }
+        label { font-size: 11px; font-weight: 800; color: #444; text-transform: uppercase; margin-bottom: 8px; display: block; }
+        input { width: 100%; background: #141414; border: 1px solid #222; padding: 18px; border-radius: 16px; color: white; font-size: 16px; outline: none; box-sizing: border-box; }
         input:focus { border-color: #C0392B; }
-
-        button { width: 100%; background: #C0392B; color: white; border: none; padding: 20px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 20px; box-shadow: 0 10px 20px rgba(192, 57, 43, 0.2); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        .loader { display: none; margin: 20px auto; width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #C0392B; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        button { width: 100%; background: #C0392B; color: white; border: none; padding: 20px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
-
-    <div class="container" id="form-container">
-        <h1>Nuvy</h1>
-        <p>Inscrivez-vous pour obtenir votre carte de fidélité et commencer à cumuler des tampons.</p>
-
-        <div class="input-group">
-            <label>Prénom & Nom</label>
-            <input type="text" id="nom" placeholder="Ex: Tristan Le Van" autocomplete="name">
+    <div class="box">
+        <h1>Nu<span style="color:#C0392B;">vy</span></h1>
+        <div style="display:flex; gap:10px;">
+            <div class="group" style="flex:1;"><label>Prénom</label><input type="text" id="prenom" placeholder="Jean" required></div>
+            <div class="group" style="flex:1;"><label>Nom</label><input type="text" id="nom" placeholder="Dupont" required></div>
         </div>
-
-        <div class="input-group">
-            <label>Téléphone (Optionnel)</label>
-            <input type="tel" id="telephone" placeholder="06 12 34 56 78" autocomplete="tel">
-        </div>
-
-        <button id="submit-btn" onclick="register()">Obtenir ma carte</button>
-        <div class="loader" id="loader"></div>
+        <div class="group"><label>Téléphone</label><input type="tel" id="tel" placeholder="06 12 34 56 78" required></div>
+        <button onclick="register()">Ajouter à Apple Wallet</button>
     </div>
-
     <script>
         async function register() {
+            const prenom = document.getElementById('prenom').value.trim();
             const nom = document.getElementById('nom').value.trim();
-            const tel = document.getElementById('telephone').value.trim();
-            const btn = document.getElementById('submit-btn');
-            const loader = document.getElementById('loader');
-
-            if (!nom) return alert("Veuillez entrer votre nom.");
-
-            // Animation
-            btn.style.display = 'none';
-            loader.style.display = 'block';
-
-            // On récupère le slug de la boutique dans l'URL (ex: /join/vecchio-forno)
+            const tel = document.getElementById('tel').value.trim();
+            if(!prenom || !nom || !tel) return alert("Veuillez remplir tous les champs !");
+            
             const slug = window.location.pathname.split('/').pop();
-
-            try {
-                const response = await fetch(`/join/${slug}/create`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nom: nom, telephone: tel })
-                });
-
-                const data = await response.json();
-
-                if (data.token) {
-                    // --- ÉTAPE CLÉ : On mémorise le token dans le téléphone ---
-                    localStorage.setItem('nuvy_token', data.token);
-                    
-                    // On redirige vers le téléchargement de la carte Apple Wallet
-                    window.location.href = `/pass/${data.token}`;
-                } else {
-                    throw new Error("Erreur lors de la création");
-                }
-            } catch (err) {
-                alert("Erreur de connexion. Réessayez.");
-                btn.style.display = 'block';
-                loader.style.display = 'none';
+            const res = await fetch("/join/" + slug + "/create", { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({prenom: prenom, nom: nom, telephone: tel}) 
+            });
+            const data = await res.json();
+            if(data.token) {
+                localStorage.setItem('nuvy_token', data.token);
+                window.location.href = "/pass/" + data.token;
             }
         }
     </script>
