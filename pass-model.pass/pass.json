@@ -1,27 +1,43 @@
 {
   "formatVersion": 1,
   "passTypeIdentifier": "pass.pro.nuvy.loyalty",
-  "serialNumber": "NUVY-TEST-001",
   "teamIdentifier": "Q762BTBA98",
-  "webServiceURL": "https://nuvy-production.up.railway.app/",
-  "authenticationToken": "nuvy-secret-token-2026",
   "organizationName": "Nuvy",
-  "description": "Carte de fidélité Nuvy",
-  "foregroundColor": "rgb(255,255,255)",
-  "backgroundColor": "rgb(192,57,43)",
+  "description": "Carte de fidélité",
+  "logoText": "",
+  "backgroundColor": "rgb(250, 248, 245)",
+  "labelColor": "rgb(175, 227, 224)",
+  "foregroundColor": "rgb(42, 140, 156)",
   "storeCard": {
     "primaryFields": [
       {
-        "key": "storeName",
-        "value": "Bella Napoli"
+        "key": "clientName",
+        "label": "MEMBRE",
+        "value": "Client"
       }
     ],
     "secondaryFields": [
       {
         "key": "points",
-        "label": "Tampons",
-        "value": "0 / 10"
+        "label": "VOTRE FIDÉLITÉ",
+        "value": "○ ○ ○ ○ ○ ○ ○ ○ ○ ○",
+        "textAlignment": "PKTextAlignmentCenter"
+      }
+    ],
+    "auxiliaryFields": [
+      {
+        "key": "status",
+        "label": "PROGRESSION",
+        "value": "0 / 10 TAMPONS",
+        "textAlignment": "PKTextAlignmentCenter"
       }
     ]
-  }
+  },
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatQR",
+      "message": "NUVY-DEFAULT",
+      "messageEncoding": "iso-8859-1"
+    }
+  ]
 }

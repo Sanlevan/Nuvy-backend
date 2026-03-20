@@ -8,16 +8,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #2A8C9C; --bg: #FAF8F5; --border: #E0DEDA; }
-        body { font-family: 'Manrope', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .ceo-card { background: white; padding: 50px; border-radius: 35px; border: 1px solid var(--border); width: 100%; max-width: 450px; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
-        .logo { font-size: 32px; font-weight: 800; color: var(--primary); text-align: center; margin-bottom: 10px; letter-spacing: -1px; }
-        .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 35px; font-weight: 600; }
+        body { font-family: 'Manrope', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;}
+        .ceo-card { background: white; padding: 40px; border-radius: 35px; border: 1px solid var(--border); width: 100%; max-width: 450px; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
+        .logo { font-size: 32px; font-weight: 800; color: var(--primary); text-align: center; margin-bottom: 5px; letter-spacing: -1px; }
+        .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 30px; font-weight: 600; }
         label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #bbb; margin-bottom: 8px; margin-left: 5px; }
-        input { width: 100%; padding: 18px; margin-bottom: 20px; border-radius: 16px; border: 1px solid var(--border); box-sizing: border-box; outline: none; font-size: 16px; background: #Fcfcfc; transition: 0.2s; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border); box-sizing: border-box; outline: none; font-size: 15px; background: #Fcfcfc; transition: 0.2s; }
         input:focus { border-color: var(--primary); background: #fff; }
-        button { width: 100%; padding: 20px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        
+        /* Selecteurs de couleurs */
+        .color-group { display: flex; gap: 15px; margin-bottom: 15px; }
+        .color-box { flex: 1; }
+        input[type="color"] { width: 100%; height: 50px; border: none; border-radius: 12px; cursor: pointer; background: none; }
+        
+        button { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(42, 140, 156, 0.2); }
-        .alert { display: none; margin-top: 25px; padding: 20px; border-radius: 16px; font-size: 14px; line-height: 1.5; word-break: break-all; }
+        .alert { display: none; margin-top: 20px; padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -32,15 +38,25 @@
         <input type="text" id="user" placeholder="Ex: admin_boulangerie">
         
         <label>Mot de passe Commerçant</label>
-        <input type="text" id="pass" placeholder="Mot de passe provisoire">
+        <input type="password" id="pass" placeholder="Mot de passe provisoire">
         
-        <div style="border-top: 1px solid #eee; margin: 20px 0; padding-top: 20px;">
+        <div class="color-group">
+            <div class="color-box">
+                <label>Couleur de Fond</label>
+                <input type="color" id="colorBg" value="#FAF8F5">
+            </div>
+            <div class="color-box">
+                <label>Couleur du Texte</label>
+                <input type="color" id="colorText" value="#2A8C9C">
+            </div>
+        </div>
+        
+        <div style="border-top: 1px solid #eee; margin: 15px 0; padding-top: 15px;">
             <label>Votre Code CEO (Sécurité)</label>
             <input type="password" id="ceoKey" placeholder="••••••••">
         </div>
 
-        <button onclick="createAccount()">GÉNÉRER LE COMPTE PRO</button>
-        
+        <button onclick="createAccount()">GÉNÉRER LA BOUTIQUE</button>
         <div id="alert" class="alert"></div>
     </div>
 
@@ -50,6 +66,8 @@
             const username = document.getElementById('user').value;
             const password = document.getElementById('pass').value;
             const ceoKey = document.getElementById('ceoKey').value;
+            const colorBg = document.getElementById('colorBg').value;
+            const colorText = document.getElementById('colorText').value;
             const alertDiv = document.getElementById('alert');
 
             if(!nom || !username || !password || !ceoKey) return alert("Tous les champs sont obligatoires !");
@@ -57,7 +75,7 @@
             const res = await fetch('/admin/create-boutique', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ nom: nom, username: username, password: password, ceoKey: ceoKey })
+                body: JSON.stringify({ nom: nom, username: username, password: password, ceoKey: ceoKey, color_bg: colorBg, color_text: colorText })
             });
 
             const data = await res.json();
