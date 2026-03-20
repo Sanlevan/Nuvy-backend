@@ -1,2 +1,9 @@
 node_modules/
 .env
+nuvy-pass.key
+nuvy-pass.p12
+nuvy-pass.csr
+pass.cer
+pass.pem
+signer.pem
+WWDR.pem
