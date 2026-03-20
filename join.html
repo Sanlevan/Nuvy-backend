@@ -1,48 +1,56 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nuvy - Création de carte</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuvy × Boutique</title>
     <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Manrope', sans-serif; background: #FAF8F5; color: #333; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
-        .box { width: 100%; max-width: 400px; text-align: center; background: white; padding: 40px 30px; border-radius: 30px; border: 1px solid #E0DEDA; box-shadow: 0 10px 30px rgba(0,0,0,0.05); box-sizing: border-box; }
-        h1 { font-size: 38px; font-weight: 800; color: #2A8C9C; margin-top: 0; margin-bottom: 30px; letter-spacing: -1.5px; }
-        .group { margin-bottom: 20px; text-align: left; }
-        label { font-size: 11px; font-weight: 800; color: #aaa; text-transform: uppercase; margin-bottom: 8px; display: block; margin-left: 5px; }
-        input { width: 100%; background: #Fcfcfc; border: 1px solid #E0DEDA; padding: 18px; border-radius: 16px; color: #333; font-size: 16px; outline: none; box-sizing: border-box; transition: 0.2s; }
-        input:focus { border-color: #2A8C9C; background: #fff; }
-        button { width: 100%; background: #2A8C9C; color: white; border: none; padding: 20px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(42, 140, 156, 0.2); }
+        body { font-family: 'Manrope', sans-serif; background: #FAF8F5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: white; padding: 40px; border-radius: 35px; border: 1px solid #E0DEDA; width: 100%; max-width: 400px; text-align: center; }
+        .header { margin-bottom: 30px; font-weight: 800; font-size: 20px; }
+        .nuvy { color: #2A8C9C; } .shop { color: #888; }
+        input { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 16px; border: 1px solid #E0DEDA; font-size: 16px; box-sizing: border-box; }
+        button { width: 100%; padding: 20px; background: #2A8C9C; color: white; border: none; border-radius: 18px; font-weight: 800; font-size: 16px; cursor: pointer; }
+        #wallet-area { display: none; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h1>Nuvy</h1>
-        <div style="display:flex; gap:15px;">
-            <div class="group" style="flex:1;"><label>Prénom</label><input type="text" id="prenom" placeholder="Jean" required></div>
-            <div class="group" style="flex:1;"><label>Nom</label><input type="text" id="nom" placeholder="Dupont" required></div>
+    <div class="card">
+        <div class="header"><span class="nuvy">Nuvy</span> × <span id="shop-name" class="shop">Boutique</span></div>
+        
+        <div id="form-area">
+            <h1>Inscrivez-vous</h1>
+            <p style="color:#666; margin-bottom:30px;">Cumulez des tampons et recevez des cadeaux exclusifs.</p>
+            <input type="text" id="prenom" placeholder="Prénom">
+            <input type="text" id="nom" placeholder="Nom">
+            <input type="tel" id="tel" placeholder="06 12 34 56 78">
+            <button onclick="register()">CRÉER MA CARTE</button>
         </div>
-        <div class="group"><label>Téléphone</label><input type="tel" id="tel" placeholder="06 12 34 56 78" required></div>
-        <button onclick="register()">Ajouter à Apple Wallet</button>
+
+        <div id="wallet-area">
+            <h1 style="color:#2A8C9C">C'est prêt !</h1>
+            <p>Ajoutez votre carte à votre iPhone.</p>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/Add_to_Apple_Wallet_rgb_v.svg" width="200" style="cursor:pointer;" onclick="location.href='/pass/'+clientToken">
+        </div>
     </div>
+
     <script>
+        const slug = window.location.pathname.split('/').pop();
+        document.getElementById('shop-name').innerText = slug.replace(/-/g, ' ').toUpperCase();
+        let clientToken = null;
+
         async function register() {
-            const prenom = document.getElementById('prenom').value.trim();
-            const nom = document.getElementById('nom').value.trim();
-            const tel = document.getElementById('tel').value.trim();
-            if(!prenom || !nom || !tel) return alert("Veuillez remplir tous les champs !");
-            
-            const slug = window.location.pathname.split('/').pop();
-            const res = await fetch("/join/" + slug + "/create", { 
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prenom: prenom, nom: nom, telephone: tel}) 
+            const res = await fetch(`/join/${slug}/create`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ prenom: document.getElementById('prenom').value, nom: document.getElementById('nom').value, telephone: document.getElementById('tel').value })
             });
             const data = await res.json();
-            if(data.token) {
-                localStorage.setItem('nuvy_token', data.token);
-                window.location.href = "/pass/" + data.token;
-            }
+            clientToken = data.token;
+            localStorage.setItem('nuvy_token', clientToken);
+            document.getElementById('form-area').style.display = 'none';
+            document.getElementById('wallet-area').style.display = 'block';
         }
     </script>
 </body>

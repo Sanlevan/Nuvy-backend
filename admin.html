@@ -4,90 +4,74 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuvy CEO - Administration</title>
     <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #2A8C9C; --bg: #FAF8F5; --border: #E0DEDA; }
         body { font-family: 'Manrope', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;}
         .ceo-card { background: white; padding: 40px; border-radius: 35px; border: 1px solid var(--border); width: 100%; max-width: 480px; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
-        .logo { font-size: 32px; font-weight: 800; color: var(--primary); text-align: center; margin-bottom: 5px; letter-spacing: -1px; }
-        .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 30px; font-weight: 600; }
+        .logo { font-size: 32px; font-weight: 800; color: var(--primary); text-align: center; margin-bottom: 30px; letter-spacing: -1px; }
         label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #bbb; margin-bottom: 8px; margin-left: 5px; }
-        input, select { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border); box-sizing: border-box; outline: none; font-size: 15px; background: #Fcfcfc; font-family: inherit; }
-        button { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        input, select { width: 100%; padding: 16px; margin-bottom: 15px; border-radius: 14px; border: 1px solid var(--border); box-sizing: border-box; outline: none; font-size: 15px; background: #FCFCFC; font-family: inherit; }
+        button { width: 100%; padding: 20px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(42, 140, 156, 0.2); }
-        .alert { display: none; margin-top: 20px; padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-break: break-all; }
-        .helper { font-size: 11px; color: #aaa; margin-top: -10px; margin-bottom: 15px; margin-left: 5px; }
+        #result { display: none; margin-top: 20px; padding: 20px; border-radius: 15px; font-size: 14px; line-height: 1.5; text-align: center; }
     </style>
 </head>
 <body>
     <div class="ceo-card">
         <div class="logo">Nuvy CEO</div>
-        <div class="subtitle">Onboarding Express (DA Automatique)</div>
         
-        <label>Nom de l'établissement</label>
-        <input type="text" id="nom" placeholder="Ex: Pizza Napoli">
+        <label>Nom de la boutique</label>
+        <input type="text" id="nom" placeholder="Ex: Maison Dorée">
         
-        <label>Identifiant & Mot de passe</label>
         <div style="display:flex; gap:10px;">
-            <input type="text" id="user" placeholder="Login">
-            <input type="password" id="pass" placeholder="MDP">
+            <input type="text" id="user" placeholder="Identifiant">
+            <input type="password" id="pass" placeholder="Mot de passe">
         </div>
         
-        <label>Secteur d'activité</label>
-        <select id="defaultIcon">
-            <option value="">-- Utiliser mon logo custom --</option>
-            <option value="https://cdn-icons-png.flaticon.com/512/3132/3132693.png">🍕 Pizza (DA Rouge)</option>
-            <option value="https://cdn-icons-png.flaticon.com/512/992/992744.png">🥖 Boulangerie (DA Dorée)</option>
-            <option value="https://cdn-icons-png.flaticon.com/512/2821/2821012.png">💇 Coiffeur (DA Bleu Nuit)</option>
-            <option value="https://cdn-icons-png.flaticon.com/512/3567/3567086.png">💅 Onglerie (DA Rose)</option>
-            <option value="https://cdn-icons-png.flaticon.com/512/2738/2738730.png">☕ Café (DA Brun)</option>
-            <option value="https://cdn-icons-png.flaticon.com/512/3050/3050239.png">🍦 Glacier (DA Rose Pop)</option>
+        <label>Catégorie & DA</label>
+        <select id="cat">
+            <option value="default">✨ Nuvy Classique (Turquoise)</option>
+            <option value="boulangerie">🥖 Boulangerie (Beige Doré)</option>
+            <option value="pizza">🍕 Pizza (Rouge Tomate)</option>
+            <option value="onglerie">💅 Onglerie / Beauté (Rose Chic)</option>
+            <option value="coiffeur">💇 Coiffeur / Barbier (Bleu Nuit)</option>
+            <option value="cafe">☕ Café / Salon de thé (Brun Café)</option>
         </select>
 
-        <label>OU Lien Logo Custom (PNG transparent)</label>
-        <input type="text" id="logoUrl" placeholder="https://url-de-mon-image.png">
-        <div class="helper">L'intelligence Nuvy adaptera les couleurs.</div>
+        <label>Logo Custom (URL)</label>
+        <input type="text" id="logoUrl" placeholder="https://...">
         
         <label>Code CEO</label>
-        <input type="password" id="ceoKey" placeholder="••••••••">
+        <input type="password" id="ceo" placeholder="••••••••">
 
-        <button onclick="createAccount()">DÉPLOYER LA BOUTIQUE</button>
-        <div id="alert" class="alert"></div>
+        <button onclick="create()">GÉNÉRER LA BOUTIQUE</button>
+        <div id="result"></div>
     </div>
 
     <script>
-        async function createAccount() {
-            const nom = document.getElementById('nom').value;
-            const logoUrlInput = document.getElementById('logoUrl').value;
-            const defaultIcon = document.getElementById('defaultIcon').value;
-            const finalLogo = logoUrlInput || defaultIcon || "";
-
-            const payload = {
-                nom: nom,
-                username: document.getElementById('user').value,
-                password: document.getElementById('pass').value,
-                ceoKey: document.getElementById('ceoKey').value,
-                logo_url: finalLogo
-            };
-
+        async function create() {
             const res = await fetch('/admin/create-boutique', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    nom: document.getElementById('nom').value,
+                    username: document.getElementById('user').value,
+                    password: document.getElementById('pass').value,
+                    ceoKey: document.getElementById('ceo').value,
+                    categorie: document.getElementById('cat').value,
+                    logo_url: document.getElementById('logoUrl').value
+                })
             });
-
             const data = await res.json();
-            const alertDiv = document.getElementById('alert');
-            alertDiv.style.display = 'block';
-
+            const r = document.getElementById('result');
+            r.style.display = 'block';
             if(res.ok) {
-                alertDiv.style.background = '#E8F5E9';
-                alertDiv.style.color = '#2E7D32';
-                alertDiv.innerHTML = "<b>Boutique créée !</b><br>Lien : nuvy.pro/join/" + data.boutique.slug;
+                r.style.background = '#E8F5E9'; r.style.color = '#2E7D32';
+                r.innerHTML = `<b>Boutique Active !</b><br><a href="${data.boutique.join_url}" target="_blank" style="color:inherit;">${data.boutique.join_url}</a>`;
             } else {
-                alertDiv.style.background = '#FFEBEE';
-                alertDiv.style.color = '#C62828';
-                alertDiv.innerText = "Erreur : " + data.message;
+                r.style.background = '#FFEBEE'; r.style.color = '#C62828';
+                r.innerText = "Erreur : " + data.message;
             }
         }
     </script>
