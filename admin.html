@@ -1,96 +1,93 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuvy CEO - Administration</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #2A8C9C; --bg: #FAF8F5; --border: #E0DEDA; }
         body { font-family: 'Manrope', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;}
-        .ceo-card { background: white; padding: 40px; border-radius: 35px; border: 1px solid var(--border); width: 100%; max-width: 450px; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
+        .ceo-card { background: white; padding: 40px; border-radius: 35px; border: 1px solid var(--border); width: 100%; max-width: 480px; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
         .logo { font-size: 32px; font-weight: 800; color: var(--primary); text-align: center; margin-bottom: 5px; letter-spacing: -1px; }
         .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 30px; font-weight: 600; }
         label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #bbb; margin-bottom: 8px; margin-left: 5px; }
-        input[type="text"], input[type="password"] { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border); box-sizing: border-box; outline: none; font-size: 15px; background: #Fcfcfc; transition: 0.2s; }
-        input:focus { border-color: var(--primary); background: #fff; }
-        
-        /* Selecteurs de couleurs */
-        .color-group { display: flex; gap: 15px; margin-bottom: 15px; }
-        .color-box { flex: 1; }
-        input[type="color"] { width: 100%; height: 50px; border: none; border-radius: 12px; cursor: pointer; background: none; }
-        
+        input, select { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border); box-sizing: border-box; outline: none; font-size: 15px; background: #Fcfcfc; font-family: inherit; }
         button { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(42, 140, 156, 0.2); }
         .alert { display: none; margin-top: 20px; padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-break: break-all; }
+        .helper { font-size: 11px; color: #aaa; margin-top: -10px; margin-bottom: 15px; margin-left: 5px; }
     </style>
 </head>
 <body>
     <div class="ceo-card">
         <div class="logo">Nuvy CEO</div>
-        <div class="subtitle">Créer un nouveau compte commerçant</div>
+        <div class="subtitle">Onboarding Express (DA Automatique)</div>
         
         <label>Nom de l'établissement</label>
-        <input type="text" id="nom" placeholder="Ex: Boulangerie Paris">
+        <input type="text" id="nom" placeholder="Ex: Pizza Napoli">
         
-        <label>Identifiant Dashboard (Login)</label>
-        <input type="text" id="user" placeholder="Ex: admin_boulangerie">
-        
-        <label>Mot de passe Commerçant</label>
-        <input type="password" id="pass" placeholder="Mot de passe provisoire">
-        
-        <div class="color-group">
-            <div class="color-box">
-                <label>Couleur de Fond</label>
-                <input type="color" id="colorBg" value="#FAF8F5">
-            </div>
-            <div class="color-box">
-                <label>Couleur du Texte</label>
-                <input type="color" id="colorText" value="#2A8C9C">
-            </div>
+        <label>Identifiant & Mot de passe</label>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="user" placeholder="Login">
+            <input type="password" id="pass" placeholder="MDP">
         </div>
         
-        <div style="border-top: 1px solid #eee; margin: 15px 0; padding-top: 15px;">
-            <label>Votre Code CEO (Sécurité)</label>
-            <input type="password" id="ceoKey" placeholder="••••••••">
-        </div>
+        <label>Secteur d'activité</label>
+        <select id="defaultIcon">
+            <option value="">-- Utiliser mon logo custom --</option>
+            <option value="https://cdn-icons-png.flaticon.com/512/3132/3132693.png">🍕 Pizza (DA Rouge)</option>
+            <option value="https://cdn-icons-png.flaticon.com/512/992/992744.png">🥖 Boulangerie (DA Dorée)</option>
+            <option value="https://cdn-icons-png.flaticon.com/512/2821/2821012.png">💇 Coiffeur (DA Bleu Nuit)</option>
+            <option value="https://cdn-icons-png.flaticon.com/512/3567/3567086.png">💅 Onglerie (DA Rose)</option>
+            <option value="https://cdn-icons-png.flaticon.com/512/2738/2738730.png">☕ Café (DA Brun)</option>
+            <option value="https://cdn-icons-png.flaticon.com/512/3050/3050239.png">🍦 Glacier (DA Rose Pop)</option>
+        </select>
 
-        <button onclick="createAccount()">GÉNÉRER LA BOUTIQUE</button>
+        <label>OU Lien Logo Custom (PNG transparent)</label>
+        <input type="text" id="logoUrl" placeholder="https://url-de-mon-image.png">
+        <div class="helper">L'intelligence Nuvy adaptera les couleurs.</div>
+        
+        <label>Code CEO</label>
+        <input type="password" id="ceoKey" placeholder="••••••••">
+
+        <button onclick="createAccount()">DÉPLOYER LA BOUTIQUE</button>
         <div id="alert" class="alert"></div>
     </div>
 
     <script>
         async function createAccount() {
             const nom = document.getElementById('nom').value;
-            const username = document.getElementById('user').value;
-            const password = document.getElementById('pass').value;
-            const ceoKey = document.getElementById('ceoKey').value;
-            const colorBg = document.getElementById('colorBg').value;
-            const colorText = document.getElementById('colorText').value;
-            const alertDiv = document.getElementById('alert');
+            const logoUrlInput = document.getElementById('logoUrl').value;
+            const defaultIcon = document.getElementById('defaultIcon').value;
+            const finalLogo = logoUrlInput || defaultIcon || "";
 
-            if(!nom || !username || !password || !ceoKey) return alert("Tous les champs sont obligatoires !");
+            const payload = {
+                nom: nom,
+                username: document.getElementById('user').value,
+                password: document.getElementById('pass').value,
+                ceoKey: document.getElementById('ceoKey').value,
+                logo_url: finalLogo
+            };
 
             const res = await fetch('/admin/create-boutique', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ nom: nom, username: username, password: password, ceoKey: ceoKey, color_bg: colorBg, color_text: colorText })
+                body: JSON.stringify(payload)
             });
 
             const data = await res.json();
+            const alertDiv = document.getElementById('alert');
             alertDiv.style.display = 'block';
 
             if(res.ok) {
                 alertDiv.style.background = '#E8F5E9';
                 alertDiv.style.color = '#2E7D32';
-                alertDiv.style.border = '1px solid #C8E6C9';
-                alertDiv.innerHTML = "<b>Succès !</b> Boutique créée.<br><br><b>Lien Client :</b><br>nuvy.pro/join/" + data.boutique.slug;
+                alertDiv.innerHTML = "<b>Boutique créée !</b><br>Lien : nuvy.pro/join/" + data.boutique.slug;
             } else {
                 alertDiv.style.background = '#FFEBEE';
                 alertDiv.style.color = '#C62828';
-                alertDiv.style.border = '1px solid #FFCDD2';
-                alertDiv.innerText = "Erreur : " + (data.message || "Problème base de données");
+                alertDiv.innerText = "Erreur : " + data.message;
             }
         }
     </script>
