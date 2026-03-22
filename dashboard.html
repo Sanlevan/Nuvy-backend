@@ -1,85 +1,494 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuvy Dashboard</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root { --primary: #2A8C9C; --bg: #FAF8F5; --border: #E0DEDA; }
-        body { font-family: 'Manrope', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; }
-        .sidebar { width: 260px; background: white; border-right: 1px solid var(--border); padding: 40px 20px; display: flex; flex-direction: column; gap: 30px; }
-        .nav-item { padding: 15px; border-radius: 12px; cursor: pointer; color: #888; font-weight: 800; }
-        .nav-item.active { color: var(--primary); background: #f0f9fa; }
-        .main { flex: 1; padding: 60px; overflow-y: auto; }
-        .view { display: none; } .view.active { display: block; }
-        .card { background: white; padding: 40px; border-radius: 30px; border: 1px solid var(--border); }
-        .btn { padding: 15px 30px; border-radius: 15px; border: none; font-weight: 800; cursor: pointer; background: var(--primary); color: white; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuvy - Dashboard Fidelite</title>
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Manrope', 'system-ui', 'sans-serif'] },
+          colors: {
+            'nuvy': '#2A8C9C',
+            'nuvy-dark': '#238391',
+            'nuvy-gold': '#D4AF37',
+            'nuvy-bg': '#FAF8F5',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #FAF8F5; }
+    .safe-area-inset-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+    @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+    .animate-ping { animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+    
+    /* GESTION DES VUES */
+    .view { display: none !important; animation: fadeIn 0.4s ease; }
+    .view.active { display: block !important; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
 </head>
-<body>
-    <div class="sidebar">
-        <div style="font-size:32px; font-weight:800; color:var(--primary);">Nuvy</div>
-        <div id="shop-name" style="font-size:12px; color:#aaa; font-weight:800; text-transform:uppercase;">...</div>
-        <div class="nav-item active" onclick="show('live', this)">Accueil Live</div>
-        <div class="nav-item" onclick="show('clients', this)">Mes Clients</div>
+<body class="font-sans antialiased text-gray-900 min-h-screen">
+  
+  <aside id="sidebar" class="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex-col shadow-sm z-40">
+    <div class="p-6 border-b border-gray-200">
+      <h1 class="text-2xl font-bold text-nuvy">Nuvy</h1>
+      <p id="shop-name" class="text-sm text-gray-500 mt-1 tracking-wide uppercase">...</p>
     </div>
+    <nav class="flex-1 p-4">
+      <ul class="space-y-2">
+        <li>
+          <button onclick="switchView('view-home', this)" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 bg-nuvy/10 text-nuvy font-medium">
+            <i data-lucide="home" class="w-5 h-5"></i><span>Accueil</span><span class="text-xs px-2 py-0.5 rounded-full ml-auto bg-nuvy text-white">Live</span>
+          </button>
+        </li>
+        <li>
+          <button onclick="switchView('view-clients', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
+            <i data-lucide="users" class="w-5 h-5"></i><span>Mes Clients</span>
+          </button>
+        </li>
+        <li>
+          <button onclick="switchView('view-analytics', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
+            <i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>Statistiques</span>
+          </button>
+        </li>
+        <li>
+          <button onclick="switchView('view-account', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
+            <i data-lucide="user" class="w-5 h-5"></i><span>Mon Compte</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+    <div class="p-4 border-t border-gray-200">
+      <div id="conn-status" class="flex items-center gap-2 px-4 py-2 mb-3 rounded-lg bg-red-50 text-red-600 text-sm font-bold">
+        🔴 DÉCONNECTÉ
+      </div>
+      <button onclick="deconnexion()" class="w-full flex items-center justify-start gap-3 px-4 py-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+        <i data-lucide="log-out" class="w-5 h-5"></i><span>Deconnexion</span>
+      </button>
+    </div>
+  </aside>
 
-    <div class="main">
-        <div id="live" class="view active">
-            <h1>Direct</h1>
-            <div id="no-client" style="text-align:center; padding:100px; color:#ccc; border:2px dashed #eee; border-radius:30px;">En attente de scan...</div>
-            <div id="client-card" class="card" style="display:none;">
-                <div style="font-size:64px; font-weight:800; color:var(--primary);" id="c-name">...</div>
-                <div id="c-pts" style="margin-bottom:30px; color:#888;"></div>
-                <button class="btn" onclick="addPoints(1)">VALIDER +1 TAMPON</button>
-                <button onclick="addPoints(-10)" id="btn-gift" class="btn" style="background:#D4AF37; display:none;">OFFRIR CADEAU 🎁</button>
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-area-inset-bottom">
+    <div class="flex items-center justify-around py-2 px-4">
+      <button onclick="switchView('view-home', this)" class="nav-item active flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-nuvy">
+        <i data-lucide="home" class="w-6 h-6"></i><span class="text-xs font-semibold">Accueil</span>
+      </button>
+      <button onclick="switchView('view-clients', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
+        <i data-lucide="users" class="w-6 h-6"></i><span class="text-xs font-medium">Clients</span>
+      </button>
+      <button onclick="switchView('view-analytics', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
+        <i data-lucide="bar-chart-3" class="w-6 h-6"></i><span class="text-xs font-medium">Stats</span>
+      </button>
+      <button onclick="switchView('view-account', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
+        <i data-lucide="user" class="w-6 h-6"></i><span class="text-xs font-medium">Compte</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="pt-6 pb-20 px-4 lg:pt-8 lg:pb-8 lg:pl-72 lg:pr-8 min-h-screen flex flex-col">
+    
+    <section id="view-home" class="view active space-y-4 lg:space-y-6 w-full max-w-4xl mx-auto">
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-4 lg:p-6">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
+          <span class="text-sm font-medium text-gray-500">Objectif du jour</span>
+          <div class="text-base lg:text-lg font-bold text-nuvy">
+             <span id="today-count">0</span> / <span id="goal-val" class="cursor-pointer" onclick="modifierObjectif()">20</span> scans
+          </div>
+        </div>
+        <div class="h-3 bg-nuvy/15 rounded-full overflow-hidden">
+          <div id="goal-bar" class="h-full bg-nuvy rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-4">
+        <div class="relative flex-1">
+            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+            <input type="text" id="search-manual" onkeyup="chercherClient(this.value)" placeholder="Rechercher un client (Nom ou Tel)..." class="w-full pl-12 pr-4 h-14 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-nuvy/50 shadow-sm transition-all">
+            <div id="search-results" style="display:none;" class="absolute top-16 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 lg:p-8">
+        <div id="no-client" class="flex flex-col items-center justify-center py-8 lg:py-12 border-2 border-dashed border-nuvy/30 rounded-2xl bg-nuvy/5">
+          <div class="relative"><i data-lucide="smartphone" class="w-12 h-12 lg:w-16 lg:h-16 text-nuvy relative animate-pulse"></i></div>
+          <p class="mt-4 lg:mt-6 text-base lg:text-lg font-medium text-nuvy text-center">En attente d'un scan NFC...</p>
+        </div>
+
+        <div id="client-card" class="hidden space-y-4 lg:space-y-6">
+          <div class="bg-gradient-to-br from-nuvy to-nuvy-dark rounded-2xl p-4 lg:p-6 text-white text-center shadow-lg">
+            <p class="text-xs lg:text-sm opacity-80 uppercase tracking-widest mb-2 font-semibold">Client détecté</p>
+            <h3 id="c-name" class="text-2xl lg:text-4xl font-extrabold mt-1 truncate">...</h3>
+            <p id="c-info" class="mt-3 text-sm lg:text-base font-medium opacity-90">...</p>
+          </div>
+
+          <div class="flex items-center justify-center gap-4 lg:gap-6">
+            <button onclick="updateTempCount(-1)" class="h-11 w-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all"><i data-lucide="minus" class="w-5 h-5"></i></button>
+            <div class="text-center min-w-[80px]">
+              <span id="temp-count" class="text-3xl lg:text-4xl font-extrabold text-gray-900">1</span>
             </div>
+            <button onclick="updateTempCount(1)" class="h-11 w-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all"><i data-lucide="plus" class="w-5 h-5"></i></button>
+          </div>
+
+          <div class="flex gap-4">
+            <button id="btn-validate" onclick="validerPoints()" class="flex-1 h-12 lg:h-14 font-bold bg-nuvy hover:bg-nuvy-dark text-white rounded-xl shadow-md active:scale-[0.98] transition-all">VALIDER +1</button>
+            <button id="btn-gift" onclick="offrirCadeau()" style="display:none;" class="flex-1 h-12 lg:h-14 font-bold bg-nuvy-gold hover:bg-yellow-600 text-white rounded-xl shadow-md active:scale-[0.98] transition-all">OFFRIR CADEAU 🎁</button>
+          </div>
+          <button onclick="resetLive()" class="w-full text-center text-sm text-gray-400 hover:text-gray-600 font-bold mt-2 transition-colors">IGNORER ✕</button>
         </div>
+      </div>
 
-        <div id="clients" class="view">
-            <h1>Répertoire</h1>
-            <table width="100%" id="list"></table>
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-4 lg:p-6">
+          <h3 class="text-base lg:text-lg font-bold text-gray-900 mb-4">Dernières activités</h3>
+          <div id="activity-feed" class="space-y-2 lg:space-y-3">
+              <div id="empty-feed" class="p-6 text-center text-gray-400 border border-dashed border-gray-200 rounded-xl">Aucun passage enregistré aujourd'hui.</div>
+          </div>
+      </div>
+    </section>
+
+    <section id="view-clients" class="view space-y-4 lg:space-y-6 w-full max-w-5xl mx-auto">
+      <h2 class="text-xl lg:text-2xl font-bold text-gray-900">Mes Clients</h2>
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+              <th class="py-4 px-6 text-xs uppercase tracking-wider font-bold text-gray-500">Rang</th>
+              <th class="py-4 px-6 text-xs uppercase tracking-wider font-bold text-gray-500">Client</th>
+              <th class="py-4 px-6 text-xs uppercase tracking-wider font-bold text-gray-500">Total pts</th>
+              <th class="py-4 px-6 text-xs uppercase tracking-wider font-bold text-gray-500">Statut carte</th>
+              <th class="py-4 px-6 text-xs uppercase tracking-wider font-bold text-gray-500">Cadeaux</th>
+            </tr>
+          </thead>
+          <tbody id="list-body">
+            </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-analytics" class="view space-y-4 lg:space-y-6 w-full max-w-5xl mx-auto">
+      <h2 class="text-xl lg:text-2xl font-bold text-gray-900">Statistiques</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
+            <p class="text-sm font-semibold text-gray-500">Clients inscrits</p>
+            <p id="s-tot" class="text-3xl font-extrabold text-gray-900 mt-2">0</p>
         </div>
-    </div>
+        <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
+            <p class="text-sm font-semibold text-gray-500">Fréquence moy. (Jours)</p>
+            <p id="freq-value" class="text-3xl font-extrabold text-nuvy mt-2">--</p>
+        </div>
+        <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
+            <p class="text-sm font-semibold text-gray-500">Récompenses prêtes</p>
+            <p id="s-gft" class="text-3xl font-extrabold text-nuvy-gold mt-2">0</p>
+        </div>
+      </div>
 
-    <script>
-        const socket = io();
-        const bNom = localStorage.getItem('nuvy_boutique_nom');
-        const bId = localStorage.getItem('nuvy_boutique_id');
-        const bSlug = localStorage.getItem('nuvy_boutique_slug');
-        let currentClient = null;
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-6">🔥 Heures de pointe (Moyenne/Jour)</h3>
+          <div class="h-[300px] w-full relative"><canvas id="peakChart"></canvas></div>
+      </div>
 
-        document.getElementById('shop-name').innerText = bNom;
-        socket.emit('join-boutique', bSlug);
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-6">📊 Distribution des tampons</h3>
+          <div class="h-[300px] w-full relative"><canvas id="distriChart"></canvas></div>
+      </div>
+    </section>
 
-        socket.on('client-detected', (c) => {
-            currentClient = c;
-            document.getElementById('no-client').style.display = 'none';
-            document.getElementById('client-card').style.display = 'block';
-            document.getElementById('c-name').innerText = c.nom;
-            document.getElementById('c-pts').innerText = c.tampons + " points | " + (c.recompenses||0) + " cadeaux";
-            document.getElementById('btn-gift').style.display = c.recompenses > 0 ? 'inline-block' : 'none';
-        });
+    <section id="view-account" class="view space-y-4 lg:space-y-6 w-full max-w-3xl mx-auto">
+      <h2 class="text-xl lg:text-2xl font-bold text-gray-900">Mon Compte</h2>
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 lg:p-8">
+        <div class="space-y-5">
+          <div>
+            <label class="text-sm font-bold text-gray-700">Adresse de la boutique</label>
+            <input type="text" id="edit-street" placeholder="Ex: 12 avenue des Champs-Élysées" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+          </div>
+          <div>
+            <label class="text-sm font-bold text-gray-700">Code postal et ville</label>
+            <input type="text" id="edit-city" placeholder="Ex: 75008 Paris" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+          </div>
+          <div>
+            <label class="text-sm font-bold text-gray-700">Téléphone public</label>
+            <input type="tel" id="edit-phone" placeholder="01 23 45 67 89" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+          </div>
+          
+          <div class="pt-4 mt-2">
+            <button id="btn-save-profile" onclick="saveProfile()" class="w-full h-12 font-bold bg-nuvy hover:bg-nuvy-dark text-white rounded-xl shadow-md active:scale-[0.98] transition-all">ENREGISTRER LES MODIFICATIONS</button>
+          </div>
 
-        async function addPoints(n) {
-            await fetch('/clients/' + currentClient.id + '/tampon', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({nb:n}) });
-            location.reload();
-        }
+          <div class="pt-6 border-t border-gray-100 text-center">
+            <button onclick="changerMotDePasse()" class="text-sm font-bold text-gray-400 hover:text-gray-700 transition-colors">🔒 Modifier mon mot de passe</button>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        function show(id, el) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById(id).classList.add('active'); el.classList.add('active');
-            if(id === 'clients') load();
-        }
+  </main>
 
-        async function load() {
-            const res = await fetch('/boutiques/' + bId + '/clients');
+  <script>
+    lucide.createIcons(); // Active les icônes
+
+    let todayPassages = 0;
+    const socket = io();
+    const boutiqueNom = localStorage.getItem('nuvy_boutique_nom');
+    const boutiqueId = localStorage.getItem('nuvy_boutique_id');
+    const boutiqueSlug = localStorage.getItem('nuvy_boutique_slug');
+    const statusBox = document.getElementById('conn-status');
+    
+    if (!boutiqueId) window.location.href = '/';
+
+    let currentClient = null;
+    let dailyGoal = localStorage.getItem('nuvy_daily_goal') || 20;
+    let pointsToAdd = 1;
+    let chartPeak = null;
+    let chartDistri = null;
+
+    document.getElementById('shop-name').innerText = boutiqueNom;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const goalElem = document.getElementById('goal-val');
+        if (goalElem) goalElem.innerText = dailyGoal;
+        rafraichirCompteurJournalier();
+        loadAnalyticsData();
+    });
+
+    let audioCtx;
+    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    document.body.addEventListener('click', initAudio, { once: true });
+
+    function playDing() {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.4);
+            osc.stop(audioCtx.currentTime + 0.4);
+        } catch(e) { console.error(e); }
+    }
+
+    socket.on('connect', () => {
+        statusBox.classList.replace('bg-red-50', 'bg-green-50');
+        statusBox.classList.replace('text-red-600', 'text-green-600');
+        statusBox.innerHTML = '🟢 ' + boutiqueSlug.toUpperCase();
+        socket.emit('join-boutique', boutiqueSlug.toLowerCase().trim());
+    });
+
+    socket.on('disconnect', () => {
+        statusBox.classList.replace('bg-green-50', 'bg-red-50');
+        statusBox.classList.replace('text-green-600', 'text-red-600');
+        statusBox.innerHTML = '🔴 DÉCONNECTÉ';
+    });
+
+    socket.on('client-detected', (client) => {
+        currentClient = client; pointsToAdd = 1;
+        playDing();
+        document.getElementById('no-client').style.display = 'none';
+        document.getElementById('client-card').style.display = 'block';
+        document.getElementById('c-name').innerText = client.nom;
+        const maxT = localStorage.getItem('nuvy_max_tampons') || 10;
+        document.getElementById('c-info').innerText = `${client.tampons} / ${maxT} tampons — ${client.recompenses || 0} cadeau(x)`;
+        updateUI();
+    });
+
+    function switchView(viewId, element) { 
+        document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); }); 
+        document.getElementById(viewId).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('bg-nuvy/10', 'text-nuvy'); n.classList.add('text-gray-700'); });
+        element.classList.remove('text-gray-700'); element.classList.add('bg-nuvy/10', 'text-nuvy');
+        
+        if (viewId === 'view-analytics' || viewId === 'view-clients') loadAnalyticsData(); 
+        if (viewId === 'view-account') loadAccountData(); 
+    }
+
+    async function loadAnalyticsData() {
+        try {
+            const resClients = await fetch(`/boutiques/${boutiqueId}/clients`);
+            const clientsData = await resClients.json();
+            const storeMax = localStorage.getItem('nuvy_max_tampons') || 10;
+            
+            const clientsTries = [...clientsData].sort((a, b) => (b.total_historique || 0) - (a.total_historique || 0));
+            const listBody = document.getElementById('list-body');
+            if (listBody) {
+                listBody.innerHTML = clientsTries.map((c, index) => {
+                    const badge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+                    return `<tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4 text-lg font-bold text-gray-400">${badge}</td>
+                        <td class="py-3 px-4 font-bold">${c.nom}</td>
+                        <td class="py-3 px-4 font-bold text-gray-500">${c.total_historique || 0}</td>
+                        <td class="py-3 px-4 font-bold text-nuvy">${c.tampons || 0} / ${storeMax}</td>
+                        <td class="py-3 px-4 font-bold text-nuvy-gold">${c.recompenses || 0} 🎁</td>
+                    </tr>`;
+                }).join('');
+            }
+
+            document.getElementById('s-tot').innerText = clientsData.length;
+            document.getElementById('s-gft').innerText = clientsData.reduce((acc, c) => acc + (c.recompenses || 0), 0);
+
+            const resStats = await fetch(`/boutiques/${boutiqueId}/stats`);
+            const stats = await resStats.json();
+            document.getElementById('freq-value').innerText = stats.avgFrequency;
+
+            const ctxPeak = document.getElementById('peakChart');
+            if (ctxPeak) {
+                if (chartPeak) chartPeak.destroy();
+                chartPeak = new Chart(ctxPeak.getContext('2d'), { type: 'line', data: { labels: Array.from({length: 24}, (_, i) => i + "h"), datasets: [{ label: 'Passages/jour', data: stats.peakHours, borderColor: '#2A8C9C', backgroundColor: 'rgba(42, 140, 156, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+            }
+
+            const ctxDistri = document.getElementById('distriChart');
+            if (ctxDistri) {
+                if (chartDistri) chartDistri.destroy();
+                chartDistri = new Chart(ctxDistri.getContext('2d'), { type: 'bar', data: { labels: stats.distribution.map((_, i) => i + " T"), datasets: [{ data: stats.distribution, backgroundColor: '#FF4B2B', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+            }
+        } catch (e) { console.error("Erreur Stats:", e); }
+    }
+
+    function updateTempCount(val) { pointsToAdd = Math.max(1, pointsToAdd + val); updateUI(); }
+    function updateUI() {
+        document.getElementById('temp-count').innerText = pointsToAdd;
+        document.getElementById('btn-validate').innerText = `VALIDER +${pointsToAdd}`;
+        document.getElementById('btn-gift').style.display = (currentClient && currentClient.recompenses > 0) ? 'block' : 'none';
+    }
+
+    async function validerPoints() {
+        if (!currentClient) return;
+        const btn = document.getElementById('btn-validate');
+        btn.disabled = true; btn.innerText = "VALIDATION...";
+        try {
+            const res = await fetch(`/clients/${currentClient.id}/tampon`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nb: pointsToAdd }) });
+            if (res.ok) {
+                addActivity(currentClient.nom, `+${pointsToAdd} points`, '#2A8C9C');
+                resetLive(); rafraichirCompteurJournalier(); loadAnalyticsData();
+            }
+        } catch (e) { console.error(e); } finally { btn.disabled = false; updateUI(); }
+    }
+
+    async function offrirCadeau() {
+        if (!currentClient || !confirm("Confirmer la remise ?")) return;
+        const btn = document.getElementById('btn-gift');
+        btn.disabled = true; btn.innerText = "TRAITEMENT...";
+        try {
+            const res = await fetch(`/clients/${currentClient.id}/tampon`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nb: -10 }) });
+            if (res.ok) {
+                addActivity(currentClient.nom, `Cadeau offert 🎁`, '#D4AF37');
+                resetLive(); rafraichirCompteurJournalier(); loadAnalyticsData();
+            }
+        } catch (e) { console.error(e); } finally { btn.disabled = false; updateUI(); }
+    }
+
+    function addActivity(nom, action, couleur) {
+        const feed = document.getElementById('activity-feed');
+        const empty = document.getElementById('empty-feed');
+        if (empty) empty.style.display = 'none';
+        const heure = new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-3 rounded-xl bg-gray-50 mb-2 border-l-4';
+        item.style.borderColor = couleur;
+        item.innerHTML = `<div class="flex items-center gap-3"><div class="font-bold text-gray-900">${nom}</div><span class="text-xs font-bold px-2 py-1 rounded-full text-white" style="background:${couleur}">${action}</span></div><div class="text-sm text-gray-500">${heure}</div>`;
+        feed.prepend(item);
+    }
+
+    function resetLive() { document.getElementById('client-card').style.display = 'none'; document.getElementById('no-client').style.display = 'flex'; currentClient = null; }
+    
+    async function rafraichirCompteurJournalier() {
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}/passages-du-jour`);
             const data = await res.json();
-            document.getElementById('list').innerHTML = data.map(c => `<tr><td><b>${c.nom}</b></td><td>${c.tampons}/10 pts</td><td>${c.recompenses} 🎁</td></tr>`).join('');
+            todayPassages = data.count;
+            document.getElementById('today-count').innerText = todayPassages;
+            document.getElementById('goal-bar').style.width = Math.min((todayPassages / dailyGoal) * 100, 100) + '%';
+        } catch (e) { console.error(e); }
+    }
+
+    function modifierObjectif() {
+        const n = prompt("Objectif du jour ?", dailyGoal);
+        if (n && !isNaN(n)) { dailyGoal = parseInt(n); localStorage.setItem('nuvy_daily_goal', dailyGoal); document.getElementById('goal-val').innerText = dailyGoal; rafraichirCompteurJournalier(); }
+    }
+
+    async function chercherClient(query) {
+        const resultsBox = document.getElementById('search-results');
+        if (query.length < 2) { resultsBox.style.display = 'none'; return; }
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}/clients`);
+            const clients = await res.json();
+            const matches = clients.filter(c => c.nom.toLowerCase().includes(query.toLowerCase()) || c.telephone.includes(query)).slice(0, 5);
+            if (matches.length > 0) {
+                resultsBox.style.display = 'block';
+                resultsBox.innerHTML = matches.map(c => `<div onclick='selectionnerClientManuel(${JSON.stringify(c)})' class="p-4 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"><div><b class="text-gray-900">${c.nom}</b><br><span class="text-xs text-gray-500">${c.telephone}</span></div><div class="font-bold text-nuvy">${c.tampons} pts</div></div>`).join('');
+            } else { resultsBox.style.display = 'block'; resultsBox.innerHTML = '<div class="p-4 text-center text-gray-500">Aucun client trouvé 😕</div>'; }
+        } catch (e) { console.error(e); }
+    }
+
+    function selectionnerClientManuel(client) {
+        document.getElementById('search-results').style.display = 'none'; document.getElementById('search-manual').value = '';
+        currentClient = client; pointsToAdd = 1;
+        document.getElementById('no-client').style.display = 'none'; document.getElementById('client-card').style.display = 'block';
+        document.getElementById('c-name').innerText = client.nom;
+        const maxT = localStorage.getItem('nuvy_max_tampons') || 10;
+        document.getElementById('c-info').innerText = `${client.tampons} / ${maxT} tampons — ${client.recompenses || 0} cadeau(x)`;
+        updateUI();
+    }
+
+    async function loadAccountData() {
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}`);
+            if (res.ok) {
+                const b = await res.json();
+                if (b.adresse) {
+                    const parts = b.adresse.split(',');
+                    if (parts.length > 1) {
+                        document.getElementById('edit-city').value = parts.pop().trim();
+                        document.getElementById('edit-street').value = parts.join(',').trim();
+                    } else { document.getElementById('edit-street').value = b.adresse; document.getElementById('edit-city').value = ""; }
+                }
+                document.getElementById('edit-phone').value = b.telephone || "";
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function saveProfile() {
+        const btn = document.getElementById('btn-save-profile');
+        btn.disabled = true; btn.innerText = "ENREGISTREMENT...";
+        const body = { adresse: `${document.getElementById('edit-street').value.trim()}, ${document.getElementById('edit-city').value.trim()}`, telephone: document.getElementById('edit-phone').value.trim() };
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (res.ok) alert("✅ Profil mis à jour !");
+        } catch (e) { console.error(e); } finally { btn.disabled = false; btn.innerText = "ENREGISTRER LES MODIFICATIONS"; }
+    }
+async function changerMotDePasse() {
+        const oldP = prompt("Ancien mot de passe :");
+        if (!oldP) return;
+        const newP = prompt("Nouveau mot de passe :");
+        if (!newP) return;
+
+        try {
+            const res = await fetch('/auth/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ boutiqueId: boutiqueId, oldPassword: oldP, newPassword: newP })
+            });
+
+            if (res.ok) {
+                alert("Mot de passe mis à jour avec succès !");
+            } else {
+                const err = await res.json();
+                alert(err.error || "Erreur lors de la modification");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erreur réseau.");
         }
-    </script>
+    }
+    function deconnexion() { localStorage.clear(); window.location.href = '/'; }
+  </script>
 </body>
 </html>

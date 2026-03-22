@@ -3,54 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuvy - Espace Partenaire</title>
+    <title>Connexion Espace Pro | Nuvy</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Manrope', sans-serif; background: #FAF8F5; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .login-box { background: white; padding: 50px 40px; border-radius: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.04); width: 100%; max-width: 380px; text-align: center; border: 1px solid #E0DEDA; box-sizing: border-box; }
-        .logo { font-size: 42px; font-weight: 800; color: #2A8C9C; margin-bottom: 5px; letter-spacing: -1.5px; }
-        .subtitle { color: #888; font-size: 14px; margin-bottom: 35px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        input { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 16px; border: 1px solid #E0DEDA; background: #FCFCFC; font-size: 16px; box-sizing: border-box; transition: 0.2s; outline: none; }
-        input:focus { border-color: #2A8C9C; background: #fff; }
-        button { width: 100%; padding: 20px; background: #2A8C9C; color: white; border: none; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(42, 140, 156, 0.2); }
-        .error { color: #C62828; font-size: 14px; margin-top: 15px; display: none; font-weight: 600; }
+        body { font-family: 'Manrope', sans-serif; background: #FAF8F5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .login-card { background: white; padding: 50px 40px; border-radius: 30px; text-align: center; width: 100%; max-width: 360px; border: 1px solid #E0DEDA; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
+        .brand { font-size: 38px; font-weight: 800; color: #2A8C9C; letter-spacing: -1.5px; margin-bottom: 5px; }
+        .subtitle { font-size: 14px; color: #888; font-weight: 600; margin-bottom: 40px; }
+        input { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 14px; border: 1px solid #E0DEDA; box-sizing: border-box; font-size: 15px; font-family: inherit; background: #FCFCFC; outline: none; transition: border-color 0.2s; }
+        input:focus { border-color: #2A8C9C; background: #FFF; }
+        button { width: 100%; padding: 20px; background: #2A8C9C; color: white; border: none; border-radius: 14px; cursor: pointer; font-weight: 800; font-size: 16px; margin-top: 10px; transition: 0.3s; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(42, 140, 156, 0.2); }
+        .error-message { color: #C62828; font-size: 13px; font-weight: 800; margin-top: 15px; display: none; }
     </style>
 </head>
 <body>
-    <div class="login-box">
-        <div class="logo">Nuvy</div>
-        <div class="subtitle">Espace Partenaire</div>
-        <input type="text" id="user" placeholder="Identifiant boutique">
-        <input type="password" id="pass" placeholder="Mot de passe">
-        <button onclick="login()">SE CONNECTER</button>
-        <div id="error-msg" class="error">Identifiants incorrects.</div>
+    <div class="login-card">
+        <div class="brand">Nuvy</div>
+        <div class="subtitle">Espace Commerçant Partenaire</div>
+        <input type="text" id="username" placeholder="Identifiant boutique">
+        <input type="password" id="password" placeholder="Mot de passe">
+        <button onclick="authentifier()">SE CONNECTER</button>
+        <div id="error-msg" class="error-message">Identifiants incorrects. Veuillez réessayer.</div>
     </div>
     <script>
-        if(localStorage.getItem('nuvy_boutique_id')) window.location.href = '/dashboard';
-        async function login() {
-            const u = document.getElementById('user').value.trim();
-            const p = document.getElementById('pass').value.trim();
-            const btn = document.querySelector('button');
-            if(!u || !p) return;
-            btn.innerText = "Connexion...";
+        async function authentifier() {
+            const user = document.getElementById('username').value; const pass = document.getElementById('password').value; const errorDiv = document.getElementById('error-msg'); const btn = document.querySelector('button');
+            if (!user || !pass) { errorDiv.innerText = "Veuillez remplir tous les champs."; errorDiv.style.display = 'block'; return; }
+            btn.innerText = "CONNEXION..."; btn.disabled = true;
             try {
-                const res = await fetch('/auth/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user: u, pass: p}) });
-                if(res.ok) {
+                const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: user, pass: pass }) });
+                if (res.ok) {
                     const data = await res.json();
-                    localStorage.setItem('nuvy_boutique_id', data.boutiqueId);
-                    localStorage.setItem('nuvy_boutique_slug', data.slug);
+                    localStorage.setItem('nuvy_boutique_id', data.boutiqueId); localStorage.setItem('nuvy_boutique_slug', data.slug); localStorage.setItem('nuvy_boutique_nom', data.nom); localStorage.setItem('nuvy_max_tampons', data.maxTampons);
                     window.location.href = '/dashboard';
-                } else {
-                    document.getElementById('error-msg').style.display = 'block';
-                    btn.innerText = "SE CONNECTER";
-                }
-            } catch(e) {
-                document.getElementById('error-msg').innerText = "Erreur réseau.";
-                document.getElementById('error-msg').style.display = 'block';
-                btn.innerText = "SE CONNECTER";
-            }
+                } else { errorDiv.innerText = "Identifiants incorrects."; errorDiv.style.display = 'block'; btn.innerText = "SE CONNECTER"; btn.disabled = false; }
+            } catch (error) { errorDiv.innerText = "Erreur de connexion."; errorDiv.style.display = 'block'; btn.innerText = "SE CONNECTER"; btn.disabled = false; }
         }
     </script>
 </body>

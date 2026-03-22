@@ -29,15 +29,20 @@
         "key": "status",
         "label": "PROGRESSION",
         "value": "0 / 10 TAMPONS",
+        "changeMessage": "%@"
+      },
+      {
+        "key": "shop-address",
+        "label": "ADRESSE",
+        "value": "",
         "textAlignment": "PKTextAlignmentCenter"
+      },
+      {
+        "key": "shop-tel",
+        "label": "TÉLÉPHONE",
+        "value": "",
+        "textAlignment": "PKTextAlignmentRight"
       }
     ]
-  },
-  "barcodes": [
-    {
-      "format": "PKBarcodeFormatQR",
-      "message": "NUVY-DEFAULT",
-      "messageEncoding": "iso-8859-1"
-    }
-  ]
+  }
 }

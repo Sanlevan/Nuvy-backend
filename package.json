@@ -9,11 +9,13 @@
     "node": "20.x"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "@supabase/supabase-js": "^2.39.3",
-    "passkit-generator": "^3.1.10",
-    "socket.io": "^4.7.4",
+    "apn": "^2.2.0",
+    "bcrypt": "^6.0.0",
     "dotenv": "^16.4.1",
-    "apn": "^2.2.0"
+    "express": "^4.18.2",
+    "passkit-generator": "^3.1.10",
+    "sharp": "^0.34.5",
+    "socket.io": "^4.7.4"
   }
 }

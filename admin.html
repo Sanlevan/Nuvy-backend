@@ -1,79 +1,417 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuvy CEO - Administration</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="apple-touch-icon" href="/favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root { --primary: #2A8C9C; --bg: #FAF8F5; --border: #E0DEDA; }
-        body { font-family: 'Manrope', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;}
-        .ceo-card { background: white; padding: 40px; border-radius: 35px; border: 1px solid var(--border); width: 100%; max-width: 480px; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
-        .logo { font-size: 32px; font-weight: 800; color: var(--primary); text-align: center; margin-bottom: 30px; letter-spacing: -1px; }
-        label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #bbb; margin-bottom: 8px; margin-left: 5px; }
-        input, select { width: 100%; padding: 16px; margin-bottom: 15px; border-radius: 14px; border: 1px solid var(--border); box-sizing: border-box; outline: none; font-size: 15px; background: #FCFCFC; font-family: inherit; }
-        button { width: 100%; padding: 20px; background: var(--primary); color: white; border: none; border-radius: 16px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(42, 140, 156, 0.2); }
-        #result { display: none; margin-top: 20px; padding: 20px; border-radius: 15px; font-size: 14px; line-height: 1.5; text-align: center; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuvy | Tour de Contrôle CEO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Manrope', 'system-ui', 'sans-serif'] },
+          colors: {
+            'nuvy': '#2A8C9C',
+            'nuvy-dark': '#238391',
+            'nuvy-gold': '#D4AF37',
+            'admin-bg': '#F9FAFB',
+            'sidebar': '#0f172a', /* Slate 900 pour le look salle des machines */
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #F9FAFB; }
+    .view { display: none; animation: fadeIn 0.4s ease; }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
 </head>
-<body>
-    <div class="ceo-card">
-        <div class="logo">Nuvy CEO</div>
-        
-        <label>Nom de la boutique</label>
-        <input type="text" id="nom" placeholder="Ex: Maison Dorée">
-        
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="user" placeholder="Identifiant">
-            <input type="password" id="pass" placeholder="Mot de passe">
+<body class="font-sans antialiased text-gray-900 min-h-screen flex">
+
+  <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-slate-300 flex flex-col shadow-xl">
+    <div class="h-16 flex items-center px-6 border-b border-slate-800">
+      <div class="flex items-center gap-3">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-nuvy">
+          <i data-lucide="credit-card" class="h-5 w-5 text-white"></i>
         </div>
-        
-        <label>Catégorie & DA</label>
-        <select id="cat">
-            <option value="default">✨ Nuvy Classique (Turquoise)</option>
-            <option value="boulangerie">🥖 Boulangerie (Beige Doré)</option>
-            <option value="pizza">🍕 Pizza (Rouge Tomate)</option>
-            <option value="onglerie">💅 Onglerie / Beauté (Rose Chic)</option>
-            <option value="coiffeur">💇 Coiffeur / Barbier (Bleu Nuit)</option>
-            <option value="cafe">☕ Café / Salon de thé (Brun Café)</option>
-        </select>
-
-        <label>Logo Custom (URL)</label>
-        <input type="text" id="logoUrl" placeholder="https://...">
-        
-        <label>Code CEO</label>
-        <input type="password" id="ceo" placeholder="••••••••">
-
-        <button onclick="create()">GÉNÉRER LA BOUTIQUE</button>
-        <div id="result"></div>
+        <div class="flex flex-col">
+          <span class="text-sm font-bold tracking-tight text-white">NUVY ADMIN</span>
+          <span class="text-xs text-slate-500">Super-Admin</span>
+        </div>
+      </div>
     </div>
 
-    <script>
-        async function create() {
-            const res = await fetch('/admin/create-boutique', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    nom: document.getElementById('nom').value,
-                    username: document.getElementById('user').value,
-                    password: document.getElementById('pass').value,
-                    ceoKey: document.getElementById('ceo').value,
-                    categorie: document.getElementById('cat').value,
-                    logo_url: document.getElementById('logoUrl').value
-                })
-            });
-            const data = await res.json();
-            const r = document.getElementById('result');
-            r.style.display = 'block';
-            if(res.ok) {
-                r.style.background = '#E8F5E9'; r.style.color = '#2E7D32';
-                r.innerHTML = `<b>Boutique Active !</b><br><a href="${data.boutique.join_url}" target="_blank" style="color:inherit;">${data.boutique.join_url}</a>`;
-            } else {
-                r.style.background = '#FFEBEE'; r.style.color = '#C62828';
-                r.innerText = "Erreur : " + data.message;
+    <nav class="flex-1 px-3 py-4 space-y-1">
+      <button onclick="switchView('overview', 'Vue d\'ensemble', this)" class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors bg-nuvy text-white">
+        <i data-lucide="globe" class="h-4 w-4"></i> Vue d'ensemble
+      </button>
+      <button onclick="switchView('fleet', 'Flotte Commerçants', this)" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
+        <i data-lucide="store" class="h-4 w-4"></i> Flotte Commerçants
+      </button>
+      <button onclick="switchView('radar', 'Radar & Risques', this)" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
+        <i data-lucide="alert-triangle" class="h-4 w-4"></i> Radar & Risques
+      </button>
+      <button onclick="switchView('data', 'Data Center', this)" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
+        <i data-lucide="bar-chart-3" class="h-4 w-4"></i> Data Center
+      </button>
+      <button onclick="switchView('system', 'Système', this)" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
+        <i data-lucide="settings" class="h-4 w-4"></i> Système
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-slate-800">
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
+          <span class="text-xs font-bold text-white">MR</span>
+        </div>
+        <div class="flex flex-1 flex-col">
+          <span class="text-sm font-medium text-white">Marc Renard</span>
+          <span class="text-xs text-slate-500">CEO</span>
+        </div>
+        <button class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
+          <i data-lucide="log-out" class="h-4 w-4"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="ml-64 flex-1 flex flex-col min-h-screen">
+    
+    <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-8 shadow-sm">
+      <h1 id="page-title" class="text-lg font-bold text-gray-900">Vue d'ensemble</h1>
+      <div class="flex items-center gap-2 text-sm text-gray-500">
+        <i data-lucide="clock" class="h-4 w-4"></i>
+        <span>Dernière mise à jour : <span class="font-bold text-gray-900">A l'instant</span></span>
+      </div>
+    </header>
+
+    <div class="flex-1 p-8">
+
+      <section id="overview" class="view active max-w-6xl mx-auto space-y-6">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+            <div class="flex items-center justify-between pb-2">
+              <h3 class="text-sm font-semibold text-gray-500">Boutiques Actives</h3>
+              <i data-lucide="store" class="h-4 w-4 text-gray-400"></i>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span class="text-3xl font-extrabold text-gray-900">412</span>
+              <span class="text-lg text-gray-500">/600</span>
+            </div>
+            <div class="mt-2 flex items-center gap-1 text-green-600">
+              <i data-lucide="trending-up" class="h-3 w-3"></i>
+              <span class="text-xs font-bold">+3.2%</span>
+              <span class="text-xs text-gray-400 font-medium">vs mois dernier</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+            <div class="flex items-center justify-between pb-2">
+              <h3 class="text-sm font-semibold text-gray-500">Scans Aujourd'hui</h3>
+              <i data-lucide="scan" class="h-4 w-4 text-gray-400"></i>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span class="text-3xl font-extrabold text-gray-900">14,230</span>
+            </div>
+            <div class="mt-2 flex items-center gap-1 text-green-600">
+              <i data-lucide="trending-up" class="h-3 w-3"></i>
+              <span class="text-xs font-bold">+12.5%</span>
+              <span class="text-xs text-gray-400 font-medium">vs hier</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+            <div class="flex items-center justify-between pb-2">
+              <h3 class="text-sm font-semibold text-gray-500">Health Score Réseau</h3>
+              <i data-lucide="activity" class="h-4 w-4 text-gray-400"></i>
+            </div>
+            <div class="flex flex-col items-center mt-2">
+              <div class="relative h-20 w-32">
+                <svg class="h-full w-full" viewBox="0 0 120 70">
+                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" class="text-gray-100" />
+                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" class="text-green-500" stroke-dasharray="141.37" stroke-dashoffset="11.3" style="transition: stroke-dashoffset 1s ease-out;" />
+                </svg>
+                <div class="absolute inset-0 flex items-end justify-center pb-0">
+                  <span class="text-3xl font-extrabold text-green-600">92%</span>
+                </div>
+              </div>
+              <div class="mt-2 flex items-center gap-2">
+                <div class="h-2 w-2 rounded-full bg-green-500"></div>
+                <span class="text-xs font-bold text-gray-500">Excellent</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <h3 class="text-base font-bold text-gray-900 mb-6">Évolution des scans — 30 derniers jours</h3>
+          <div class="h-[300px] w-full relative">
+            <canvas id="ceoScansChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section id="radar" class="view max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-gray-100">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <i data-lucide="trending-down" class="h-5 w-5 text-red-600"></i>
+                </div>
+                <div>
+                  <h3 class="font-bold text-gray-900">Risque de Churn</h3>
+                  <p class="text-xs text-gray-500">Chute d'activité détectée</p>
+                </div>
+              </div>
+            </div>
+            <div class="p-5 space-y-3 bg-gray-50/50">
+              <div class="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-center shadow-sm">
+                <div>
+                  <p class="text-sm font-bold text-gray-900">Boulangerie Le Pain d'Or</p>
+                  <p class="text-xs text-gray-500">Lyon • Il y a 3 jours</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-md">-67%</span>
+                  <button class="text-gray-400 hover:text-nuvy"><i data-lucide="phone" class="h-4 w-4"></i></button>
+                </div>
+              </div>
+              <div class="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-center shadow-sm">
+                <div>
+                  <p class="text-sm font-bold text-gray-900">Café des Arts</p>
+                  <p class="text-xs text-gray-500">Marseille • Il y a 5 jours</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-md">-54%</span>
+                  <button class="text-gray-400 hover:text-nuvy"><i data-lucide="phone" class="h-4 w-4"></i></button>
+                </div>
+              </div>
+              <button class="w-full mt-2 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100 transition flex items-center justify-center gap-2">
+                Voir tous les risques <i data-lucide="arrow-right" class="h-4 w-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-gray-100">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <i data-lucide="rocket" class="h-5 w-5 text-amber-600"></i>
+                </div>
+                <div>
+                  <h3 class="font-bold text-gray-900">Cold Start</h3>
+                  <p class="text-xs text-gray-500">Nouvelles boutiques inactives</p>
+                </div>
+              </div>
+            </div>
+            <div class="p-5 space-y-3 bg-gray-50/50">
+              <div class="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-center shadow-sm">
+                <div>
+                  <p class="text-sm font-bold text-gray-900">Fromagerie du Coin</p>
+                  <p class="text-xs text-gray-500">Bordeaux • Créée le 15 Mar</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="border border-amber-200 bg-amber-50 text-amber-600 text-xs font-bold px-2 py-1 rounded-md">0 scan</span>
+                  <button class="text-gray-400 hover:text-nuvy"><i data-lucide="phone" class="h-4 w-4"></i></button>
+                </div>
+              </div>
+              <div class="mt-4 p-4 border border-dashed border-gray-300 rounded-lg text-center bg-gray-50 text-xs font-medium text-gray-500">
+                Ces boutiques nécessitent un appel d'onboarding.
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-gray-100">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <i data-lucide="alert-octagon" class="h-5 w-5 text-red-600"></i>
+                </div>
+                <div>
+                  <h3 class="font-bold text-gray-900">Suspicion Fraude</h3>
+                  <p class="text-xs text-gray-500">Activité anormale détectée</p>
+                </div>
+              </div>
+            </div>
+            <div class="p-5 space-y-3 bg-gray-50/50">
+              <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="text-sm font-bold text-gray-900">Quick Burger Express</p>
+                    <p class="text-xs text-gray-500">Paris 11e</p>
+                  </div>
+                  <span class="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Urgent</span>
+                </div>
+                <div class="mt-3 flex items-center gap-2 text-sm text-red-600 font-bold">
+                  <i data-lucide="alert-octagon" class="h-4 w-4"></i> 247 scans en 10 min
+                </div>
+                <div class="mt-4 flex gap-2">
+                  <button class="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-md transition">Bloquer</button>
+                  <button class="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-bold py-2 rounded-md flex justify-center items-center gap-1 transition"><i data-lucide="eye" class="h-3 w-3"></i> Enquêter</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <section id="fleet" class="view max-w-6xl mx-auto space-y-6">
+        
+        <div class="flex justify-between items-center">
+          <div class="relative w-96">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"></i>
+            <input type="text" placeholder="Rechercher une boutique..." class="w-full pl-10 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-nuvy/50 shadow-sm">
+          </div>
+          <button class="h-11 px-5 bg-nuvy hover:bg-nuvy-dark text-white text-sm font-bold rounded-xl shadow-sm flex items-center gap-2 transition">
+            <i data-lucide="plus" class="h-4 w-4"></i> Ajouter une boutique
+          </button>
+        </div>
+
+        <div class="grid grid-cols-4 gap-4">
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Boutiques</p>
+            <p class="text-2xl font-extrabold text-gray-900 mt-1">600</p>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Actives</p>
+            <p class="text-2xl font-extrabold text-green-600 mt-1">412</p>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Attention requise</p>
+            <p class="text-2xl font-extrabold text-amber-500 mt-1">156</p>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Inactives</p>
+            <p class="text-2xl font-extrabold text-gray-400 mt-1">32</p>
+          </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+            <h3 class="font-bold text-gray-900">Toutes les boutiques (600)</h3>
+          </div>
+          <table class="w-full text-left">
+            <thead class="bg-white border-b border-gray-200">
+              <tr>
+                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
+                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Nom de la boutique</th>
+                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Ville</th>
+                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Scans Totaux</th>
+                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr class="hover:bg-gray-50 transition group">
+                <td class="py-4 px-6"><span class="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200">Actif</span></td>
+                <td class="py-4 px-6 font-bold text-gray-900">Boulangerie Le Pain d'Or</td>
+                <td class="py-4 px-6 text-gray-500 text-sm font-medium">Lyon</td>
+                <td class="py-4 px-6 text-right font-mono font-bold text-gray-700">12,450</td>
+                <td class="py-4 px-6 text-right">
+                  <button class="text-nuvy hover:bg-nuvy/10 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ml-auto">
+                    <i data-lucide="log-in" class="h-3 w-3"></i> Login
+                  </button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50 transition group">
+                <td class="py-4 px-6"><span class="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-200">Attention</span></td>
+                <td class="py-4 px-6 font-bold text-gray-900">Café des Arts</td>
+                <td class="py-4 px-6 text-gray-500 text-sm font-medium">Marseille</td>
+                <td class="py-4 px-6 text-right font-mono font-bold text-gray-700">3,420</td>
+                <td class="py-4 px-6 text-right">
+                  <button class="text-nuvy hover:bg-nuvy/10 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ml-auto">
+                    <i data-lucide="log-in" class="h-3 w-3"></i> Login
+                  </button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50 transition group">
+                <td class="py-4 px-6"><span class="bg-gray-100 text-gray-500 text-xs font-bold px-2.5 py-1 rounded-full border border-gray-200">Inactif</span></td>
+                <td class="py-4 px-6 font-bold text-gray-900">Fromagerie du Coin</td>
+                <td class="py-4 px-6 text-gray-500 text-sm font-medium">Bordeaux</td>
+                <td class="py-4 px-6 text-right font-mono font-bold text-gray-700">0</td>
+                <td class="py-4 px-6 text-right">
+                  <button class="text-nuvy hover:bg-nuvy/10 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ml-auto">
+                    <i data-lucide="log-in" class="h-3 w-3"></i> Login
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="data" class="view text-center py-20 text-gray-400 font-medium">Data Center en construction...</section>
+      <section id="system" class="view text-center py-20 text-gray-400 font-medium">Configuration Système en construction...</section>
+
+    </div>
+  </main>
+
+  <script>
+    // Initialisation des icônes
+    lucide.createIcons();
+
+    // Fonction de navigation ultra-fluide
+    function switchView(viewId, title, btnElement) {
+      // 1. Cacher toutes les vues
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      // 2. Afficher la vue demandée
+      document.getElementById(viewId).classList.add('active');
+      // 3. Mettre à jour le titre du Header
+      document.getElementById('page-title').innerText = title;
+      // 4. Mettre à jour la sidebar (Enlever le bleu partout)
+      document.querySelectorAll('.nav-item').forEach(b => {
+        b.classList.remove('bg-nuvy', 'text-white');
+        b.classList.add('hover:bg-slate-800', 'hover:text-white', 'text-slate-300');
+      });
+      // 5. Mettre le bouton cliqué en bleu
+      btnElement.classList.remove('hover:bg-slate-800', 'hover:text-white', 'text-slate-300');
+      btnElement.classList.add('bg-nuvy', 'text-white');
+    }
+
+    // Graphique mock-up (Simulation de 30 jours de data pour le CEO)
+    window.addEventListener('DOMContentLoaded', () => {
+      const ctx = document.getElementById('ceoScansChart');
+      if (ctx) {
+        // Génère 30 jours de dates factices
+        const labels = Array.from({length: 30}, (_, i) => `Jour ${i+1}`);
+        // Génère des données qui montent globalement
+        const data = labels.map((_, i) => Math.floor(10000 + (i * 150) + (Math.random() * 2000)));
+
+        new Chart(ctx.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Volume total de scans (Réseau)',
+              data: data,
+              borderColor: '#2A8C9C',
+              backgroundColor: 'rgba(42, 140, 156, 0.05)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: false, grid: { color: '#F3F4F6', borderDash: [5, 5] } },
+              x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } }
             }
-        }
-    </script>
+          }
+        });
+      }
+    });
+  </script>
 </body>
 </html>

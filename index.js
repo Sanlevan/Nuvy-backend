@@ -1,5 +1,5 @@
 require('dotenv').config();
-console.log("--- ⚡ NUVY MASTER ENGINE V2026 : FULL LOAD ---");
+console.log("=== NUVY MASTER ENGINE V1.0 (PRODUCTION) - 2026 ===");
 
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
@@ -8,20 +8,22 @@ const apn = require('apn');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const { Server } = require('socket.io');
 const http = require('http');
+const sharp = require('sharp');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.json());
-app.use(express.static('public')); // Pour ton favicon.png
+app.use(express.static('public'));
 
-// 1. CONNEXION SUPABASE
-const supabase = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_KEY || '');
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 2. MATRICE DES STÉRÉOTYPES (DA INTELLIGENTE)
 const STEREOTYPES = {
     default:     { bg: "#FAF8F5", text: "#2A8C9C", label: "#AFE3E0" },
     boulangerie: { bg: "#FAF0E6", text: "#8B4513", label: "#CD853F" },
@@ -30,57 +32,141 @@ const STEREOTYPES = {
     coiffeur:    { bg: "#F8F8F8", text: "#191970", label: "#B0C4DE" },
     cafe:        { bg: "#F5F5DC", text: "#4B3621", label: "#A0522D" }
 };
-
-// 3. GESTION DES CERTIFICATS APPLE
+const SYMBOLS = {
+    pizza:       { full: "🍕", empty: "◽" },
+    onglerie:    { full: "💅", empty: "⚪" },
+    cafe:        { full: "☕", empty: "▫️" },
+    boulangerie: { full: "🥐", empty: "◽" },
+    coiffeur:    { full: "✂️", empty: "▫️" },
+    default:     { full: "●",  empty: "○" }
+};
 const getCert = (envVar, fileName) => {
     if (process.env[envVar]) return Buffer.from(process.env[envVar], 'base64');
     const p = path.resolve(__dirname, fileName);
     return fs.existsSync(p) ? fs.readFileSync(p) : null;
 };
-
 const WWDR = getCert('WWDR_CERT', 'WWDR-pem.pem');
 const signerCert = getCert('SIGNER_CERT', 'signer-clean.pem');
 const signerKey = getCert('SIGNER_KEY', 'nuvy-pass.key');
 
-// 4. GÉNÉRATEUR DE PASS (AVEC RANG ET DA)
 async function generatePassBuffer(client, boutique, clientRank) {
     const modelPath = path.resolve(__dirname, 'pass-model.pass');
     const tmpDir = path.join('/tmp', 'gen-' + crypto.randomBytes(4).toString('hex') + '.pass');
+    
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
     fs.readdirSync(modelPath).forEach(f => fs.copyFileSync(path.join(modelPath, f), path.join(tmpDir, f)));
     
-    if (boutique.logo_url) {
-        try {
-            const response = await fetch(boutique.logo_url);
-            if (response.ok) {
-                const buffer = await response.arrayBuffer();
-                fs.writeFileSync(path.join(tmpDir, 'logo.png'), Buffer.from(buffer));
-                fs.writeFileSync(path.join(tmpDir, 'logo@2x.png'), Buffer.from(buffer));
+    if (boutique.logo_url && boutique.logo_url.trim() !== "") {
+            try {
+                const response = await fetch(boutique.logo_url);
+                if (response.ok) {
+                    const buffer = Buffer.from(await response.arrayBuffer());
+
+                    // --- 🖼️ LOGO (SUR LA CARTE) ---
+                    await sharp(buffer).resize(480, 150, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
+                    await sharp(buffer).resize(320, 100, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
+
+                    // --- 🔔 ICON (DANS LES NOTIFS) - ON AJOUTE LE @3x ---
+                    // On attend bien chaque écriture avec await
+                    await sharp(buffer)
+                        .resize(174, 174, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+                        .png()
+                        .toFile(path.join(tmpDir, 'icon@3x.png')); // 👈 Crucial pour ton iPhone
+
+                    await sharp(buffer)
+                        .resize(116, 116, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+                        .png()
+                        .toFile(path.join(tmpDir, 'icon@2x.png'));
+
+                    await sharp(buffer)
+                        .resize(58, 58, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+                        .png()
+                        .toFile(path.join(tmpDir, 'icon.png'));
+                        
+                    console.log("✅ Toutes les icônes (@1x, @2x, @3x) sont prêtes sur le disque.");
+                }
+            } catch (e) {
+                console.error("❌ Erreur de traitement d'image :", e);
             }
-        } catch (e) { console.log("Logo skip"); }
-    }
+        }
 
     const passJson = JSON.parse(fs.readFileSync(path.join(tmpDir, 'pass.json'), 'utf8'));
+    // 🚫 DESTRUCTION DU QR CODE 🚫
+        delete passJson.barcode;
+        delete passJson.barcodes;
     passJson.backgroundColor = boutique.color_bg || "#FAF8F5";
     passJson.foregroundColor = boutique.color_text || "#2A8C9C";
     passJson.labelColor = (STEREOTYPES[boutique.categorie] || STEREOTYPES.default).label;
     
-    let dots = "";
-    for(let i=1; i<=10; i++) { dots += (i <= client.tampons) ? "● " : "○ "; }
     
-    const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
-    passJson.logoText = boutique.nom;
-    passJson.storeCard.primaryFields[0].value = prenom;
-    passJson.storeCard.primaryFields[0].label = "VOUS ÊTES LE " + clientRank + (clientRank === 1 ? "ER" : "ÈME") + " MEILLEUR CLIENT";
-    passJson.storeCard.secondaryFields[0].value = dots;
-    
-    if (client.recompenses > 0) {
-        passJson.storeCard.auxiliaryFields = [{ key: "gifts", label: "RÉCOMPENSES", value: client.recompenses + " 🎁 DISPO" }];
-    } else { passJson.storeCard.auxiliaryFields = []; }
-    
-    passJson.organizationName = boutique.nom;
-    passJson.serialNumber = client.serial_number;
-    passJson.barcodes = [{ message: client.serial_number, format: "PKBarcodeFormatQR", messageEncoding: "iso-8859-1" }];
+   // --- 🧠 1. INTELLIGENCE : CALCUL DU RANG EN TEMPS RÉEL ---
+        const maxT = boutique.max_tampons || 10;
+        
+        // On va chercher le score À VIE de tous les clients de la boutique
+        const { data: allClients } = await supabase
+            .from('clients')
+            .select('id, total_historique')
+            .eq('boutique_id', boutique.id);
+
+        let vraiRang = 1;
+        if (allClients) {
+            const monScore = client.total_historique || 0; // Ton score à vie
+            allClients.forEach(c => {
+                const sonScore = c.total_historique || 0; // Le score à vie de l'autre
+                // Si l'autre a poinçonné plus de fois que toi dans sa vie, tu descends d'une place
+                if (sonScore > monScore) vraiRang++;
+            });
+        }
+        
+        const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
+        const suffixe = (vraiRang === 1) ? "er" : "ème";
+
+        // --- 🎨 2. PRÉPARATION DU DESIGN ---
+        const adresseParts = boutique.adresse ? boutique.adresse.split(',') : [];
+        const ville = adresseParts.length > 0 ? adresseParts[adresseParts.length - 1].trim() : "En boutique";
+
+        const symbolePlein = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].full : "⭐";
+        const symboleVide = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].empty : "⚪";
+        let fideliteTexte = "";
+        for(let i = 0; i < maxT; i++) {
+            fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide;
+        }
+// 🛡️ SÉCURITÉ APPLE : Le texte à côté du logo ne doit JAMAIS être vide
+        passJson.logoText = (boutique.nom && boutique.nom.trim() !== "") ? boutique.nom : "Fidélité";
+        // --- 🏗️ 3. DESTRUCTION ET RECONSTRUCTION TOTALE DU LAYOUT ---
+        // En créant un objet vide {}, on empêche l'iPhone de fusionner avec des vieux champs !
+        passJson.storeCard = {
+            "primaryFields": [{
+                "key": "bienvenue",
+                "label": `Vous êtes le ${vraiRang}${suffixe} meilleur client`,
+                "value": `Bonjour, ${prenom} ! 👋`
+            }],
+            "secondaryFields": [{
+                "key": "fidelite",
+                "label": "VOTRE FIDÉLITÉ",
+                "value": fideliteTexte,
+                "textAlignment": "PKTextAlignmentCenter"
+            }],
+            "backFields": [
+                {
+                    "key": "carte_en_cours",
+                    "label": "CARTE EN COURS",
+                    "value": `${client.tampons || 0} / ${maxT}`,
+                    "changeMessage": "Nouveau solde : %@ 🎁"
+                },
+                {
+                    "key": "adresse",
+                    "label": "ADRESSE DE LA BOUTIQUE",
+                    "value": boutique.adresse || "Adresse non renseignée"
+                },
+                {
+                    "key": "telephone",
+                    "label": "CONTACT",
+                    "value": boutique.telephone || "Non renseigné",
+                    "dataDetectorTypes": ["PKDataDetectorTypePhoneNumber"]
+                }
+            ]
+        };
 
     fs.writeFileSync(path.join(tmpDir, 'pass.json'), JSON.stringify(passJson));
     const pass = await PKPass.from({ model: tmpDir, certificates: { wwdr: WWDR, signerCert, signerKey } });
@@ -89,117 +175,477 @@ async function generatePassBuffer(client, boutique, clientRank) {
     return buf;
 }
 
-// 5. ROUTES API
+// ==========================================
+// ROUTES : AFFICHAGE DES PAGES HTML
+// ==========================================
 app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.resolve(__dirname, 'dashboard.html')));
 app.get('/join/:slug', (req, res) => res.sendFile(path.resolve(__dirname, 'join.html')));
-app.get('/nuvy-ceo-portal', (req, res) => res.sendFile(path.resolve(__dirname, 'admin.html')));
+const CEO_ACCESS_KEY = "NuvyESSEC2024!";
 
-// --- PORTAIL CEO (AVEC GÉNÉRATION LIEN JOIN) ---
+app.get('/nuvy-ceo-portal', (req, res) => {
+    const key = req.query.key;
+
+    if (key !== CEO_ACCESS_KEY) {
+        return res.status(401).send("🚨 Accès Super-Admin refusé. Clé incorrecte.");
+    }
+    
+    res.sendFile(path.resolve(__dirname, 'admin.html')); 
+});
+
+// ==========================================
+// API CEO & COMMERÇANT
+// ==========================================
 app.post('/admin/create-boutique', async (req, res) => {
     try {
-        const { nom, username, password, ceoKey, categorie, logo_url } = req.body;
-        if (ceoKey !== process.env.CEO_KEY) return res.status(403).json({ message: "CEO Key Error" });
+        // 1. On récupère le paramètre max_tampons envoyé par ton dashboard
+        const { nom, username, password, ceoKey, categorie, logo_url, max_tampons } = req.body;
+        
+        if (ceoKey !== process.env.CEO_KEY) return res.status(403).json({ message: "Clé CEO invalide." });
         const slug = nom.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '');
         const da = STEREOTYPES[categorie] || STEREOTYPES.default;
-        const join_url = "https://" + req.get('host') + "/join/" + slug;
+        const join_url = `https://${req.get('host')}/join/${slug}`;
+        
+        // 2. Sécurité : on force en chiffre, et si c'est vide on met 10 par défaut
+        const finalMaxTampons = parseInt(max_tampons) || 10;
 
+        // 3. On envoie tout à Supabase, y compris le max_tampons
+        // 🛡️ NOUVEAU : On hache le mot de passe avec 10 tours de cryptographie
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 3. On envoie tout à Supabase, avec le mot de passe crypté
         const { data, error } = await supabase.from('boutiques').insert([{ 
-            nom, slug, username, password, categorie, logo_url, join_url, color_bg: da.bg, color_text: da.text 
+            nom, slug, username, password: hashedPassword, categorie, logo_url, join_url, 
+            color_bg: da.bg, color_text: da.text,
+            max_tampons: finalMaxTampons
         }]).select().single();
         if (error) throw error;
         res.json({ success: true, boutique: data });
     } catch (e) { res.status(400).json({ message: e.message }); }
 });
+// 1. VOIR TOUTES LES BOUTIQUES (Réservé au CEO)
+app.get('/admin/boutiques', async (req, res) => {
+    const ceoKey = req.headers['x-ceo-key'];
+    if (ceoKey !== process.env.CEO_KEY) return res.status(403).send("Accès refusé");
 
-// --- AUTH ---
+    const { data, error } = await supabase.from('boutiques').select('id, nom, username, slug, created_at');
+    if (error) return res.status(500).json(error);
+    res.json(data);
+});
+
+// 2. RÉINITIALISER UN MOT DE PASSE (Réservé au CEO)
+app.post('/admin/reset-password', async (req, res) => {
+    const { boutiqueId, newPassword, ceoKey } = req.body;
+    if (ceoKey !== process.env.CEO_KEY) return res.status(403).send("Accès refusé");
+
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const { error } = await supabase.from('boutiques').update({ password: hashedPassword }).eq('id', boutiqueId);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Erreur de mise à jour" });
+    }
+});
 app.post('/auth/login', async (req, res) => {
     const { user, pass } = req.body;
-    const { data: b } = await supabase.from('boutiques').select('*').eq('username', user).eq('password', pass).single();
-    if (b) res.json({ boutiqueId: b.id, slug: b.slug, nom: b.nom }); else res.status(401).send();
-});
+    
+    // 1. On cherche la boutique UNIQUEMENT avec le nom d'utilisateur (on récupère le hash)
+    const { data: boutique } = await supabase.from('boutiques')
+        .select('id, slug, nom, max_tampons, password')
+        .eq('username', user)
+        .maybeSingle();
 
-// --- TAMPONS & NOTIFICATIONS PUSH (LOGIQUE COMPLÈTE) ---
-app.post('/clients/:id/tampon', async (req, res) => {
+    if (!boutique) {
+        return res.status(401).json({ error: "Identifiant incorrect." });
+    }
+
+    // 2. On compare le mot de passe tapé (pass) avec l'empreinte cryptée (boutique.password)
+    const match = await bcrypt.compare(pass, boutique.password);
+
+    if (match) {
+        res.json({ 
+            boutiqueId: boutique.id, 
+            slug: boutique.slug, 
+            nom: boutique.nom, 
+            maxTampons: boutique.max_tampons 
+        });
+    } else {
+        res.status(401).json({ error: "Mot de passe incorrect." });
+    }
+});
+app.post('/auth/change-password', async (req, res) => {
+    const { boutiqueId, oldPassword, newPassword } = req.body;
+
     try {
-        const pointsAjoutes = parseInt(req.body.nb);
-        const { data: client } = await supabase.from('clients').select('*').eq('id', req.params.id).single();
-        
-        let total = (client.tampons || 0) + pointsAjoutes;
-        let tamponsRestants = Math.max(0, total % 10);
-        let nouvellesRecompenses = total >= 10 ? Math.floor(total / 10) : (total < 0 ? -1 : 0);
-        let pointsManquants = 10 - tamponsRestants;
+        // 1. On récupère le mot de passe actuel (haché) en base
+        const { data: boutique } = await supabase
+            .from('boutiques')
+            .select('password')
+            .eq('id', boutiqueId)
+            .single();
 
-        const { data: updated } = await supabase.from('clients').update({ 
-            tampons: tamponsRestants, 
-            recompenses: Math.max(0, (client.recompenses || 0) + nouvellesRecompenses),
-            last_visit: new Date().toISOString() 
-        }).eq('id', req.params.id).select().single();
-        
-        // Notification Push Intelligente
-        let pushMsg = `Félicitations ! +${pointsAjoutes} tampon(s).`;
-        if (nouvellesRecompenses > 0) {
-            pushMsg = `🎉 Bravo ! Votre récompense est prête ! Plus que ${pointsManquants} tampons avant la prochaine.`;
-        } else if (pointsAjoutes > 0) {
-            pushMsg += ` Plus que ${pointsManquants} tampons pour votre cadeau !`;
-        } else {
-            pushMsg = "Récompense utilisée ! C'est reparti pour un tour 🎁";
-        }
+        // 2. On vérifie que l'ancien mot de passe est correct
+        const match = await bcrypt.compare(oldPassword, boutique.password);
+        if (!match) return res.status(401).json({ error: "L'ancien mot de passe est incorrect." });
 
-        const { data: devs } = await supabase.from('devices').select('push_token').eq('serial_number', client.serial_number);
-        if (devs && devs.length > 0) {
-            const p8 = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
-            const provider = new apn.Provider({ token: { key: p8, keyId: 'RM6P22PX7A', teamId: 'Q762BTBA98' }, production: true });
-            const notif = new apn.Notification({ topic: 'pass.pro.nuvy.loyalty', alert: pushMsg, sound: 'default' });
-            for (const d of devs) { await provider.send(notif, d.push_token); }
-            provider.shutdown();
-        }
-        res.json(updated);
-    } catch (e) { res.status(500).send(); }
+        // 3. On hache le nouveau et on met à jour
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await supabase.from('boutiques').update({ password: hashedPassword }).eq('id', boutiqueId);
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Erreur lors du changement de mot de passe." });
+    }
 });
+// 🛡️ ROUTE DE SECOURS CEO : RÉINITIALISATION FORCEE
+app.post('/admin/force-reset-password', async (req, res) => {
+    const { boutiqueId, newPassword, ceoKey } = req.body;
 
-// --- GESTION DES PASS & CLASSEMENT ---
-app.get('/pass/:token', async (req, res) => {
+    // 1. Vérification de ta clé secrète
+    if (ceoKey !== process.env.CEO_KEY) {
+        return res.status(403).json({ message: "Accès refusé. Clé CEO invalide." });
+    }
+
     try {
-        const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('token', req.params.token).single();
-        const { data: all } = await supabase.from('clients').select('tampons, recompenses').eq('boutique_id', c.boutique_id);
-        const score = (c.recompenses * 10) + c.tampons;
-        let rank = 1;
-        all.forEach(o => { if(((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
-        const buf = await generatePassBuffer(c, c.boutiques, rank);
-        res.set('Content-Type', 'application/vnd.apple.pkpass').send(buf);
-    } catch (e) { res.status(500).send(); }
-});
+        // 2. On hache le nouveau mot de passe
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-// --- INSCRIPTION & NFC ---
-app.post('/join/:slug/create', async (req, res) => {
-    const { prenom, nom, telephone } = req.body;
-    const { data: b } = await supabase.from('boutiques').select('id').eq('slug', req.params.slug).single();
-    const token = crypto.randomUUID();
-    const { data } = await supabase.from('clients').insert([{ boutique_id: b.id, nom: prenom + " " + nom, telephone, tampons: 0, recompenses: 0, token, serial_number: 'NUVY-' + token.split('-')[0].toUpperCase(), last_visit: new Date().toISOString() }]).select().single();
-    res.json({ token: data.token });
-});
+        // 3. On écrase l'ancien en base
+        const { error } = await supabase
+            .from('boutiques')
+            .update({ password: hashedPassword })
+            .eq('id', boutiqueId);
 
-app.post('/tap/:slug/notify', async (req, res) => {
-    const { data: c } = await supabase.from('clients').select('*').eq('token', req.query.token).single();
-    if (c) { io.to(req.params.slug).emit('client-detected', c); res.json({success:true}); }
-    else res.status(404).send();
+        if (error) throw error;
+        res.json({ success: true, message: "Mot de passe réinitialisé avec succès." });
+    } catch (e) {
+        res.status(500).json({ message: "Erreur lors de la réinitialisation." });
+    }
+});
+app.get('/boutiques/:id/stats', async (req, res) => {
+    try {
+        const boutiqueId = req.params.id;
+
+        const { data: boutique } = await supabase.from('boutiques').select('max_tampons').eq('id', boutiqueId).single();
+        const maxT = boutique?.max_tampons || 10;
+
+        const [clientsRes, visitesRes] = await Promise.all([
+            supabase.from('clients').select('tampons').eq('boutique_id', boutiqueId),
+            supabase.from('visites').select('client_id, created_at').eq('boutique_id', boutiqueId).order('created_at', { ascending: true })
+        ]);
+
+        const clients = clientsRes.data || [];
+        const visites = visitesRes.data || [];
+
+        // --- STAT 2 : DISTRIBUTION ---
+        const distribution = new Array(maxT).fill(0);
+        clients.forEach(c => { if (c.tampons >= 0 && c.tampons < maxT) distribution[c.tampons]++; });
+
+        // --- STAT 4 : FRÉQUENCE ---
+        const clientVisits = {};
+        visites.forEach(v => {
+            if (!clientVisits[v.client_id]) clientVisits[v.client_id] = [];
+            clientVisits[v.client_id].push(new Date(v.created_at));
+        });
+
+        let totalDaysDiff = 0;
+        let countClientsWithMultipleVisits = 0;
+
+        Object.values(clientVisits).forEach(dates => {
+            if (dates.length > 1) {
+                const diffInDays = (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24);
+                totalDaysDiff += (diffInDays / (dates.length - 1));
+                countClientsWithMultipleVisits++;
+            }
+        });
+        const avgFrequency = countClientsWithMultipleVisits > 0 ? (totalDaysDiff / countClientsWithMultipleVisits).toFixed(1) : 0;
+
+        // --- STAT 5 : HEURES DE POINTE (Moyenne 30 jours) ---
+        const trenteJoursEnMs = 30 * 24 * 60 * 60 * 1000;
+        const dateLimite = new Date(Date.now() - trenteJoursEnMs).toISOString();
+
+        const { data: visitesRecentes } = await supabase.from('visites').select('created_at').eq('boutique_id', boutiqueId).gt('created_at', dateLimite);
+        
+        const peakHours = new Array(24).fill(0);
+        if (visitesRecentes) {
+            visitesRecentes.forEach(v => { peakHours[new Date(v.created_at).getHours()]++; });
+        }
+        
+        // Division par 30 pour avoir la moyenne
+        const peakHoursAverage = peakHours.map(total => (total / 30).toFixed(1));
+
+        res.json({ distribution, peakHours: peakHoursAverage, avgFrequency });
+
+    } catch (e) {
+        console.error("Erreur stats:", e);
+        res.status(500).send("Erreur calcul des statistiques");
+    }
 });
 
 app.get('/boutiques/:id/clients', async (req, res) => {
     const { data } = await supabase.from('clients').select('*').eq('boutique_id', req.params.id).order('last_visit', { ascending: false });
     res.json(data || []);
 });
+// --- CRÉATION MANUELLE D'UN CLIENT ---
+app.post('/boutiques/:id/clients-manuels', async (req, res) => {
+    const { nom, telephone } = req.body;
+    const boutique_id = req.params.id;
 
-io.on('connection', (socket) => {
-    socket.on('join-boutique', (slug) => { socket.join(slug); });
+    try {
+        // 1. On vérifie si ce numéro existe déjà dans CETTE boutique
+        const { data: existing } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('boutique_id', boutique_id)
+            .eq('telephone', telephone)
+            .maybeSingle(); // Utilise maybeSingle pour éviter une erreur si rien n'est trouvé
+
+        if (existing) {
+            return res.status(400).json({ error: "Ce numéro est déjà enregistré dans votre boutique." });
+        }
+
+        // 2. On insère le nouveau client
+        const { data, error } = await supabase
+            .from('clients')
+            .insert([{ 
+                nom, 
+                telephone, 
+                boutique_id, 
+                tampons: 0,
+                last_visit: new Date().toISOString() 
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (e) { 
+        console.error(e);
+        res.status(500).json({ error: "Erreur lors de la création du client." }); 
+    }
+});
+// --- NOUVEAU : MISE À JOUR DU PROFIL BOUTIQUE ---
+app.put('/boutiques/:id', async (req, res) => {
+    const { id } = req.params;
+    const { adresse, telephone } = req.body;
+
+    try {
+        const { data, error } = await supabase
+            .from('boutiques')
+            .update({ adresse, telephone })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (e) {
+        console.error("Erreur Profil:", e);
+        res.status(500).json({ error: "Erreur lors de la mise à jour du profil" });
+    }
 });
 
-// Apple Registration (WWS)
-app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req,res) => {
+// ==========================================
+// MOTEUR FIDÉLITÉ : TAMPONS & PUSH APNS
+// ==========================================
+app.post('/clients/:id/tampon', async (req, res) => {
+    try {
+        const pointsAjoutes = parseInt(req.body.nb);
+        
+        // On récupère le client ET les infos de sa boutique associée
+        const { data: client } = await supabase
+            .from('clients')
+            .select('*, boutiques(max_tampons)')
+            .eq('id', req.params.id)
+            .single();
+        
+        // On récupère la limite de la boutique (ou 10 par défaut si non défini)
+        const maxT = client.boutiques.max_tampons || 10;
+
+        let finalTampons = client.tampons || 0;
+    let finalRecompenses = client.recompenses || 0;
+    let totalHistorique = client.total_historique || 0; // 👈 1. On charge la mémoire du client
+
+    if (pointsAjoutes === -10) {
+        // Clic sur "OFFRIR CADEAU" : on enlève 1 récompense (mais on ne touche pas à l'historique)
+        finalRecompenses = Math.max(0, finalRecompenses - 1);
+    } else {
+        // Ajout classique : on calcule avec la limite dynamique (maxT)
+        let totalStamps = finalTampons + pointsAjoutes;
+        finalTampons = totalStamps % maxT;
+        finalRecompenses += Math.floor(totalStamps / maxT);
+        
+        totalHistorique += pointsAjoutes; // 👈 2. Le compteur à vie monte !
+    }
+
+    const { data: updatedClient } = await supabase.from('clients').update({
+        tampons: finalTampons,
+        recompenses: finalRecompenses,
+        total_historique: totalHistorique, // 👈 3. On sauvegarde la mémoire en base
+        last_visit: new Date().toISOString()
+    }).eq('id', req.params.id).select().single();
+        
+        if (pointsAjoutes > 0) await supabase.from('visites').insert([{ client_id: client.id, boutique_id: client.boutique_id, points_ajoutes: pointsAjoutes }]);
+
+        const { data: devices } = await supabase.from('devices').select('push_token').eq('serial_number', client.serial_number);
+        if (devices && devices.length > 0) {
+            const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
+            const teamId = process.env.APPLE_TEAM_ID || 'Q762BTBA98'; 
+            const keyId = process.env.APPLE_KEY_ID || 'RM6P22PX7A';
+            
+            const provider = new apn.Provider({ token: { key: p8Key, keyId: keyId, teamId: teamId }, production: true });
+            
+            // Le payload Wallet DOIT être vide pour fonctionner
+            const notification = new apn.Notification();
+            notification.topic = 'pass.pro.nuvy.loyalty';
+            
+            for (const d of devices) { await provider.send(notification, d.push_token); }
+            provider.shutdown();
+        }
+        res.json(updatedClient);
+    } catch (e) { res.status(500).send(); }
+});
+
+// ==========================================
+// LE TAP NFC
+// ==========================================
+app.get('/tap/:slug', (req, res) => {
+    const slug = req.params.slug;
+    const html = `
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Magic Tap Nuvy</title><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;800&display=swap" rel="stylesheet">
+        <style>body{background:#FAF8F5;display:flex;justify-content:center;align-items:center;height:100vh;font-family:'Manrope',sans-serif;margin:0;} .c{background:white;padding:40px;border-radius:35px;text-align:center;box-shadow:0 15px 35px rgba(0,0,0,0.03);border:1px solid #E0DEDA;max-width:380px;width:100%;} .loader{border:4px solid rgba(42,140,156,0.1);border-left-color:#2A8C9C;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 20px auto;} @keyframes spin{0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);}}</style>
+    </head>
+    <body>
+        <div class="c" id="ui-box">
+            <div class="loader"></div><h2 style="color:#2A8C9C; margin-bottom: 5px; font-weight:800;">Magic Tap⚡️</h2><p style="color:#888; font-weight:600; margin:0;">Reconnaissance client...</p>
+        </div>
+        <script>
+            const token = localStorage.getItem('nuvy_token');
+            if (!token) window.location.href = '/join/${slug}';
+            else {
+                fetch('/tap/${slug}/notify?token=' + token, { method: 'POST' })
+                .then(r => {
+                    if(r.ok) {
+                        document.getElementById('ui-box').innerHTML = '<div style="font-size: 60px; margin-bottom:10px;">✅</div><h2 style="color:#2E7D32; font-weight:800; margin:0;">Validé !</h2><p style="color:#888; font-weight:600; margin-bottom:20px;">Regardez l\\'écran du commerçant.</p><a href="/pass/' + token + '" style="display:inline-block; background:#111; color:white; padding:10px 20px; border-radius:20px; text-decoration:none; font-weight:bold; font-size:14px;">Apple Wallet </a>';
+                    } else if (r.status === 404) {
+                        // Le jeton n'existe plus en BDD : on nettoie le tel et on renvoie à l'inscription
+                        localStorage.removeItem('nuvy_token');
+                        window.location.href = '/join/${slug}';
+                    } else {
+                        throw new Error();
+                    }
+                })
+                }).catch(() => document.getElementById('ui-box').innerHTML = '<div style="font-size: 60px; margin-bottom:10px;">❌</div><h2 style="color:#C62828; font-weight:800; margin:0;">Erreur</h2><p style="color:#888; font-weight:600;">Erreur réseau.</p>');
+            }
+        </script>
+    </body>
+    </html>`;
+    res.send(html);
+});
+
+app.post('/tap/:slug/notify', async (req, res) => {
+    const { data: clientData } = await supabase.from('clients').select('*').eq('token', req.query.token).single();
+    if (clientData) { io.to(req.params.slug.toLowerCase().trim()).emit('client-detected', clientData); res.json({ success: true }); } 
+    else res.status(404).send();
+});
+
+// ==========================================
+// DISTRIBUTION WALLET & INSCRIPTION
+// ==========================================
+app.get('/pass/:token', async (req, res) => {
+    try {
+        const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('token', req.params.token).single();
+        const { data: all } = await supabase.from('clients').select('tampons, recompenses').eq('boutique_id', c.boutique_id);
+        const maxT = c.boutiques.max_tampons || 10;
+const score = (c.recompenses * maxT) + c.tampons;
+        let rank = 1; all.forEach(o => { if(((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
+        const buf = await generatePassBuffer(c, c.boutiques, rank);
+        res.set('Content-Type', 'application/vnd.apple.pkpass').send(buf);
+    } catch (e) { res.status(500).send(); }
+});
+
+app.post('/join/:slug/create', async (req, res) => {
+    try {
+        const { prenom, nom, telephone } = req.body;
+        const { data: b } = await supabase.from('boutiques').select('id').eq('slug', req.params.slug).single();
+
+        // 1. LE DÉTECTEUR : Est-ce que ce numéro existe déjà dans CETTE pizzeria ?
+        const { data: existingClient } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('telephone', telephone)
+            .eq('boutique_id', b.id)
+            .maybeSingle(); // maybeSingle évite que le code plante s'il ne trouve personne
+
+        if (existingClient) {
+            // SCÉNARIO A : LA CLIENTE REVIENT !
+            // On ne crée rien. On lui redonne juste la clé de son ancien compte.
+            // Son téléphone va télécharger l'ancienne carte avec ses 3 points intacts.
+            return res.json({ token: existingClient.token });
+        }
+
+        // SCÉNARIO B : NOUVEAU CLIENT
+        // On génère la carte à 0 point comme d'habitude.
+        const token = crypto.randomUUID();
+        const { data } = await supabase.from('clients').insert([{ 
+            boutique_id: b.id, 
+            nom: `${prenom} ${nom}`, 
+            telephone, 
+            tampons: 0, 
+            recompenses: 0, 
+            token, 
+            serial_number: `NUVY-${token.split('-')[0].toUpperCase()}`, 
+            last_visit: new Date().toISOString() 
+        }]).select().single();
+        
+        res.json({ token: data.token });
+
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ==========================================
+// WEB SERVICES APPLE (OBLIGATOIRES POUR LA MISE A JOUR)
+// ==========================================
+app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
     await supabase.from('devices').upsert([{ device_id: req.params.dId, push_token: req.body.pushToken, pass_type_id: req.params.pId, serial_number: req.params.sN }]);
     res.status(201).send();
 });
 
+app.get('/v1/devices/:dId/registrations/:pId', async (req, res) => {
+    const { data } = await supabase.from('devices').select('serial_number').eq('device_id', req.params.dId);
+    if (data && data.length > 0) res.json({ serialNumbers: data.map(d => d.serial_number), lastUpdated: new Date().toISOString() });
+    else res.status(204).send();
+});
+
+app.get('/v1/passes/:pId/:sN', async (req, res) => {
+    try {
+        const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('serial_number', req.params.sN).single();
+        if(!c) return res.status(404).send();
+        
+        const { data: all } = await supabase.from('clients').select('tampons, recompenses').eq('boutique_id', c.boutique_id);
+        const maxT = c.boutiques.max_tampons || 10;
+const score = (c.recompenses * maxT) + c.tampons;
+        let rank = 1; all.forEach(o => { if(((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
+        
+        const buf = await generatePassBuffer(c, c.boutiques, rank);
+        res.set('Content-Type', 'application/vnd.apple.pkpass').send(buf);
+    } catch (e) { res.status(500).send(); }
+});
+
+app.post('/v1/log', (req, res) => res.status(200).send());
+
+// ==========================================
+// SOCKET.IO (TEMPS RÉEL DASHBOARD)
+// ==========================================
+io.on('connection', (socket) => {
+    socket.on('join-boutique', (slug) => { socket.join(slug.toLowerCase().trim()); });
+});
+
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, '0.0.0.0', () => console.log("--- ⚡ NUVY MASTER ENGINE ONLINE ---"));
+server.listen(PORT, '0.0.0.0', () => console.log(`=== MOTEUR NUVY PRÊT SUR LE PORT ${PORT} ===`));

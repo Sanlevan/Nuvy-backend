@@ -1,57 +1,95 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuvy × Boutique</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votre Carte de Fidélité</title>
     <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="apple-touch-icon" href="/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Manrope', sans-serif; background: #FAF8F5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .card { background: white; padding: 40px; border-radius: 35px; border: 1px solid #E0DEDA; width: 100%; max-width: 400px; text-align: center; }
-        .header { margin-bottom: 30px; font-weight: 800; font-size: 20px; }
-        .nuvy { color: #2A8C9C; } .shop { color: #888; }
-        input { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 16px; border: 1px solid #E0DEDA; font-size: 16px; box-sizing: border-box; }
-        button { width: 100%; padding: 20px; background: #2A8C9C; color: white; border: none; border-radius: 18px; font-weight: 800; font-size: 16px; cursor: pointer; }
-        #wallet-area { display: none; }
+        body { font-family: 'Manrope', sans-serif; background: #FAF8F5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .onboarding-card { background: white; padding: 45px 35px; border-radius: 35px; text-align: center; max-width: 400px; width: 100%; border: 1px solid #E0DEDA; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
+        .cobranding { font-weight: 800; font-size: 18px; margin-bottom: 35px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .nuvy-text { color: #2A8C9C; } .shop-text { color: #888; text-transform: uppercase; } .divider { color: #DDD; }
+        h1 { font-size: 28px; font-weight: 800; color: #333; margin-bottom: 10px; letter-spacing: -0.5px; }
+        p { color: #666; font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
+        input { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 16px; border: 1px solid #E0DEDA; box-sizing: border-box; font-size: 16px; font-family: inherit; background: #FCFCFC; outline: none; transition: 0.2s; }
+        input:focus { border-color: #2A8C9C; background: #FFF; }
+        .btn-submit { width: 100%; padding: 22px; background: #2A8C9C; color: white; border: none; border-radius: 18px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(42, 140, 156, 0.2); }
+        #success-view { display: none; }
+        .wallet-btn-fallback { background: #000; color: #FFF; border: none; padding: 18px 25px; border-radius: 12px; font-size: 16px; font-weight: 600; margin-top: 25px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s; }
+        .wallet-btn-fallback:hover { transform: scale(1.02); }
+        .spinner { border: 4px solid rgba(42, 140, 156, 0.1); border-left-color: #2A8C9C; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="header"><span class="nuvy">Nuvy</span> × <span id="shop-name" class="shop">Boutique</span></div>
-        
-        <div id="form-area">
-            <h1>Inscrivez-vous</h1>
-            <p style="color:#666; margin-bottom:30px;">Cumulez des tampons et recevez des cadeaux exclusifs.</p>
-            <input type="text" id="prenom" placeholder="Prénom">
-            <input type="text" id="nom" placeholder="Nom">
-            <input type="tel" id="tel" placeholder="06 12 34 56 78">
-            <button onclick="register()">CRÉER MA CARTE</button>
+    <div class="onboarding-card">
+        <div class="cobranding"><span class="nuvy-text">Nuvy</span><span class="divider">×</span><span id="shop-display" class="shop-text">BOUTIQUE</span></div>
+        <div id="form-view">
+            <h1>Bienvenue</h1>
+            <p>Créez votre carte de fidélité digitale en quelques secondes et commencez à cumuler vos avantages.</p>
+            <input type="text" id="prenom" placeholder="Votre prénom">
+            <input type="text" id="nom" placeholder="Votre nom">
+            <input type="tel" id="telephone" placeholder="Numéro de téléphone">
+            <button class="btn-submit" onclick="creerCarte()">CRÉER MA CARTE</button>
         </div>
-
-        <div id="wallet-area">
-            <h1 style="color:#2A8C9C">C'est prêt !</h1>
-            <p>Ajoutez votre carte à votre iPhone.</p>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/Add_to_Apple_Wallet_rgb_v.svg" width="200" style="cursor:pointer;" onclick="location.href='/pass/'+clientToken">
+        <div id="success-view">
+            <div class="spinner"></div>
+            <h1 style="color: #2A8C9C;">Carte prête !</h1>
+            <p>Ouverture automatique d'Apple Wallet en cours...</p>
+            <button class="wallet-btn-fallback" onclick="telechargerPass()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                Ouvrir ma carte manuellement
+            </button>
         </div>
     </div>
-
     <script>
-        const slug = window.location.pathname.split('/').pop();
-        document.getElementById('shop-name').innerText = slug.replace(/-/g, ' ').toUpperCase();
-        let clientToken = null;
-
-        async function register() {
-            const res = await fetch(`/join/${slug}/create`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ prenom: document.getElementById('prenom').value, nom: document.getElementById('nom').value, telephone: document.getElementById('tel').value })
-            });
-            const data = await res.json();
-            clientToken = data.token;
-            localStorage.setItem('nuvy_token', clientToken);
-            document.getElementById('form-area').style.display = 'none';
-            document.getElementById('wallet-area').style.display = 'block';
+        const urlSlug = window.location.pathname.split('/').pop();
+        document.getElementById('shop-display').innerText = urlSlug.replace(/-/g, ' ');
+        let passToken = null;
+        // 🛡️ NETTOYEUR DE NUMÉRO INFAILLIBLE
+        function formaterTelephone(tel) {
+            // 1. On retire tout ce qui n'est pas un chiffre ou un '+'
+            let clean = tel.replace(/[^\d+]/g, '');
+            // 2. Si le client a mis +33 ou 0033, on le transforme en 0
+            if (clean.startsWith('+33')) clean = '0' + clean.slice(3);
+            if (clean.startsWith('0033')) clean = '0' + clean.slice(4);
+            // 3. On vérifie que c'est bien un numéro français valide (10 chiffres, commence par 01 à 09)
+            if (/^0[1-9]\d{8}$/.test(clean)) return clean;
+            return null; // Renvoie null si le numéro est faux
         }
+        async function creerCarte() {
+            const prenom = document.getElementById('prenom').value.trim(); 
+            const nom = document.getElementById('nom').value.trim(); 
+            const telephoneBrut = document.getElementById('telephone').value.trim(); 
+            const btn = document.querySelector('.btn-submit');
+
+            if (!prenom || !nom || !telephoneBrut) { 
+                alert("Merci de remplir tous les champs."); 
+                return; 
+            }
+
+            // 🛡️ On passe le numéro dans le nettoyeur
+            const telephone = formaterTelephone(telephoneBrut);
+            
+            if (!telephone) {
+                alert("Le numéro de téléphone n'est pas valide (ex: 06 12 34 56 78).");
+                return; // Bloque l'inscription si le format est mauvais !
+            }
+            btn.innerText = "CRÉATION EN COURS..."; btn.disabled = true;
+            try {
+                const res = await fetch(`/join/${urlSlug}/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prenom, nom, telephone }) });
+                if (res.ok) {
+                    const data = await res.json(); passToken = data.token;
+                    localStorage.setItem('nuvy_token', passToken);
+                    document.getElementById('form-view').style.display = 'none'; document.getElementById('success-view').style.display = 'block';
+                    setTimeout(() => { window.location.href = `/pass/${passToken}`; }, 1000);
+                } else { alert("Erreur."); btn.innerText = "CRÉER MA CARTE"; btn.disabled = false; }
+            } catch (error) { alert("Erreur réseau."); btn.innerText = "CRÉER MA CARTE"; btn.disabled = false; }
+        }
+        function telechargerPass() { if (passToken) window.location.href = `/pass/${passToken}`; }
     </script>
 </body>
 </html>
