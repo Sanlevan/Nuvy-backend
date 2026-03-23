@@ -7,3 +7,9 @@ pass.cer
 pass.pem
 signer.pem
 WWDR.pem
+.git
+.DS_Store
+npm-debug.log
+coverage
+dist
+build
