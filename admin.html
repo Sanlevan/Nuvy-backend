@@ -18,7 +18,7 @@
             'nuvy-dark': '#238391',
             'nuvy-gold': '#D4AF37',
             'admin-bg': '#F9FAFB',
-            'sidebar': '#0f172a', /* Slate 900 pour le look salle des machines */
+            'sidebar': '#0f172a',
           }
         }
       }
@@ -37,7 +37,7 @@
     <div class="h-16 flex items-center px-6 border-b border-slate-800">
       <div class="flex items-center gap-3">
         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-nuvy">
-          <i data-lucide="credit-card" class="h-5 w-5 text-white"></i>
+          <i data-lucide="shield-check" class="h-5 w-5 text-white"></i>
         </div>
         <div class="flex flex-col">
           <span class="text-sm font-bold tracking-tight text-white">NUVY ADMIN</span>
@@ -65,353 +65,282 @@
     </nav>
 
     <div class="p-4 border-t border-slate-800">
-      <div class="flex items-center gap-3">
-        <div class="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
-          <span class="text-xs font-bold text-white">MR</span>
-        </div>
-        <div class="flex flex-1 flex-col">
-          <span class="text-sm font-medium text-white">Marc Renard</span>
-          <span class="text-xs text-slate-500">CEO</span>
-        </div>
-        <button class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
-          <i data-lucide="log-out" class="h-4 w-4"></i>
-        </button>
-      </div>
+  <div class="flex items-center gap-3">
+    <div class="h-9 w-9 rounded-full bg-nuvy flex items-center justify-center border border-slate-700 shadow-inner">
+      <span class="text-xs font-bold text-white">TR</span> </div>
+    <div class="flex flex-1 flex-col truncate">
+      <span class="text-sm font-bold text-white truncate">Tristan Le Van</span> <span class="text-xs text-slate-500 font-medium">CEO Nuvy</span>
     </div>
+    <button onclick="deconnexion()" class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-red-900/30 text-slate-400 hover:text-red-400 transition-colors">
+      <i data-lucide="log-out" class="h-4 w-4"></i>
+    </button>
+  </div>
+</div>
   </aside>
 
   <main class="ml-64 flex-1 flex flex-col min-h-screen">
     
     <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-8 shadow-sm">
       <h1 id="page-title" class="text-lg font-bold text-gray-900">Vue d'ensemble</h1>
-      <div class="flex items-center gap-2 text-sm text-gray-500">
-        <i data-lucide="clock" class="h-4 w-4"></i>
-        <span>Dernière mise à jour : <span class="font-bold text-gray-900">A l'instant</span></span>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+          <i data-lucide="clock" class="h-4 w-4"></i>
+          <span>Dernière mise à jour : <span class="font-bold text-gray-900">À l'instant</span></span>
+        </div>
       </div>
     </header>
 
     <div class="flex-1 p-8">
 
       <section id="overview" class="view active max-w-6xl mx-auto space-y-6">
-        
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between pb-2">
-              <h3 class="text-sm font-semibold text-gray-500">Boutiques Actives</h3>
-              <i data-lucide="store" class="h-4 w-4 text-gray-400"></i>
-            </div>
-            <div class="flex items-baseline gap-1">
-              <span class="text-3xl font-extrabold text-gray-900">412</span>
-              <span class="text-lg text-gray-500">/600</span>
-            </div>
-            <div class="mt-2 flex items-center gap-1 text-green-600">
-              <i data-lucide="trending-up" class="h-3 w-3"></i>
-              <span class="text-xs font-bold">+3.2%</span>
-              <span class="text-xs text-gray-400 font-medium">vs mois dernier</span>
-            </div>
+            <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Boutiques Actives</h3><i data-lucide="store" class="h-4 w-4"></i></div>
+            <div class="flex items-baseline gap-1"><span id="overview-kpi-actives" class="text-3xl font-extrabold text-nuvy">...</span><span class="text-lg text-gray-400 font-bold">/600</span></div>
+            <p class="text-xs text-green-600 font-bold mt-2">📈 +3.2% vs mois dernier</p>
           </div>
 
           <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between pb-2">
-              <h3 class="text-sm font-semibold text-gray-500">Scans Aujourd'hui</h3>
-              <i data-lucide="scan" class="h-4 w-4 text-gray-400"></i>
-            </div>
-            <div class="flex items-baseline gap-1">
-              <span class="text-3xl font-extrabold text-gray-900">14,230</span>
-            </div>
-            <div class="mt-2 flex items-center gap-1 text-green-600">
-              <i data-lucide="trending-up" class="h-3 w-3"></i>
-              <span class="text-xs font-bold">+12.5%</span>
-              <span class="text-xs text-gray-400 font-medium">vs hier</span>
-            </div>
+            <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Scans Aujourd'hui</h3><i data-lucide="scan" class="h-4 w-4"></i></div>
+            <div class="text-3xl font-extrabold text-gray-900">14,230</div>
+            <p class="text-xs text-green-600 font-bold mt-2">📈 +12.5% vs hier</p>
           </div>
 
-          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between pb-2">
-              <h3 class="text-sm font-semibold text-gray-500">Health Score Réseau</h3>
-              <i data-lucide="activity" class="h-4 w-4 text-gray-400"></i>
-            </div>
-            <div class="flex flex-col items-center mt-2">
-              <div class="relative h-20 w-32">
+          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col items-center justify-center">
+             <div class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 text-center w-full flex justify-between">Health Score <i data-lucide="activity" class="h-4 w-4"></i></div>
+             <div class="relative h-16 w-32">
                 <svg class="h-full w-full" viewBox="0 0 120 70">
-                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" class="text-gray-100" />
-                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" class="text-green-500" stroke-dasharray="141.37" stroke-dashoffset="11.3" style="transition: stroke-dashoffset 1s ease-out;" />
+                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="#f3f4f6" stroke-width="8" stroke-linecap="round" />
+                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-dasharray="141.37" stroke-dashoffset="11.3" />
                 </svg>
-                <div class="absolute inset-0 flex items-end justify-center pb-0">
-                  <span class="text-3xl font-extrabold text-green-600">92%</span>
-                </div>
-              </div>
-              <div class="mt-2 flex items-center gap-2">
-                <div class="h-2 w-2 rounded-full bg-green-500"></div>
-                <span class="text-xs font-bold text-gray-500">Excellent</span>
-              </div>
-            </div>
+                <div class="absolute inset-0 flex items-end justify-center pb-0"><span class="text-2xl font-extrabold text-green-600">92%</span></div>
+             </div>
           </div>
         </div>
 
         <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h3 class="text-base font-bold text-gray-900 mb-6">Évolution des scans — 30 derniers jours</h3>
-          <div class="h-[300px] w-full relative">
-            <canvas id="ceoScansChart"></canvas>
-          </div>
-        </div>
-      </section>
-
-      <section id="radar" class="view max-w-6xl mx-auto">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div class="p-5 border-b border-gray-100">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
-                  <i data-lucide="trending-down" class="h-5 w-5 text-red-600"></i>
-                </div>
-                <div>
-                  <h3 class="font-bold text-gray-900">Risque de Churn</h3>
-                  <p class="text-xs text-gray-500">Chute d'activité détectée</p>
-                </div>
-              </div>
-            </div>
-            <div class="p-5 space-y-3 bg-gray-50/50">
-              <div class="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-center shadow-sm">
-                <div>
-                  <p class="text-sm font-bold text-gray-900">Boulangerie Le Pain d'Or</p>
-                  <p class="text-xs text-gray-500">Lyon • Il y a 3 jours</p>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-md">-67%</span>
-                  <button class="text-gray-400 hover:text-nuvy"><i data-lucide="phone" class="h-4 w-4"></i></button>
-                </div>
-              </div>
-              <div class="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-center shadow-sm">
-                <div>
-                  <p class="text-sm font-bold text-gray-900">Café des Arts</p>
-                  <p class="text-xs text-gray-500">Marseille • Il y a 5 jours</p>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-md">-54%</span>
-                  <button class="text-gray-400 hover:text-nuvy"><i data-lucide="phone" class="h-4 w-4"></i></button>
-                </div>
-              </div>
-              <button class="w-full mt-2 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100 transition flex items-center justify-center gap-2">
-                Voir tous les risques <i data-lucide="arrow-right" class="h-4 w-4"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div class="p-5 border-b border-gray-100">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <i data-lucide="rocket" class="h-5 w-5 text-amber-600"></i>
-                </div>
-                <div>
-                  <h3 class="font-bold text-gray-900">Cold Start</h3>
-                  <p class="text-xs text-gray-500">Nouvelles boutiques inactives</p>
-                </div>
-              </div>
-            </div>
-            <div class="p-5 space-y-3 bg-gray-50/50">
-              <div class="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-center shadow-sm">
-                <div>
-                  <p class="text-sm font-bold text-gray-900">Fromagerie du Coin</p>
-                  <p class="text-xs text-gray-500">Bordeaux • Créée le 15 Mar</p>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="border border-amber-200 bg-amber-50 text-amber-600 text-xs font-bold px-2 py-1 rounded-md">0 scan</span>
-                  <button class="text-gray-400 hover:text-nuvy"><i data-lucide="phone" class="h-4 w-4"></i></button>
-                </div>
-              </div>
-              <div class="mt-4 p-4 border border-dashed border-gray-300 rounded-lg text-center bg-gray-50 text-xs font-medium text-gray-500">
-                Ces boutiques nécessitent un appel d'onboarding.
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div class="p-5 border-b border-gray-100">
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
-                  <i data-lucide="alert-octagon" class="h-5 w-5 text-red-600"></i>
-                </div>
-                <div>
-                  <h3 class="font-bold text-gray-900">Suspicion Fraude</h3>
-                  <p class="text-xs text-gray-500">Activité anormale détectée</p>
-                </div>
-              </div>
-            </div>
-            <div class="p-5 space-y-3 bg-gray-50/50">
-              <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div class="flex justify-between items-start">
-                  <div>
-                    <p class="text-sm font-bold text-gray-900">Quick Burger Express</p>
-                    <p class="text-xs text-gray-500">Paris 11e</p>
-                  </div>
-                  <span class="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Urgent</span>
-                </div>
-                <div class="mt-3 flex items-center gap-2 text-sm text-red-600 font-bold">
-                  <i data-lucide="alert-octagon" class="h-4 w-4"></i> 247 scans en 10 min
-                </div>
-                <div class="mt-4 flex gap-2">
-                  <button class="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-md transition">Bloquer</button>
-                  <button class="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-bold py-2 rounded-md flex justify-center items-center gap-1 transition"><i data-lucide="eye" class="h-3 w-3"></i> Enquêter</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
+          <h3 class="font-bold text-gray-900 mb-6">Affluence Globale Réseau (30J)</h3>
+          <div class="h-[300px] w-full"><canvas id="ceoScansChart"></canvas></div>
         </div>
       </section>
 
       <section id="fleet" class="view max-w-6xl mx-auto space-y-6">
-        
         <div class="flex justify-between items-center">
           <div class="relative w-96">
             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"></i>
-            <input type="text" placeholder="Rechercher une boutique..." class="w-full pl-10 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-nuvy/50 shadow-sm">
+            <input type="text" placeholder="Rechercher une boutique..." class="w-full pl-10 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-nuvy/50 transition-all">
           </div>
-          <button class="h-11 px-5 bg-nuvy hover:bg-nuvy-dark text-white text-sm font-bold rounded-xl shadow-sm flex items-center gap-2 transition">
+          <button onclick="openModalCreate()" class="h-11 px-5 bg-nuvy hover:bg-nuvy-dark text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 transition-all active:scale-95">
             <i data-lucide="plus" class="h-4 w-4"></i> Ajouter une boutique
           </button>
         </div>
 
         <div class="grid grid-cols-4 gap-4">
           <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Boutiques</p>
-            <p class="text-2xl font-extrabold text-gray-900 mt-1">600</p>
+            <p class="text-xs font-bold text-gray-400 uppercase">Total Boutiques</p>
+            <p id="kpi-total-boutiques" class="text-2xl font-extrabold text-gray-900 mt-1">...</p>
           </div>
           <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Actives</p>
-            <p class="text-2xl font-extrabold text-green-600 mt-1">412</p>
+            <p class="text-xs font-bold text-gray-400 uppercase">Actives</p>
+            <p id="fleet-kpi-actives" class="text-2xl font-extrabold text-green-600 mt-1">...</p>
           </div>
           <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Attention requise</p>
-            <p class="text-2xl font-extrabold text-amber-500 mt-1">156</p>
+            <p class="text-xs font-bold text-gray-400 uppercase">Attention (7J)</p>
+            <p class="text-2xl font-extrabold text-amber-500 mt-1">42</p>
           </div>
           <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Inactives</p>
-            <p class="text-2xl font-extrabold text-gray-400 mt-1">32</p>
+            <p class="text-xs font-bold text-gray-400 uppercase">Inactives</p>
+            <p class="text-2xl font-extrabold text-gray-400 mt-1">12</p>
           </div>
         </div>
 
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-            <h3 class="font-bold text-gray-900">Toutes les boutiques (600)</h3>
-          </div>
           <table class="w-full text-left">
-            <thead class="bg-white border-b border-gray-200">
-              <tr>
-                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
-                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Nom de la boutique</th>
-                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Ville</th>
-                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Scans Totaux</th>
-                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
-              </tr>
+            <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-bold uppercase tracking-wider">
+              <tr><th class="py-4 px-6">Statut</th><th class="py-4 px-6">Boutique</th><th class="py-4 px-6">Identifiant</th><th class="py-4 px-6 text-right">Inscrit le</th><th class="py-4 px-6 text-right">Actions</th></tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr class="hover:bg-gray-50 transition group">
-                <td class="py-4 px-6"><span class="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200">Actif</span></td>
-                <td class="py-4 px-6 font-bold text-gray-900">Boulangerie Le Pain d'Or</td>
-                <td class="py-4 px-6 text-gray-500 text-sm font-medium">Lyon</td>
-                <td class="py-4 px-6 text-right font-mono font-bold text-gray-700">12,450</td>
-                <td class="py-4 px-6 text-right">
-                  <button class="text-nuvy hover:bg-nuvy/10 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ml-auto">
-                    <i data-lucide="log-in" class="h-3 w-3"></i> Login
-                  </button>
-                </td>
-              </tr>
-              <tr class="hover:bg-gray-50 transition group">
-                <td class="py-4 px-6"><span class="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-200">Attention</span></td>
-                <td class="py-4 px-6 font-bold text-gray-900">Café des Arts</td>
-                <td class="py-4 px-6 text-gray-500 text-sm font-medium">Marseille</td>
-                <td class="py-4 px-6 text-right font-mono font-bold text-gray-700">3,420</td>
-                <td class="py-4 px-6 text-right">
-                  <button class="text-nuvy hover:bg-nuvy/10 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ml-auto">
-                    <i data-lucide="log-in" class="h-3 w-3"></i> Login
-                  </button>
-                </td>
-              </tr>
-              <tr class="hover:bg-gray-50 transition group">
-                <td class="py-4 px-6"><span class="bg-gray-100 text-gray-500 text-xs font-bold px-2.5 py-1 rounded-full border border-gray-200">Inactif</span></td>
-                <td class="py-4 px-6 font-bold text-gray-900">Fromagerie du Coin</td>
-                <td class="py-4 px-6 text-gray-500 text-sm font-medium">Bordeaux</td>
-                <td class="py-4 px-6 text-right font-mono font-bold text-gray-700">0</td>
-                <td class="py-4 px-6 text-right">
-                  <button class="text-nuvy hover:bg-nuvy/10 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ml-auto">
-                    <i data-lucide="log-in" class="h-3 w-3"></i> Login
-                  </button>
-                </td>
-              </tr>
-            </tbody>
+            <tbody id="fleet-tbody" class="divide-y divide-gray-100"></tbody>
           </table>
         </div>
       </section>
 
-      <section id="data" class="view text-center py-20 text-gray-400 font-medium">Data Center en construction...</section>
-      <section id="system" class="view text-center py-20 text-gray-400 font-medium">Configuration Système en construction...</section>
+      <section id="radar" class="view max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="trending-down" class="text-red-500"></i><h3 class="font-bold">Risque de Churn</h3></div>
+                <div class="p-4 space-y-3">
+                    <div class="flex justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div class="text-sm font-bold">Boulangerie Le Pain d'Or<br><span class="text-xs font-normal text-gray-500">Lyon</span></div>
+                        <span class="text-red-600 font-bold">-67%</span>
+                    </div>
+                    <button class="w-full py-2 text-xs font-bold border rounded-lg hover:bg-gray-50 transition-all">Analyser tous les risques</button>
+                </div>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="alert-octagon" class="text-red-600"></i><h3 class="font-bold">Suspicion Fraude</h3></div>
+                <div class="p-4">
+                    <div class="p-4 bg-red-600 text-white rounded-xl shadow-lg">
+                        <p class="text-xs opacity-80 uppercase font-bold mb-1">Alerte Critique</p>
+                        <p class="font-bold">Quick Burger Express</p>
+                        <p class="text-sm mt-2">📍 247 scans en 10 min</p>
+                        <div class="mt-4 flex gap-2"><button class="bg-white text-red-600 text-xs font-bold py-2 px-3 rounded-lg flex-1">Bloquer</button><button class="bg-red-700 text-white text-xs font-bold py-2 px-3 rounded-lg flex-1">Enquêter</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      <section id="data" class="view max-w-6xl mx-auto space-y-6">
+        <h2 class="text-2xl font-extrabold">Intelligence Client Globale</h2>
+        <div class="grid grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 class="font-bold mb-4">Répartition par secteur</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between text-sm font-bold"><span>Boulangeries</span><span>45%</span></div>
+                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="bg-nuvy h-full" style="width: 45%"></div></div>
+                    <div class="flex justify-between text-sm font-bold"><span>Restauration</span><span>30%</span></div>
+                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="bg-nuvy h-full" style="width: 30%"></div></div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-center items-center text-center">
+                <i data-lucide="users" class="h-12 w-12 text-nuvy mb-4"></i>
+                <p class="text-gray-500 font-bold uppercase text-xs">Total Clients Finaux (Wallet)</p>
+                <p class="text-4xl font-extrabold mt-2"><p id="total-clients-global" class="text-4xl font-extrabold mt-2 text-nuvy">...</p></p>
+            </div>
+        </div>
+      </section>
+
+      <section id="system" class="view max-w-3xl mx-auto space-y-6">
+        <h2 class="text-2xl font-extrabold">État du Système Nuvy</h2>
+        <div class="bg-white rounded-2xl border p-6 shadow-sm space-y-6">
+            <div class="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-100">
+                <div class="flex items-center gap-3"><div class="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div><span class="font-bold text-green-800">Serveur API (Railway)</span></div>
+                <span class="text-xs font-bold text-green-600 uppercase tracking-widest">Opérationnel</span>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-100">
+                <div class="flex items-center gap-3"><div class="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div><span class="font-bold text-green-800">Base de données (Supabase)</span></div>
+                <span class="text-xs font-bold text-green-600 uppercase tracking-widest">Connecté</span>
+            </div>
+            <div class="p-4 border rounded-xl space-y-2">
+                <p class="text-xs font-bold text-gray-400 uppercase">Certificat Apple Wallet</p>
+                <div class="flex justify-between items-center"><span class="text-sm font-bold">pass.pro.nuvy.certificate</span><span class="text-xs font-bold text-amber-500">Expire dans 284 jours</span></div>
+            </div>
+        </div>
+      </section>
 
     </div>
   </main>
 
+  <div id="modal-create" class="hidden fixed inset-0 z-[100] bg-sidebar/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
+          <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+              <h3 class="font-extrabold text-lg">Nouvel Onboarding</h3>
+              <button onclick="closeModalCreate()" class="text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+          <div class="p-6 space-y-4">
+              <div><label class="text-xs font-bold uppercase text-gray-500">Nom du commerce</label><input type="text" placeholder="Ex: Maison Kayser" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30"></div>
+              <div><label class="text-xs font-bold uppercase text-gray-500">Identifiant Unique (Username)</label><input type="text" placeholder="ex: maisonkayser" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30"></div>
+              <button class="w-full h-12 bg-nuvy text-white font-extrabold rounded-xl shadow-lg mt-4 transition-all active:scale-95">GÉNÉRER L'ACCÈS BOUTIQUE</button>
+          </div>
+      </div>
+  </div>
+
   <script>
-    // Initialisation des icônes
     lucide.createIcons();
 
-    // Fonction de navigation ultra-fluide
     function switchView(viewId, title, btnElement) {
-      // 1. Cacher toutes les vues
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      // 2. Afficher la vue demandée
       document.getElementById(viewId).classList.add('active');
-      // 3. Mettre à jour le titre du Header
       document.getElementById('page-title').innerText = title;
-      // 4. Mettre à jour la sidebar (Enlever le bleu partout)
       document.querySelectorAll('.nav-item').forEach(b => {
         b.classList.remove('bg-nuvy', 'text-white');
         b.classList.add('hover:bg-slate-800', 'hover:text-white', 'text-slate-300');
       });
-      // 5. Mettre le bouton cliqué en bleu
       btnElement.classList.remove('hover:bg-slate-800', 'hover:text-white', 'text-slate-300');
       btnElement.classList.add('bg-nuvy', 'text-white');
     }
 
-    // Graphique mock-up (Simulation de 30 jours de data pour le CEO)
-    window.addEventListener('DOMContentLoaded', () => {
-      const ctx = document.getElementById('ceoScansChart');
-      if (ctx) {
-        // Génère 30 jours de dates factices
-        const labels = Array.from({length: 30}, (_, i) => `Jour ${i+1}`);
-        // Génère des données qui montent globalement
-        const data = labels.map((_, i) => Math.floor(10000 + (i * 150) + (Math.random() * 2000)));
+    function openModalCreate() { document.getElementById('modal-create').classList.remove('hidden'); }
+    function closeModalCreate() { document.getElementById('modal-create').classList.add('hidden'); }
 
-        new Chart(ctx.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Volume total de scans (Réseau)',
-              data: data,
-              borderColor: '#2A8C9C',
-              backgroundColor: 'rgba(42, 140, 156, 0.05)',
-              borderWidth: 3,
-              fill: true,
-              tension: 0.4,
-              pointRadius: 0,
-              pointHoverRadius: 6
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: { beginAtZero: false, grid: { color: '#F3F4F6', borderDash: [5, 5] } },
-              x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } }
+    // --- LOGIQUE API ---
+    // 1. On aspire la clé qui est dans ton URL (?key=natrisT05)
+    const urlParams = new URLSearchParams(window.location.search);
+    const CEO_KEY = urlParams.get('key');
+
+    async function chargerFlotteCommercants() {
+        try {
+            console.log("🔍 Envoi de la requête API avec la clé :", CEO_KEY);
+
+            const res = await fetch('/admin/boutiques', { 
+                headers: { 'x-ceo-key': CEO_KEY } 
+            });
+            
+            if (!res.ok) {
+                console.error("❌ L'API a refusé l'accès ! Code d'erreur :", res.status);
+                return;
             }
-          }
-        });
-      }
+            
+            const boutiques = await res.json();
+            console.log("✅ Données reçues de Supabase :", boutiques);
+            
+            // Mise à jour de TOUS les compteurs
+            const totalBoutiques = boutiques.length;
+            document.getElementById('kpi-total-boutiques').innerText = totalBoutiques;
+            document.getElementById('overview-kpi-actives').innerText = totalBoutiques;
+            document.getElementById('fleet-kpi-actives').innerText = totalBoutiques;
+            document.getElementById('total-clients-global').innerText = (totalBoutiques * 12).toLocaleString();
+
+            const tbody = document.getElementById('fleet-tbody');
+            tbody.innerHTML = '';
+
+            boutiques.forEach(b => {
+                const dateCreation = new Date(b.created_at).toLocaleDateString('fr-FR', {
+                    day: '2-digit', month: 'short', year: 'numeric'
+                });
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition group";
+                tr.innerHTML = `
+                    <td class="py-4 px-6"><span class="bg-green-100 text-green-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-green-200">Actif</span></td>
+                    <td class="py-4 px-6 font-bold text-gray-900">${b.nom}</td>
+                    <td class="py-4 px-6 text-gray-400 font-mono text-xs">@${b.slug || b.username}</td>
+                    <td class="py-4 px-6 text-right text-sm text-gray-500 font-medium">${dateCreation}</td>
+                    <td class="py-4 px-6 text-right">
+                      <button onclick="window.open('/dashboard', '_blank')" class="bg-white border border-gray-200 text-nuvy hover:bg-nuvy hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ml-auto shadow-sm">
+                        <i data-lucide="external-link" class="h-3 w-3"></i> Gérer
+                      </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        } catch (error) { 
+            console.error("❌ Crash total du script :", error); 
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if(CEO_KEY) {
+            chargerFlotteCommercants();
+        } else {
+            console.error("❌ Aucune clé trouvée dans l'URL !");
+        }
+        
+        // Graphique fictif pour le design
+        const ctx = document.getElementById('ceoScansChart');
+        if (ctx) {
+            new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 30}, (_, i) => `J-${30-i}`),
+                    datasets: [{ label: 'Scans', data: Array.from({length: 30}, () => Math.floor(Math.random() * 5000 + 10000)), borderColor: '#2A8C9C', tension: 0.4, fill: true, backgroundColor: 'rgba(42, 140, 156, 0.05)', pointRadius: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
     });
+
+    function deconnexion() { window.location.href = '/admin-login'; }
   </script>
 </body>
 </html>

@@ -181,62 +181,72 @@ async function generatePassBuffer(client, boutique, clientRank) {
 app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.resolve(__dirname, 'dashboard.html')));
 app.get('/join/:slug', (req, res) => res.sendFile(path.resolve(__dirname, 'join.html')));
-const CEO_ACCESS_KEY = "NuvyESSEC2024!";
 
+// ==========================================
+// 🔐 SÉCURITÉ CEO (SOURCE DE VÉRITÉ UNIQUE)
+// ==========================================
+const MASTER_CEO_KEY = "natrisT05"; 
+
+// 1. Route pour la page de Login
+app.get('/admin-login', (req, res) => {
+    res.sendFile(path.resolve(__dirname, 'public', 'admin-login.html'));
+});
+
+// 2. Route pour le Dashboard Web
 app.get('/nuvy-ceo-portal', (req, res) => {
     const key = req.query.key;
-
-    if (key !== CEO_ACCESS_KEY) {
-        return res.status(401).send("🚨 Accès Super-Admin refusé. Clé incorrecte.");
+    if (key !== MASTER_CEO_KEY) {
+        return res.redirect('/admin-login?error=1');
     }
-    
-    res.sendFile(path.resolve(__dirname, 'admin.html')); 
+    res.sendFile(path.resolve(__dirname, 'admin.html'));
 });
 
 // ==========================================
 // API CEO & COMMERÇANT
 // ==========================================
+
+// CRÉER UNE BOUTIQUE
 app.post('/admin/create-boutique', async (req, res) => {
     try {
-        // 1. On récupère le paramètre max_tampons envoyé par ton dashboard
         const { nom, username, password, ceoKey, categorie, logo_url, max_tampons } = req.body;
         
-        if (ceoKey !== process.env.CEO_KEY) return res.status(403).json({ message: "Clé CEO invalide." });
+        // 🛡️ CORRECTION ICI
+        if (ceoKey !== MASTER_CEO_KEY) return res.status(403).json({ message: "Clé CEO invalide." });
+        
         const slug = nom.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '');
         const da = STEREOTYPES[categorie] || STEREOTYPES.default;
         const join_url = `https://${req.get('host')}/join/${slug}`;
-        
-        // 2. Sécurité : on force en chiffre, et si c'est vide on met 10 par défaut
         const finalMaxTampons = parseInt(max_tampons) || 10;
-
-        // 3. On envoie tout à Supabase, y compris le max_tampons
-        // 🛡️ NOUVEAU : On hache le mot de passe avec 10 tours de cryptographie
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 3. On envoie tout à Supabase, avec le mot de passe crypté
         const { data, error } = await supabase.from('boutiques').insert([{ 
             nom, slug, username, password: hashedPassword, categorie, logo_url, join_url, 
-            color_bg: da.bg, color_text: da.text,
-            max_tampons: finalMaxTampons
+            color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons
         }]).select().single();
+        
         if (error) throw error;
         res.json({ success: true, boutique: data });
     } catch (e) { res.status(400).json({ message: e.message }); }
 });
-// 1. VOIR TOUTES LES BOUTIQUES (Réservé au CEO)
+
+// VOIR TOUTES LES BOUTIQUES
 app.get('/admin/boutiques', async (req, res) => {
     const ceoKey = req.headers['x-ceo-key'];
-    if (ceoKey !== process.env.CEO_KEY) return res.status(403).send("Accès refusé");
+    
+    // 🛡️ CORRECTION ICI
+    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
 
     const { data, error } = await supabase.from('boutiques').select('id, nom, username, slug, created_at');
     if (error) return res.status(500).json(error);
     res.json(data);
 });
 
-// 2. RÉINITIALISER UN MOT DE PASSE (Réservé au CEO)
+// RÉINITIALISER UN MOT DE PASSE
 app.post('/admin/reset-password', async (req, res) => {
     const { boutiqueId, newPassword, ceoKey } = req.body;
-    if (ceoKey !== process.env.CEO_KEY) return res.status(403).send("Accès refusé");
+    
+    // 🛡️ CORRECTION ICI
+    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
 
     try {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -303,7 +313,7 @@ app.post('/admin/force-reset-password', async (req, res) => {
     const { boutiqueId, newPassword, ceoKey } = req.body;
 
     // 1. Vérification de ta clé secrète
-    if (ceoKey !== process.env.CEO_KEY) {
+    if (ceoKey !== MASTER_CEO_KEY) {
         return res.status(403).json({ message: "Accès refusé. Clé CEO invalide." });
     }
 
