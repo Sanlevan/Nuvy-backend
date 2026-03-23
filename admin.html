@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nuvy | Tour de Contrôle CEO</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -232,15 +233,52 @@
   </main>
 
   <div id="modal-create" class="hidden fixed inset-0 z-[100] bg-sidebar/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
+      <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
           <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-              <h3 class="font-extrabold text-lg">Nouvel Onboarding</h3>
+              <h3 class="font-extrabold text-lg">Nouvel Onboarding Commerçant</h3>
               <button onclick="closeModalCreate()" class="text-gray-400 hover:text-gray-600">✕</button>
           </div>
-          <div class="p-6 space-y-4">
-              <div><label class="text-xs font-bold uppercase text-gray-500">Nom du commerce</label><input type="text" placeholder="Ex: Maison Kayser" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30"></div>
-              <div><label class="text-xs font-bold uppercase text-gray-500">Identifiant Unique (Username)</label><input type="text" placeholder="ex: maisonkayser" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30"></div>
-              <button class="w-full h-12 bg-nuvy text-white font-extrabold rounded-xl shadow-lg mt-4 transition-all active:scale-95">GÉNÉRER L'ACCÈS BOUTIQUE</button>
+          <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              
+              <div class="grid grid-cols-2 gap-4">
+                  <div class="col-span-2">
+                      <label class="text-xs font-bold uppercase text-gray-500">Nom de la boutique *</label>
+                      <input type="text" id="new-nom" placeholder="Ex: Pizzeria Napoli" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
+                  </div>
+                  <div>
+                      <label class="text-xs font-bold uppercase text-gray-500">Identifiant (Username) *</label>
+                      <input type="text" id="new-username" placeholder="ex: napoli_nice" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
+                  </div>
+                  <div>
+                      <label class="text-xs font-bold uppercase text-gray-500">Mot de passe provisoire *</label>
+                      <input type="text" id="new-password" placeholder="Mot de passe" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
+                  </div>
+                  <div>
+                      <label class="text-xs font-bold uppercase text-gray-500">Catégorie (Design)</label>
+                      <select id="new-categorie" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30 bg-white">
+                          <option value="default">Standard (Bleu Nuvy)</option>
+                          <option value="boulangerie">Boulangerie (Doré)</option>
+                          <option value="pizza">Pizzeria (Rouge)</option>
+                          <option value="onglerie">Institut / Onglerie (Rose)</option>
+                          <option value="coiffeur">Coiffeur / Barbier (Bleu Nuit)</option>
+                          <option value="cafe">Café / Salon (Marron)</option>
+                      </select>
+                  </div>
+                  <div>
+                      <label class="text-xs font-bold uppercase text-gray-500">Taille de la carte</label>
+                      <input type="number" id="new-max" placeholder="10" value="10" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
+                  </div>
+                  <div class="col-span-2">
+                      <label class="text-xs font-bold uppercase text-gray-500">URL du Logo (Optionnel)</label>
+                      <input type="text" id="new-logo" placeholder="https://..." class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
+                  </div>
+              </div>
+
+              <p id="modal-error" class="text-red-500 text-xs font-bold hidden text-center"></p>
+
+              <button id="btn-create" onclick="creerBoutique()" class="w-full h-12 bg-nuvy text-white font-extrabold rounded-xl shadow-lg mt-2 transition-all active:scale-95 flex items-center justify-center gap-2">
+                  GÉNÉRER L'ACCÈS BOUTIQUE
+              </button>
           </div>
       </div>
   </div>
@@ -339,7 +377,63 @@
             });
         }
     });
+    async function creerBoutique() {
+        const nom = document.getElementById('new-nom').value.trim();
+        const username = document.getElementById('new-username').value.trim();
+        const password = document.getElementById('new-password').value.trim();
+        const categorie = document.getElementById('new-categorie').value;
+        const max_tampons = document.getElementById('new-max').value;
+        const logo_url = document.getElementById('new-logo').value.trim();
+        
+        const errorEl = document.getElementById('modal-error');
+        const btn = document.getElementById('btn-create');
 
+        // Sécurité de base
+        if(!nom || !username || !password) {
+            errorEl.innerText = "🚨 Le nom, l'identifiant et le mot de passe sont obligatoires.";
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        // Effet de chargement
+        errorEl.classList.add('hidden');
+        btn.innerHTML = '<div class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Création en cours...';
+        btn.disabled = true;
+
+        try {
+            // Envoi à ton API (index.js)
+            const res = await fetch('/admin/create-boutique', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nom, username, password, categorie, max_tampons, logo_url,
+                    ceoKey: CEO_KEY // On glisse ton pass de CEO pour l'autorisation
+                })
+            });
+
+            const data = await res.json();
+            
+            if(!res.ok) throw new Error(data.message || "Erreur de création serveur");
+
+            // Succès ! On ferme la modale et on vide le formulaire
+            closeModalCreate();
+            document.getElementById('new-nom').value = '';
+            document.getElementById('new-username').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('new-logo').value = '';
+            
+            // On recharge la liste des commerçants pour voir le nouveau client apparaître instantanément !
+            chargerFlotteCommercants();
+
+        } catch (e) {
+            errorEl.innerText = "❌ " + e.message;
+            errorEl.classList.remove('hidden');
+        } finally {
+            // On remet le bouton à son état normal
+            btn.innerHTML = 'GÉNÉRER L\'ACCÈS BOUTIQUE';
+            btn.disabled = false;
+        }
+    }
     function deconnexion() { window.location.href = '/admin-login'; }
   </script>
 </body>
