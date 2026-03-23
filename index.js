@@ -333,63 +333,178 @@ app.post('/admin/force-reset-password', async (req, res) => {
         res.status(500).json({ message: "Erreur lors de la réinitialisation." });
     }
 });
-app.get('/boutiques/:id/stats', async (req, res) => {
+// VOIR TOUTES LES BOUTIQUES (AVEC INTELLIGENCE DES STATUTS)
+app.get('/admin/boutiques', async (req, res) => {
+    const ceoKey = req.headers['x-ceo-key'];
+    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
+
     try {
-        const boutiqueId = req.params.id;
+        // 1. Récupérer toutes les boutiques
+        const { data: boutiques, error } = await supabase.from('boutiques').select('id, nom, username, slug, created_at');
+        if (error) throw error;
 
-        const { data: boutique } = await supabase.from('boutiques').select('max_tampons').eq('id', boutiqueId).single();
-        const maxT = boutique?.max_tampons || 10;
+        // 2. Analyse temporelle : Qui a scanné récemment ?
+        const septJours = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const trenteJours = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-        const [clientsRes, visitesRes] = await Promise.all([
-            supabase.from('clients').select('tampons').eq('boutique_id', boutiqueId),
-            supabase.from('visites').select('client_id, created_at').eq('boutique_id', boutiqueId).order('created_at', { ascending: true })
+        // On interroge la table des visites en parallèle pour aller très vite
+        const [visites7j, visites30j] = await Promise.all([
+            supabase.from('visites').select('boutique_id').gte('created_at', septJours),
+            supabase.from('visites').select('boutique_id').gte('created_at', trenteJours)
+        ]);
+
+        // On crée des "Sets" (listes uniques) pour trier ultra-rapidement
+        const actives7jIds = new Set(visites7j.data?.map(v => v.boutique_id) || []);
+        const actives30jIds = new Set(visites30j.data?.map(v => v.boutique_id) || []);
+
+        // 3. Jugement de chaque boutique
+        const boutiquesAnalysees = boutiques.map(b => {
+            let statut = 'inactif'; // Pire scénario par défaut
+            
+            if (actives7jIds.has(b.id)) {
+                statut = 'actif'; // Scan récent = tout va bien
+            } else if (actives30jIds.has(b.id)) {
+                statut = 'attention'; // Actif ce mois-ci, mais rien cette semaine = Churn Risk
+            } else {
+                // Tolérance "Cold Start" : Créée il y a moins de 7 jours = Attention, pas Inactif
+                if (new Date(b.created_at) > new Date(septJours)) {
+                    statut = 'attention';
+                }
+            }
+            return { ...b, statut }; // On fusionne les données de la boutique avec son nouveau statut
+        });
+
+        res.json(boutiquesAnalysees);
+    } catch (error) {
+        console.error("Erreur API Boutiques:", error);
+        res.status(500).json({ error: "Erreur lors de l'analyse de la flotte" });
+    }
+});
+// ==========================================
+// DATA CENTER CEO : STATISTIQUES GLOBALES
+// ==========================================
+app.get('/admin/stats-globales', async (req, res) => {
+    const ceoKey = req.headers['x-ceo-key'];
+    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
+
+    try {
+        // 1. Récupération des données brutes depuis Supabase
+        const [clientsRes, visitesRes, boutiquesRes, devicesRes] = await Promise.all([
+            supabase.from('clients').select('id, tampons, recompenses, boutique_id, created_at'),
+            supabase.from('visites').select('id, created_at, boutique_id'),
+            supabase.from('boutiques').select('id, adresse, nom'),
+            supabase.from('devices').select('id')
         ]);
 
         const clients = clientsRes.data || [];
         const visites = visitesRes.data || [];
+        const boutiques = boutiquesRes.data || [];
+        const devices = devicesRes.data || [];
 
-        // --- STAT 2 : DISTRIBUTION ---
-        const distribution = new Array(maxT).fill(0);
-        clients.forEach(c => { if (c.tampons >= 0 && c.tampons < maxT) distribution[c.tampons]++; });
-
-        // --- STAT 4 : FRÉQUENCE ---
-        const clientVisits = {};
-        visites.forEach(v => {
-            if (!clientVisits[v.client_id]) clientVisits[v.client_id] = [];
-            clientVisits[v.client_id].push(new Date(v.created_at));
-        });
-
-        let totalDaysDiff = 0;
-        let countClientsWithMultipleVisits = 0;
-
-        Object.values(clientVisits).forEach(dates => {
-            if (dates.length > 1) {
-                const diffInDays = (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24);
-                totalDaysDiff += (diffInDays / (dates.length - 1));
-                countClientsWithMultipleVisits++;
-            }
-        });
-        const avgFrequency = countClientsWithMultipleVisits > 0 ? (totalDaysDiff / countClientsWithMultipleVisits).toFixed(1) : 0;
-
-        // --- STAT 5 : HEURES DE POINTE (Moyenne 30 jours) ---
+        // 2. Calcul des KPIs principaux
+        const totalClients = clients.length;
+        
+        // On compte les visites des 30 derniers jours
         const trenteJoursEnMs = 30 * 24 * 60 * 60 * 1000;
-        const dateLimite = new Date(Date.now() - trenteJoursEnMs).toISOString();
-
-        const { data: visitesRecentes } = await supabase.from('visites').select('created_at').eq('boutique_id', boutiqueId).gt('created_at', dateLimite);
+        const dateLimite = new Date(Date.now() - trenteJoursEnMs);
+        const scans30j = visites.filter(v => new Date(v.created_at) >= dateLimite).length;
         
-        const peakHours = new Array(24).fill(0);
-        if (visitesRecentes) {
-            visitesRecentes.forEach(v => { peakHours[new Date(v.created_at).getHours()]++; });
+        const cartesAppleWallet = devices.length; // Nombre d'appareils synchronisés
+
+        // Taux de rétention (clients ayant au moins 2 tampons ou 1 récompense)
+        const clientsFideles = clients.filter(c => c.tampons > 1 || c.recompenses > 0).length;
+        const tauxRetention = totalClients > 0 ? Math.round((clientsFideles / totalClients) * 100) : 0;
+
+        // 3. Répartition Hebdomadaire (7 derniers jours)
+        const weeklyData = [0, 0, 0, 0, 0, 0, 0]; // Lundi à Dimanche
+        const joursSemaine = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+        const labelsHebdo = [];
+        
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            labelsHebdo.push(joursSemaine[d.getDay()]);
+            
+            // Compter les visites pour ce jour précis
+            const scansJour = visites.filter(v => {
+                const dateVisite = new Date(v.created_at);
+                return dateVisite.getDate() === d.getDate() && dateVisite.getMonth() === d.getMonth();
+            }).length;
+            weeklyData[6 - i] = scansJour;
         }
+
+        // 4. Distribution des appareils (Approximation car Wallet = 100% Apple pour le moment, mais on prépare le terrain)
+        const totalDevices = cartesAppleWallet || 1; // Eviter la division par zéro
+        const statsAppareils = {
+            iphone: Math.round((cartesAppleWallet / totalDevices) * 100),
+            android: 0, // Nuvy est 100% Apple Wallet actuellement
+            autre: 0
+        };
+
+        // 5. Top 5 des Villes
+        const villesCount = {};
+        boutiques.forEach(b => {
+            // Extraction basique de la ville depuis l'adresse (ex: "12 rue de la Paix, 75000 Paris" -> "Paris")
+            const adresseParts = b.adresse ? b.adresse.split(',') : [];
+            let ville = adresseParts.length > 0 ? adresseParts[adresseParts.length - 1].trim().replace(/[0-9]/g, '').trim() : "Inconnue";
+            if (!ville || ville === "") ville = "Non renseignée";
+
+            // Compter les visites de cette boutique
+            const visitesBoutique = visites.filter(v => v.boutique_id === b.id).length;
+            
+            if (!villesCount[ville]) villesCount[ville] = 0;
+            villesCount[ville] += visitesBoutique;
+        });
+
+        // Trier et prendre le Top 5
+        const topVilles = Object.entries(villesCount)
+            .map(([nom, scans]) => ({ nom, scans, pourcentage: visites.length > 0 ? Math.round((scans / visites.length) * 100) : 0 }))
+            .sort((a, b) => b.scans - a.scans)
+            .slice(0, 5);
+
+        // Envoi du rapport complet
+        res.json({
+            kpis: {
+                scans30j,
+                totalClients,
+                cartesAppleWallet,
+                tauxRetention: `${tauxRetention}%`
+            },
+            graphiques: {
+                hebdo: { labels: labelsHebdo, data: weeklyData },
+                appareils: statsAppareils
+            },
+            topVilles
+        });
+
+    } catch (err) {
+        console.error("Erreur Stats Data Center:", err);
+        res.status(500).json({ error: "Erreur lors de la génération des statistiques globales" });
+    }
+});
+// FORCER LA CONNEXION À UNE BOUTIQUE (GOD MODE CEO)
+app.get('/admin/force-login', async (req, res) => {
+    const { username, key } = req.query;
+    
+    // On vérifie que c'est bien toi (le CEO) qui demande ça
+    if (key !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
+
+    try {
+        // On va chercher la boutique cible dans Supabase
+        const { data: boutique, error } = await supabase.from('boutiques').select('*').eq('username', username).single();
+        if (error || !boutique) return res.status(404).send("Boutique introuvable");
+
+        // On génère le badge d'accès (token) pour cette boutique précise
+        const token = jwt.sign({ id: boutique.id, username: boutique.username }, JWT_SECRET, { expiresIn: '24h' });
         
-        // Division par 30 pour avoir la moyenne
-        const peakHoursAverage = peakHours.map(total => (total / 30).toFixed(1));
-
-        res.json({ distribution, peakHours: peakHoursAverage, avgFrequency });
-
-    } catch (e) {
-        console.error("Erreur stats:", e);
-        res.status(500).send("Erreur calcul des statistiques");
+        // On écrase l'ancien cookie du navigateur par le nouveau
+        res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+        
+        // On t'envoie directement sur le dashboard !
+        res.redirect('/dashboard');
+    } catch (err) {
+        console.error("Erreur Force Login:", err);
+        res.status(500).send("Erreur serveur");
     }
 });
 

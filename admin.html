@@ -1,440 +1,760 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nuvy | Tour de Contrôle CEO</title>
-  <link rel="icon" type="image/png" href="/favicon.png">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Manrope', 'system-ui', 'sans-serif'] },
-          colors: {
-            'nuvy': '#2A8C9C',
-            'nuvy-dark': '#238391',
-            'nuvy-gold': '#D4AF37',
-            'admin-bg': '#F9FAFB',
-            'sidebar': '#0f172a',
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    body { background-color: #F9FAFB; }
-    .view { display: none; animation: fadeIn 0.4s ease; }
-    .view.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  </style>
-</head>
-<body class="font-sans antialiased text-gray-900 min-h-screen flex">
-
-  <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-slate-300 flex flex-col shadow-xl">
-    <div class="h-16 flex items-center px-6 border-b border-slate-800">
-      <div class="flex items-center gap-3">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-nuvy">
-          <i data-lucide="shield-check" class="h-5 w-5 text-white"></i>
-        </div>
-        <div class="flex flex-col">
-          <span class="text-sm font-bold tracking-tight text-white">NUVY ADMIN</span>
-          <span class="text-xs text-slate-500">Super-Admin</span>
-        </div>
-      </div>
-    </div>
-
-    <nav class="flex-1 px-3 py-4 space-y-1">
-      <button onclick="switchView('overview', 'Vue d\'ensemble', this)" class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors bg-nuvy text-white">
-        <i data-lucide="globe" class="h-4 w-4"></i> Vue d'ensemble
-      </button>
-      <button onclick="switchView('fleet', 'Flotte Commerçants', this)" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
-        <i data-lucide="store" class="h-4 w-4"></i> Flotte Commerçants
-      </button>
-      <button onclick="switchView('radar', 'Radar & Risques', this)" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
-        <i data-lucide="alert-triangle" class="h-4 w-4"></i> Radar & Risques
-      </button>
-      <button onclick="switchView('data', 'Data Center', this)" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
-        <i data-lucide="bar-chart-3" class="h-4 w-4"></i> Data Center
-      </button>
-      <button onclick="switchView('system', 'Système', this)" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
-        <i data-lucide="settings" class="h-4 w-4"></i> Système
-      </button>
-    </nav>
-
-    <div class="p-4 border-t border-slate-800">
-  <div class="flex items-center gap-3">
-    <div class="h-9 w-9 rounded-full bg-nuvy flex items-center justify-center border border-slate-700 shadow-inner">
-      <span class="text-xs font-bold text-white">TR</span> </div>
-    <div class="flex flex-1 flex-col truncate">
-      <span class="text-sm font-bold text-white truncate">Tristan Le Van</span> <span class="text-xs text-slate-500 font-medium">CEO Nuvy</span>
-    </div>
-    <button onclick="deconnexion()" class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-red-900/30 text-slate-400 hover:text-red-400 transition-colors">
-      <i data-lucide="log-out" class="h-4 w-4"></i>
-    </button>
-  </div>
-</div>
-  </aside>
-
-  <main class="ml-64 flex-1 flex flex-col min-h-screen">
-    
-    <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-8 shadow-sm">
-      <h1 id="page-title" class="text-lg font-bold text-gray-900">Vue d'ensemble</h1>
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 text-sm text-gray-500">
-          <i data-lucide="clock" class="h-4 w-4"></i>
-          <span>Dernière mise à jour : <span class="font-bold text-gray-900">À l'instant</span></span>
-        </div>
-      </div>
-    </header>
-
-    <div class="flex-1 p-8">
-
-      <section id="overview" class="view active max-w-6xl mx-auto space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Boutiques Actives</h3><i data-lucide="store" class="h-4 w-4"></i></div>
-            <div class="flex items-baseline gap-1"><span id="overview-kpi-actives" class="text-3xl font-extrabold text-nuvy">...</span><span class="text-lg text-gray-400 font-bold">/600</span></div>
-            <p class="text-xs text-green-600 font-bold mt-2">📈 +3.2% vs mois dernier</p>
-          </div>
-
-          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Scans Aujourd'hui</h3><i data-lucide="scan" class="h-4 w-4"></i></div>
-            <div class="text-3xl font-extrabold text-gray-900">14,230</div>
-            <p class="text-xs text-green-600 font-bold mt-2">📈 +12.5% vs hier</p>
-          </div>
-
-          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col items-center justify-center">
-             <div class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 text-center w-full flex justify-between">Health Score <i data-lucide="activity" class="h-4 w-4"></i></div>
-             <div class="relative h-16 w-32">
-                <svg class="h-full w-full" viewBox="0 0 120 70">
-                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="#f3f4f6" stroke-width="8" stroke-linecap="round" />
-                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-dasharray="141.37" stroke-dashoffset="11.3" />
-                </svg>
-                <div class="absolute inset-0 flex items-end justify-center pb-0"><span class="text-2xl font-extrabold text-green-600">92%</span></div>
-             </div>
-          </div>
-        </div>
-
-        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h3 class="font-bold text-gray-900 mb-6">Affluence Globale Réseau (30J)</h3>
-          <div class="h-[300px] w-full"><canvas id="ceoScansChart"></canvas></div>
-        </div>
-      </section>
-
-      <section id="fleet" class="view max-w-6xl mx-auto space-y-6">
-        <div class="flex justify-between items-center">
-          <div class="relative w-96">
-            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"></i>
-            <input type="text" placeholder="Rechercher une boutique..." class="w-full pl-10 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-nuvy/50 transition-all">
-          </div>
-          <button onclick="openModalCreate()" class="h-11 px-5 bg-nuvy hover:bg-nuvy-dark text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 transition-all active:scale-95">
-            <i data-lucide="plus" class="h-4 w-4"></i> Ajouter une boutique
-          </button>
-        </div>
-
-        <div class="grid grid-cols-4 gap-4">
-          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p class="text-xs font-bold text-gray-400 uppercase">Total Boutiques</p>
-            <p id="kpi-total-boutiques" class="text-2xl font-extrabold text-gray-900 mt-1">...</p>
-          </div>
-          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p class="text-xs font-bold text-gray-400 uppercase">Actives</p>
-            <p id="fleet-kpi-actives" class="text-2xl font-extrabold text-green-600 mt-1">...</p>
-          </div>
-          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p class="text-xs font-bold text-gray-400 uppercase">Attention (7J)</p>
-            <p class="text-2xl font-extrabold text-amber-500 mt-1">42</p>
-          </div>
-          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p class="text-xs font-bold text-gray-400 uppercase">Inactives</p>
-            <p class="text-2xl font-extrabold text-gray-400 mt-1">12</p>
-          </div>
-        </div>
-
-        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <table class="w-full text-left">
-            <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-bold uppercase tracking-wider">
-              <tr><th class="py-4 px-6">Statut</th><th class="py-4 px-6">Boutique</th><th class="py-4 px-6">Identifiant</th><th class="py-4 px-6 text-right">Inscrit le</th><th class="py-4 px-6 text-right">Actions</th></tr>
-            </thead>
-            <tbody id="fleet-tbody" class="divide-y divide-gray-100"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="radar" class="view max-w-6xl mx-auto">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="trending-down" class="text-red-500"></i><h3 class="font-bold">Risque de Churn</h3></div>
-                <div class="p-4 space-y-3">
-                    <div class="flex justify-between p-3 bg-red-50 rounded-lg border border-red-100">
-                        <div class="text-sm font-bold">Boulangerie Le Pain d'Or<br><span class="text-xs font-normal text-gray-500">Lyon</span></div>
-                        <span class="text-red-600 font-bold">-67%</span>
-                    </div>
-                    <button class="w-full py-2 text-xs font-bold border rounded-lg hover:bg-gray-50 transition-all">Analyser tous les risques</button>
-                </div>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="alert-octagon" class="text-red-600"></i><h3 class="font-bold">Suspicion Fraude</h3></div>
-                <div class="p-4">
-                    <div class="p-4 bg-red-600 text-white rounded-xl shadow-lg">
-                        <p class="text-xs opacity-80 uppercase font-bold mb-1">Alerte Critique</p>
-                        <p class="font-bold">Quick Burger Express</p>
-                        <p class="text-sm mt-2">📍 247 scans en 10 min</p>
-                        <div class="mt-4 flex gap-2"><button class="bg-white text-red-600 text-xs font-bold py-2 px-3 rounded-lg flex-1">Bloquer</button><button class="bg-red-700 text-white text-xs font-bold py-2 px-3 rounded-lg flex-1">Enquêter</button></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-      </section>
-
-      <section id="data" class="view max-w-6xl mx-auto space-y-6">
-        <h2 class="text-2xl font-extrabold">Intelligence Client Globale</h2>
-        <div class="grid grid-cols-2 gap-6">
-            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <h3 class="font-bold mb-4">Répartition par secteur</h3>
-                <div class="space-y-4">
-                    <div class="flex justify-between text-sm font-bold"><span>Boulangeries</span><span>45%</span></div>
-                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="bg-nuvy h-full" style="width: 45%"></div></div>
-                    <div class="flex justify-between text-sm font-bold"><span>Restauration</span><span>30%</span></div>
-                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="bg-nuvy h-full" style="width: 30%"></div></div>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-center items-center text-center">
-                <i data-lucide="users" class="h-12 w-12 text-nuvy mb-4"></i>
-                <p class="text-gray-500 font-bold uppercase text-xs">Total Clients Finaux (Wallet)</p>
-                <p class="text-4xl font-extrabold mt-2"><p id="total-clients-global" class="text-4xl font-extrabold mt-2 text-nuvy">...</p></p>
-            </div>
-        </div>
-      </section>
-
-      <section id="system" class="view max-w-3xl mx-auto space-y-6">
-        <h2 class="text-2xl font-extrabold">État du Système Nuvy</h2>
-        <div class="bg-white rounded-2xl border p-6 shadow-sm space-y-6">
-            <div class="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-100">
-                <div class="flex items-center gap-3"><div class="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div><span class="font-bold text-green-800">Serveur API (Railway)</span></div>
-                <span class="text-xs font-bold text-green-600 uppercase tracking-widest">Opérationnel</span>
-            </div>
-            <div class="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-100">
-                <div class="flex items-center gap-3"><div class="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div><span class="font-bold text-green-800">Base de données (Supabase)</span></div>
-                <span class="text-xs font-bold text-green-600 uppercase tracking-widest">Connecté</span>
-            </div>
-            <div class="p-4 border rounded-xl space-y-2">
-                <p class="text-xs font-bold text-gray-400 uppercase">Certificat Apple Wallet</p>
-                <div class="flex justify-between items-center"><span class="text-sm font-bold">pass.pro.nuvy.certificate</span><span class="text-xs font-bold text-amber-500">Expire dans 284 jours</span></div>
-            </div>
-        </div>
-      </section>
-
-    </div>
-  </main>
-
-  <div id="modal-create" class="hidden fixed inset-0 z-[100] bg-sidebar/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
-          <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-              <h3 class="font-extrabold text-lg">Nouvel Onboarding Commerçant</h3>
-              <button onclick="closeModalCreate()" class="text-gray-400 hover:text-gray-600">✕</button>
-          </div>
-          <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              
-              <div class="grid grid-cols-2 gap-4">
-                  <div class="col-span-2">
-                      <label class="text-xs font-bold uppercase text-gray-500">Nom de la boutique *</label>
-                      <input type="text" id="new-nom" placeholder="Ex: Pizzeria Napoli" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
-                  </div>
-                  <div>
-                      <label class="text-xs font-bold uppercase text-gray-500">Identifiant (Username) *</label>
-                      <input type="text" id="new-username" placeholder="ex: napoli_nice" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
-                  </div>
-                  <div>
-                      <label class="text-xs font-bold uppercase text-gray-500">Mot de passe provisoire *</label>
-                      <input type="text" id="new-password" placeholder="Mot de passe" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
-                  </div>
-                  <div>
-                      <label class="text-xs font-bold uppercase text-gray-500">Catégorie (Design)</label>
-                      <select id="new-categorie" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30 bg-white">
-                          <option value="default">Standard (Bleu Nuvy)</option>
-                          <option value="boulangerie">Boulangerie (Doré)</option>
-                          <option value="pizza">Pizzeria (Rouge)</option>
-                          <option value="onglerie">Institut / Onglerie (Rose)</option>
-                          <option value="coiffeur">Coiffeur / Barbier (Bleu Nuit)</option>
-                          <option value="cafe">Café / Salon (Marron)</option>
-                      </select>
-                  </div>
-                  <div>
-                      <label class="text-xs font-bold uppercase text-gray-500">Taille de la carte</label>
-                      <input type="number" id="new-max" placeholder="10" value="10" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
-                  </div>
-                  <div class="col-span-2">
-                      <label class="text-xs font-bold uppercase text-gray-500">URL du Logo (Optionnel)</label>
-                      <input type="text" id="new-logo" placeholder="https://..." class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
-                  </div>
-              </div>
-
-              <p id="modal-error" class="text-red-500 text-xs font-bold hidden text-center"></p>
-
-              <button id="btn-create" onclick="creerBoutique()" class="w-full h-12 bg-nuvy text-white font-extrabold rounded-xl shadow-lg mt-2 transition-all active:scale-95 flex items-center justify-center gap-2">
-                  GÉNÉRER L'ACCÈS BOUTIQUE
-              </button>
-          </div>
-      </div>
-  </div>
-
-  <script>
-    lucide.createIcons();
-
-    function switchView(viewId, title, btnElement) {
-      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      document.getElementById(viewId).classList.add('active');
-      document.getElementById('page-title').innerText = title;
-      document.querySelectorAll('.nav-item').forEach(b => {
-        b.classList.remove('bg-nuvy', 'text-white');
-        b.classList.add('hover:bg-slate-800', 'hover:text-white', 'text-slate-300');
-      });
-      btnElement.classList.remove('hover:bg-slate-800', 'hover:text-white', 'text-slate-300');
-      btnElement.classList.add('bg-nuvy', 'text-white');
-    }
-
-    function openModalCreate() { document.getElementById('modal-create').classList.remove('hidden'); }
-    function closeModalCreate() { document.getElementById('modal-create').classList.add('hidden'); }
-
-    // --- LOGIQUE API ---
-    // 1. On aspire la clé qui est dans ton URL (?key=natrisT05)
-    const urlParams = new URLSearchParams(window.location.search);
-    const CEO_KEY = urlParams.get('key');
-
-    async function chargerFlotteCommercants() {
-        try {
-            console.log("🔍 Envoi de la requête API avec la clé :", CEO_KEY);
-
-            const res = await fetch('/admin/boutiques', { 
-                headers: { 'x-ceo-key': CEO_KEY } 
-            });
-            
-            if (!res.ok) {
-                console.error("❌ L'API a refusé l'accès ! Code d'erreur :", res.status);
-                return;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuvy | Tour de Contrôle CEO</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Manrope', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        'nuvy': '#2A8C9C',
+                        'nuvy-dark': '#238391',
+                        'sidebar': '#020617',
+                    }
+                }
             }
-            
-            const boutiques = await res.json();
-            console.log("✅ Données reçues de Supabase :", boutiques);
-            
-            // Mise à jour de TOUS les compteurs
-            const totalBoutiques = boutiques.length;
-            document.getElementById('kpi-total-boutiques').innerText = totalBoutiques;
-            document.getElementById('overview-kpi-actives').innerText = totalBoutiques;
-            document.getElementById('fleet-kpi-actives').innerText = totalBoutiques;
-            document.getElementById('total-clients-global').innerText = (totalBoutiques * 12).toLocaleString();
+        }
+    </script>
+    <style>
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Style des sous-onglets v0 */
+        .sub-tab.active { border-bottom: 2px solid #2A8C9C; color: #0f172a; font-weight: 800; }
+    </style>
+</head>
+<body class="flex min-h-screen bg-slate-50 font-sans text-slate-900">
 
-            const tbody = document.getElementById('fleet-tbody');
-            tbody.innerHTML = '';
+    <aside class="w-64 bg-sidebar text-slate-300 flex flex-col shadow-2xl z-20 fixed inset-y-0 left-0">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800/50">
+            <div class="flex items-center gap-3">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-nuvy shadow-lg">
+                    <i data-lucide="shield-check" class="h-5 w-5 text-white"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-sm font-bold tracking-tight text-white">NUVY ADMIN</span>
+                    <span class="text-[10px] uppercase font-bold text-nuvy tracking-wider">Production</span>
+                </div>
+            </div>
+        </div>
 
-            boutiques.forEach(b => {
-                const dateCreation = new Date(b.created_at).toLocaleDateString('fr-FR', {
-                    day: '2-digit', month: 'short', year: 'numeric'
+        <nav class="flex-1 px-3 py-6 space-y-1.5">
+            <button onclick="switchView('overview', 'Vue d\'ensemble', this)" class="nav-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-nuvy text-white shadow-md">
+                <i data-lucide="layout-dashboard" class="h-4 w-4"></i> Vue d'ensemble
+            </button>
+            <button onclick="switchView('fleet', 'Flotte Commerçants', this)" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-slate-800 hover:text-white text-slate-400">
+                <i data-lucide="store" class="h-4 w-4"></i> Flotte Commerçants
+            </button>
+            <button onclick="switchView('radar', 'Radar & Risques', this)" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-slate-800 hover:text-white text-slate-400">
+                <i data-lucide="radar" class="h-4 w-4"></i> Radar & Risques
+            </button>
+            <button onclick="switchView('data', 'Data Center', this)" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-slate-800 hover:text-white text-slate-400">
+                <i data-lucide="bar-chart-3" class="h-4 w-4"></i> Data Center
+            </button>
+            <button onclick="switchView('system', 'Système', this)" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:bg-slate-800 hover:text-white text-slate-400">
+                <i data-lucide="server" class="h-4 w-4"></i> Système
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800/50 bg-slate-900/50">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 shadow-inner">
+                    <span class="text-xs font-extrabold text-white">TL</span>
+                </div>
+                <div class="flex flex-1 flex-col truncate">
+                    <span class="text-sm font-bold text-white truncate">Tristan L.</span>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">CEO Nuvy</span>
+                </div>
+                <button onclick="deconnexion()" class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors">
+                    <i data-lucide="log-out" class="h-4 w-4"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col ml-64 min-h-screen">
+        
+        <header class="h-16 flex items-center justify-between px-8 bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+            <h1 id="page-title" class="text-xl font-extrabold text-slate-900 tracking-tight">Vue d'ensemble</h1>
+            <div class="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+                <i data-lucide="clock" class="h-3 w-3"></i><span>Mise à jour : À l'instant</span>
+            </div>
+        </header>
+
+        <main class="flex-1 p-8 overflow-y-auto">
+
+            <section id="overview" class="view active max-w-6xl mx-auto space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-500 mb-4">
+                            <h3 class="text-xs font-extrabold uppercase tracking-wider">Boutiques Actives</h3><i data-lucide="store" class="h-4 w-4 text-slate-400"></i>
+                        </div>
+                        <div class="flex items-baseline gap-1"><span id="overview-kpi-actives" class="text-4xl font-black text-nuvy">...</span><span class="text-lg text-slate-400 font-bold">/ <span id="kpi-total-boutiques">...</span></span></div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between text-slate-500 mb-4">
+                            <h3 class="text-xs font-extrabold uppercase tracking-wider">Scans (Aujourd'hui)</h3><i data-lucide="scan" class="h-4 w-4 text-slate-400"></i>
+                        </div>
+                        <div class="text-4xl font-black text-slate-900">...</div>
+                        <div class="mt-2 flex items-center gap-1 text-slate-400 text-xs font-bold bg-slate-50 w-fit px-2 py-1 rounded-md">En attente de data</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-center items-center relative overflow-hidden">
+                        <div class="absolute top-6 left-6 right-6 flex justify-between"><h3 class="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Health Score</h3><i data-lucide="activity" class="h-4 w-4 text-slate-400"></i></div>
+                        <div class="relative h-20 w-40 mt-6">
+                            <svg class="h-full w-full" viewBox="0 0 120 70">
+                                <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="#f1f5f9" stroke-width="10" stroke-linecap="round" />
+                                <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="#10b981" stroke-width="10" stroke-linecap="round" stroke-dasharray="141.37" stroke-dashoffset="11.3" />
+                            </svg>
+                            <div class="absolute inset-0 flex items-end justify-center pb-0"><span class="text-3xl font-black text-green-500">...</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <h3 class="text-sm font-extrabold text-slate-900 mb-6">Affluence Globale Réseau (30 Jours)</h3>
+                    <div class="h-72 w-full"><canvas id="mainChart"></canvas></div>
+                </div>
+            </section>
+
+            <section id="fleet" class="view max-w-6xl mx-auto space-y-6">
+                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="relative w-[400px]">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
+                        <input type="text" placeholder="Rechercher une boutique, une ville, un ID..." class="w-full pl-11 pr-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-nuvy/50 transition-all">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button class="h-11 px-4 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all">
+                            <i data-lucide="download" class="h-4 w-4"></i> Exporter CSV
+                        </button>
+                        <button onclick="openModalCreate()" class="h-11 px-6 bg-slate-900 hover:bg-nuvy text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 transition-all active:scale-95">
+                            <i data-lucide="plus" class="h-4 w-4"></i> Ajouter une boutique
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Total Flotte</p>
+                        <p class="text-2xl font-black text-slate-900">...</p>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between border-b-4 border-b-green-500">
+                        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Boutiques Actives</p>
+                        <p id="fleet-kpi-actives" class="text-2xl font-black text-slate-900">...</p>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between border-b-4 border-b-amber-500">
+                        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Attention Requise</p>
+                        <p id="fleet-kpi-attention" class="text-2xl font-black text-slate-900">...</p>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between border-b-4 border-b-slate-300">
+                        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Inactives (>30J)</p>
+                        <p id="fleet-kpi-inactives" class="text-2xl font-black text-slate-900">...</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-6 border-b border-slate-200 px-2">
+                    <button class="sub-tab active pb-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">Toutes les boutiques</button>
+                    <button class="sub-tab pb-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">À surveiller</button>
+                    <button class="sub-tab pb-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">Récemment ajoutées</button>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-visible">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="py-4 px-6 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Statut</th>
+                                <th class="py-4 px-6 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Boutique</th>
+                                <th class="py-4 px-6 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Identifiant</th>
+                                <th class="py-4 px-6 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Catégorie</th>
+                                <th class="py-4 px-6 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider text-right">Création</th>
+                                <th class="py-4 px-6 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fleet-tbody" class="divide-y divide-slate-100">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="radar" class="view max-w-6xl mx-auto space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-900">Centre d'Alertes</h2>
+                        <p class="text-sm text-slate-500">Détection automatique des anomalies sur le réseau.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col h-[400px]">
+                        <div class="p-5 border-b border-slate-100 flex items-center gap-3 bg-red-50/50 rounded-t-2xl">
+                            <div class="h-10 w-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600"><i data-lucide="trending-down" class="h-5 w-5"></i></div>
+                            <div><h3 class="font-extrabold text-slate-900">Risque de Churn</h3><p class="text-[10px] font-bold uppercase tracking-wider text-red-500">Chute d'activité</p></div>
+                        </div>
+                        <div class="p-5 flex-1 overflow-y-auto space-y-3 bg-slate-50/50">
+                            <div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 opacity-50">
+                                <i data-lucide="shield-check" class="h-8 w-8"></i>
+                                <span class="text-xs font-bold">Aucun risque détecté</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col h-[400px]">
+                        <div class="p-5 border-b border-slate-100 flex items-center gap-3 bg-amber-50/50 rounded-t-2xl">
+                            <div class="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600"><i data-lucide="snowflake" class="h-5 w-5"></i></div>
+                            <div><h3 class="font-extrabold text-slate-900">Cold Start</h3><p class="text-[10px] font-bold uppercase tracking-wider text-amber-500">Zéro scan depuis création</p></div>
+                        </div>
+                        <div class="p-5 flex-1 overflow-y-auto space-y-3 bg-slate-50/50">
+                            <div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 opacity-50">
+                                <i data-lucide="check-circle-2" class="h-8 w-8"></i>
+                                <span class="text-xs font-bold">Onboarding réussi partout</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col h-[400px]">
+                        <div class="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-900 rounded-t-2xl">
+                            <div class="h-10 w-10 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400"><i data-lucide="alert-triangle" class="h-5 w-5"></i></div>
+                            <div><h3 class="font-extrabold text-white">Suspicion de Fraude</h3><p class="text-[10px] font-bold uppercase tracking-wider text-red-400">Activité Anormale</p></div>
+                        </div>
+                        <div class="p-5 flex-1 overflow-y-auto space-y-3 bg-slate-50">
+                             <div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 opacity-50">
+                                <i data-lucide="shield" class="h-8 w-8"></i>
+                                <span class="text-xs font-bold">Réseau sécurisé</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="data" class="view max-w-6xl mx-auto space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-900">Données consolidées</h2>
+                        <p class="text-sm text-slate-500 font-medium">Analyse globale du réseau Nuvy</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold rounded-lg shadow-sm flex items-center gap-2 transition-all">
+                            <i data-lucide="calendar" class="h-4 w-4"></i> 30 derniers jours
+                        </button>
+                        <button class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold rounded-lg shadow-sm flex items-center gap-2 transition-all">
+                            <i data-lucide="download" class="h-4 w-4"></i> Exporter
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-nuvy/10"><i data-lucide="database" class="h-6 w-6 text-nuvy"></i></div>
+                            <div>
+                                <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Scans Totaux (30j)</p>
+                                <p class="text-2xl font-black text-slate-900">...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100"><i data-lucide="users" class="h-6 w-6 text-green-600"></i></div>
+                            <div>
+                                <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Utilisateurs Uniques</p>
+                                <p id="total-clients-global" class="text-2xl font-black text-slate-900">...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100"><i data-lucide="smartphone" class="h-6 w-6 text-amber-600"></i></div>
+                            <div>
+                                <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Cartes Apple Wallet</p>
+                                <p class="text-2xl font-black text-slate-900">...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-nuvy/10"><i data-lucide="trending-up" class="h-6 w-6 text-nuvy"></i></div>
+                            <div>
+                                <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Taux de Rétention</p>
+                                <p class="text-2xl font-black text-slate-900">...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid gap-6 lg:grid-cols-2">
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
+                        <h3 class="text-sm font-extrabold text-slate-900 mb-6">Répartition hebdomadaire</h3>
+                        <div class="h-64 w-full"><canvas id="weeklyChart"></canvas></div>
+                    </div>
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 flex flex-col">
+                        <h3 class="text-sm font-extrabold text-slate-900 mb-6">Distribution par appareil</h3>
+                        <div class="flex-1 flex items-center justify-center gap-8">
+                            <div class="h-48 w-48"><canvas id="deviceChart"></canvas></div>
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3"><div class="h-3 w-3 rounded-full bg-slate-900"></div><span class="text-sm font-bold text-slate-700">iPhone</span><span class="text-lg font-black text-slate-900">0%</span></div>
+                                <div class="flex items-center gap-3"><div class="h-3 w-3 rounded-full bg-slate-300"></div><span class="text-sm font-bold text-slate-700">Android</span><span class="text-lg font-black text-slate-900">0%</span></div>
+                                <div class="flex items-center gap-3"><div class="h-3 w-3 rounded-full bg-slate-100"></div><span class="text-sm font-bold text-slate-700">Autre</span><span class="text-lg font-black text-slate-900">0%</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
+                    <h3 class="text-sm font-extrabold text-slate-900 mb-6">Top 5 Villes</h3>
+                    <div class="space-y-5">
+                        <div class="flex items-center gap-4">
+                            <span class="w-6 text-sm font-black text-slate-400">#1</span>
+                            <div class="flex-1">
+                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Paris</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
+                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="w-6 text-sm font-black text-slate-400">#2</span>
+                            <div class="flex-1">
+                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Lyon</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
+                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="w-6 text-sm font-black text-slate-400">#3</span>
+                            <div class="flex-1">
+                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Marseille</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
+                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="w-6 text-sm font-black text-slate-400">#4</span>
+                            <div class="flex-1">
+                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Bordeaux</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
+                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="w-6 text-sm font-black text-slate-400">#5</span>
+                            <div class="flex-1">
+                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Lille</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
+                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="system" class="view max-w-6xl mx-auto space-y-6">
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100"><i data-lucide="server" class="h-6 w-6 text-green-600"></i></div>
+                            <div><p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Uptime Global</p><p class="text-2xl font-black text-slate-900">99.85%</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-nuvy/10"><i data-lucide="activity" class="h-6 w-6 text-nuvy"></i></div>
+                            <div><p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Latence Moyenne</p><p class="text-2xl font-black text-slate-900">107ms</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100"><i data-lucide="database" class="h-6 w-6 text-amber-600"></i></div>
+                            <div><p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Stockage Utilisé</p><p class="text-2xl font-black text-slate-900">67%</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-xl p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100"><i data-lucide="shield" class="h-6 w-6 text-green-600"></i></div>
+                            <div><p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Sécurité</p><p class="text-2xl font-black text-green-600">A+</p></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid gap-6 lg:grid-cols-2">
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-sm font-extrabold text-slate-900">État des Services</h3>
+                            <button class="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"><i data-lucide="refresh-ccw" class="h-4 w-4"></i></button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="flex items-center gap-4">
+                                    <div class="h-3 w-3 rounded-full bg-green-500"></div>
+                                    <div><p class="font-extrabold text-slate-900 text-sm">API Gateway</p><p class="text-xs text-slate-500 font-mono">Uptime: 99.99% • Latence: 45ms</p></div>
+                                </div>
+                                <span class="text-[10px] font-extrabold text-green-700 uppercase tracking-widest bg-green-100 px-3 py-1 rounded-full border border-green-200">Opérationnel</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="flex items-center gap-4">
+                                    <div class="h-3 w-3 rounded-full bg-green-500"></div>
+                                    <div><p class="font-extrabold text-slate-900 text-sm">Base de données</p><p class="text-xs text-slate-500 font-mono">Uptime: 99.97% • Latence: 12ms</p></div>
+                                </div>
+                                <span class="text-[10px] font-extrabold text-green-700 uppercase tracking-widest bg-green-100 px-3 py-1 rounded-full border border-green-200">Opérationnel</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="flex items-center gap-4">
+                                    <div class="h-3 w-3 rounded-full bg-green-500"></div>
+                                    <div><p class="font-extrabold text-slate-900 text-sm">Service NFC</p><p class="text-xs text-slate-500 font-mono">Uptime: 99.95% • Latence: 89ms</p></div>
+                                </div>
+                                <span class="text-[10px] font-extrabold text-green-700 uppercase tracking-widest bg-green-100 px-3 py-1 rounded-full border border-green-200">Opérationnel</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200">
+                                <div class="flex items-center gap-4">
+                                    <div class="h-3 w-3 rounded-full bg-amber-500"></div>
+                                    <div><p class="font-extrabold text-slate-900 text-sm">Apple Wallet Integration</p><p class="text-xs text-amber-700 font-mono">Uptime: 98.5% • Latence: 234ms</p></div>
+                                </div>
+                                <span class="text-[10px] font-extrabold text-amber-700 uppercase tracking-widest bg-amber-100 px-3 py-1 rounded-full border border-amber-200">Dégradé</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="flex items-center gap-4">
+                                    <div class="h-3 w-3 rounded-full bg-green-500"></div>
+                                    <div><p class="font-extrabold text-slate-900 text-sm">Analytics Pipeline</p><p class="text-xs text-slate-500 font-mono">Uptime: 99.8% • Latence: 156ms</p></div>
+                                </div>
+                                <span class="text-[10px] font-extrabold text-green-700 uppercase tracking-widest bg-green-100 px-3 py-1 rounded-full border border-green-200">Opérationnel</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
+                        <h3 class="text-sm font-extrabold text-slate-900 mb-6">Activité Récente</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <i data-lucide="check-circle-2" class="h-5 w-5 text-green-600 mt-0.5"></i>
+                                <div><p class="text-sm font-extrabold text-slate-900">Déploiement v2.4.1</p><p class="flex items-center gap-1 text-xs font-bold text-slate-500 mt-1"><i data-lucide="clock" class="h-3 w-3"></i> Il y a 2 heures</p></div>
+                            </div>
+                            <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <i data-lucide="check-circle-2" class="h-5 w-5 text-green-600 mt-0.5"></i>
+                                <div><p class="text-sm font-extrabold text-slate-900">Mise à jour certificat SSL</p><p class="flex items-center gap-1 text-xs font-bold text-slate-500 mt-1"><i data-lucide="clock" class="h-3 w-3"></i> Il y a 6 heures</p></div>
+                            </div>
+                            <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <i data-lucide="check-circle-2" class="h-5 w-5 text-green-600 mt-0.5"></i>
+                                <div><p class="text-sm font-extrabold text-slate-900">Backup base de données</p><p class="flex items-center gap-1 text-xs font-bold text-slate-500 mt-1"><i data-lucide="clock" class="h-3 w-3"></i> Il y a 12 heures</p></div>
+                            </div>
+                            <div class="flex items-start gap-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                                <i data-lucide="alert-circle" class="h-5 w-5 text-amber-600 mt-0.5"></i>
+                                <div><p class="text-sm font-extrabold text-slate-900">Synchronisation Apple Wallet</p><p class="flex items-center gap-1 text-xs font-bold text-amber-700 mt-1"><i data-lucide="clock" class="h-3 w-3"></i> Il y a 1 jour</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
+                    <h3 class="text-sm font-extrabold text-slate-900 mb-6">Utilisation des Ressources</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between text-sm font-bold mb-2"><span class="text-slate-500">CPU</span><span class="text-slate-900">34%</span></div>
+                            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden"><div class="bg-slate-900 h-full transition-all" style="width: 34%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm font-bold mb-2"><span class="text-slate-500">Mémoire</span><span class="text-slate-900">58%</span></div>
+                            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden"><div class="bg-slate-900 h-full transition-all" style="width: 58%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm font-bold mb-2"><span class="text-slate-500">Stockage</span><span class="text-slate-900">67%</span></div>
+                            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden"><div class="bg-slate-900 h-full transition-all" style="width: 67%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm font-bold mb-2"><span class="text-slate-500">Bande Passante</span><span class="text-slate-900">42%</span></div>
+                            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden"><div class="bg-slate-900 h-full transition-all" style="width: 42%"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="modal-create" class="hidden fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden transform scale-100 transition-all">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-extrabold text-lg text-slate-900">Nouvel Onboarding Commerçant</h3>
+                <button onclick="closeModalCreate()" class="text-slate-400 hover:text-slate-600 transition-colors"><i data-lucide="x" class="h-5 w-5"></i></button>
+            </div>
+            <div class="p-6 space-y-5">
+                <div class="grid grid-cols-2 gap-5">
+                    <div class="col-span-2">
+                        <label class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Nom de la boutique *</label>
+                        <input type="text" id="new-nom" class="w-full mt-1.5 h-11 border border-slate-200 rounded-xl px-4 text-sm font-medium outline-none focus:border-nuvy focus:ring-1 focus:ring-nuvy bg-slate-50 focus:bg-white transition-all">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Username *</label>
+                        <input type="text" id="new-username" class="w-full mt-1.5 h-11 border border-slate-200 rounded-xl px-4 text-sm font-medium outline-none focus:border-nuvy focus:ring-1 focus:ring-nuvy bg-slate-50 focus:bg-white transition-all">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Mot de passe *</label>
+                        <input type="text" id="new-password" class="w-full mt-1.5 h-11 border border-slate-200 rounded-xl px-4 text-sm font-medium outline-none focus:border-nuvy focus:ring-1 focus:ring-nuvy bg-slate-50 focus:bg-white transition-all">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Design Carte</label>
+                        <select id="new-categorie" class="w-full mt-1.5 h-11 border border-slate-200 rounded-xl px-4 text-sm font-medium outline-none focus:border-nuvy focus:ring-1 focus:ring-nuvy bg-slate-50 focus:bg-white appearance-none">
+                            <option value="default">Standard (Bleu)</option>
+                            <option value="boulangerie">Boulangerie</option>
+                            <option value="pizza">Pizzeria</option>
+                            <option value="onglerie">Beauté</option>
+                            <option value="coiffeur">Coiffeur</option>
+                            <option value="cafe">Café</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Taille Carte</label>
+                        <input type="number" id="new-max" value="10" class="w-full mt-1.5 h-11 border border-slate-200 rounded-xl px-4 text-sm font-medium outline-none focus:border-nuvy focus:ring-1 focus:ring-nuvy bg-slate-50 focus:bg-white transition-all">
+                    </div>
+                </div>
+                <p id="modal-error" class="text-red-500 text-xs font-bold hidden text-center bg-red-50 py-2 rounded-lg border border-red-100"></p>
+                <button id="btn-create" onclick="creerBoutique()" class="w-full h-12 bg-slate-900 hover:bg-nuvy text-white font-extrabold rounded-xl shadow-lg mt-2 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <i data-lucide="zap" class="h-4 w-4"></i> GÉNÉRER L'ACCÈS
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function switchView(viewId, title, btnElement) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            document.getElementById('page-title').innerText = title;
+            
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('bg-nuvy', 'text-white', 'shadow-md');
+                b.classList.add('hover:bg-slate-800', 'hover:text-white', 'text-slate-400');
+            });
+            btnElement.classList.remove('hover:bg-slate-800', 'hover:text-white', 'text-slate-400');
+            btnElement.classList.add('bg-nuvy', 'text-white', 'shadow-md');
+        }
+
+        function openModalCreate() { document.getElementById('modal-create').classList.remove('hidden'); }
+        function closeModalCreate() { document.getElementById('modal-create').classList.add('hidden'); }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const CEO_KEY = urlParams.get('key');
+
+        async function chargerFlotteCommercants() {
+            try {
+                const res = await fetch('/admin/boutiques', { headers: { 'x-ceo-key': CEO_KEY } });
+                if (!res.ok) throw new Error("Accès refusé");
+                const boutiques = await res.json();
+                
+                let countActives = 0;
+                let countAttention = 0;
+                let countInactives = 0;
+
+                const tbody = document.getElementById('fleet-tbody');
+                tbody.innerHTML = '';
+
+                boutiques.forEach(b => {
+                    let statut = b.statut || 'actif'; 
+
+                    if (statut === 'actif') countActives++;
+                    else if (statut === 'attention') countAttention++;
+                    else countInactives++;
+
+                    let badgeHtml = '';
+                    if (statut === 'actif') badgeHtml = `<span class="bg-green-100 text-green-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-md border border-green-200">Actif</span>`;
+                    else if (statut === 'attention') badgeHtml = `<span class="bg-amber-100 text-amber-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-md border border-amber-200">Attention</span>`;
+                    else badgeHtml = `<span class="bg-slate-100 text-slate-500 text-[10px] uppercase font-extrabold px-2 py-1 rounded-md border border-slate-200">Inactif</span>`;
+
+                    const dateCreation = new Date(b.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-colors group cursor-pointer";
+                    tr.innerHTML = `
+                        <td class="py-4 px-6">${badgeHtml}</td>
+                        <td class="py-4 px-6 font-extrabold text-slate-900">${b.nom}</td>
+                        <td class="py-4 px-6 text-slate-500 font-mono text-xs">@${b.slug || b.username}</td>
+                        <td class="py-4 px-6 text-slate-500 text-xs font-medium capitalize">${b.categorie || 'Standard'}</td>
+                        <td class="py-4 px-6 text-right text-sm text-slate-500 font-medium">${dateCreation}</td>
+                        <td class="py-4 px-6 text-right relative dropdown-container">
+                            <button onclick="toggleDropdown(event, 'dropdown-${b.username}')" class="bg-white border border-slate-200 text-slate-600 hover:text-nuvy hover:border-nuvy px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ml-auto shadow-sm">
+                                Gérer <i data-lucide="chevron-down" class="h-3 w-3"></i>
+                            </button>
+                            
+                            <div id="dropdown-${b.username}" class="hidden absolute right-6 top-14 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden text-left origin-top-right">
+                                <button onclick="window.open('/admin/force-login?username=${b.username}&key=${CEO_KEY}', '_blank')" class="w-full px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 border-b border-slate-100 transition-colors">
+                                    <div class="bg-nuvy/10 p-1.5 rounded-md"><i data-lucide="log-in" class="h-4 w-4 text-nuvy"></i></div>
+                                    Se connecter (Commerçant)
+                                </button>
+                                <button onclick="promptResetPassword('${b.id}', '${b.username}')" class="w-full px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                    <div class="bg-red-100 p-1.5 rounded-md"><i data-lucide="key-round" class="h-4 w-4 text-red-600"></i></div>
+                                    Réinitialiser le mot de passe
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
                 });
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 transition group";
-                tr.innerHTML = `
-                    <td class="py-4 px-6"><span class="bg-green-100 text-green-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-green-200">Actif</span></td>
-                    <td class="py-4 px-6 font-bold text-gray-900">${b.nom}</td>
-                    <td class="py-4 px-6 text-gray-400 font-mono text-xs">@${b.slug || b.username}</td>
-                    <td class="py-4 px-6 text-right text-sm text-gray-500 font-medium">${dateCreation}</td>
-                    <td class="py-4 px-6 text-right">
-                      <button onclick="window.open('/dashboard', '_blank')" class="bg-white border border-gray-200 text-nuvy hover:bg-nuvy hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ml-auto shadow-sm">
-                        <i data-lucide="external-link" class="h-3 w-3"></i> Gérer
-                      </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            lucide.createIcons();
-        } catch (error) { 
-            console.error("❌ Crash total du script :", error); 
-        }
-    }
 
-    window.addEventListener('DOMContentLoaded', () => {
-        if(CEO_KEY) {
-            chargerFlotteCommercants();
-        } else {
-            console.error("❌ Aucune clé trouvée dans l'URL !");
-        }
-        
-        // Graphique fictif pour le design
-        const ctx = document.getElementById('ceoScansChart');
-        if (ctx) {
-            new Chart(ctx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: Array.from({length: 30}, (_, i) => `J-${30-i}`),
-                    datasets: [{ label: 'Scans', data: Array.from({length: 30}, () => Math.floor(Math.random() * 5000 + 10000)), borderColor: '#2A8C9C', tension: 0.4, fill: true, backgroundColor: 'rgba(42, 140, 156, 0.05)', pointRadius: 0 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-        }
-    });
-    async function creerBoutique() {
-        const nom = document.getElementById('new-nom').value.trim();
-        const username = document.getElementById('new-username').value.trim();
-        const password = document.getElementById('new-password').value.trim();
-        const categorie = document.getElementById('new-categorie').value;
-        const max_tampons = document.getElementById('new-max').value;
-        const logo_url = document.getElementById('new-logo').value.trim();
-        
-        const errorEl = document.getElementById('modal-error');
-        const btn = document.getElementById('btn-create');
+                const safeUpdate = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+                
+                safeUpdate('kpi-total-boutiques', boutiques.length);
+                safeUpdate('overview-kpi-actives', countActives);
+                safeUpdate('fleet-kpi-actives', countActives);
+                safeUpdate('fleet-kpi-attention', countAttention);
+                safeUpdate('fleet-kpi-inactives', countInactives);
+                safeUpdate('total-clients-global', (boutiques.length * 12).toLocaleString());
 
-        // Sécurité de base
-        if(!nom || !username || !password) {
-            errorEl.innerText = "🚨 Le nom, l'identifiant et le mot de passe sont obligatoires.";
-            errorEl.classList.remove('hidden');
-            return;
+                lucide.createIcons();
+            } catch (error) { 
+                console.error("Erreur chargement :", error); 
+                if (error.message === "Accès refusé") deconnexion();
+            }
         }
 
-        // Effet de chargement
-        errorEl.classList.add('hidden');
-        btn.innerHTML = '<div class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Création en cours...';
-        btn.disabled = true;
-
-        try {
-            // Envoi à ton API (index.js)
-            const res = await fetch('/admin/create-boutique', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    nom, username, password, categorie, max_tampons, logo_url,
-                    ceoKey: CEO_KEY // On glisse ton pass de CEO pour l'autorisation
-                })
-            });
-
-            const data = await res.json();
+        async function creerBoutique() {
+            const nom = document.getElementById('new-nom').value.trim();
+            const username = document.getElementById('new-username').value.trim();
+            const password = document.getElementById('new-password').value.trim();
+            const categorie = document.getElementById('new-categorie').value;
+            const max_tampons = document.getElementById('new-max').value;
             
-            if(!res.ok) throw new Error(data.message || "Erreur de création serveur");
+            const errorEl = document.getElementById('modal-error');
+            const btn = document.getElementById('btn-create');
 
-            // Succès ! On ferme la modale et on vide le formulaire
-            closeModalCreate();
-            document.getElementById('new-nom').value = '';
-            document.getElementById('new-username').value = '';
-            document.getElementById('new-password').value = '';
-            document.getElementById('new-logo').value = '';
-            
-            // On recharge la liste des commerçants pour voir le nouveau client apparaître instantanément !
-            chargerFlotteCommercants();
+            if(!nom || !username || !password) {
+                errorEl.innerText = "Champs obligatoires manquants.";
+                errorEl.classList.remove('hidden'); return;
+            }
 
-        } catch (e) {
-            errorEl.innerText = "❌ " + e.message;
-            errorEl.classList.remove('hidden');
-        } finally {
-            // On remet le bouton à son état normal
-            btn.innerHTML = 'GÉNÉRER L\'ACCÈS BOUTIQUE';
-            btn.disabled = false;
+            errorEl.classList.add('hidden');
+            btn.innerHTML = 'Création...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/admin/create-boutique', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nom, username, password, categorie, max_tampons, ceoKey: CEO_KEY })
+                });
+
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.message || "Erreur serveur");
+
+                closeModalCreate();
+                ['new-nom', 'new-username', 'new-password'].forEach(id => document.getElementById(id).value = '');
+                chargerFlotteCommercants();
+
+            } catch (e) {
+                errorEl.innerText = e.message;
+                errorEl.classList.remove('hidden');
+            } finally {
+                btn.innerHTML = '<i data-lucide="zap" class="h-4 w-4"></i> GÉNÉRER L\'ACCÈS';
+                btn.disabled = false;
+                lucide.createIcons();
+            }
         }
-    }
-    function deconnexion() { window.location.href = '/admin-login'; }
-  </script>
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if(CEO_KEY) chargerFlotteCommercants();
+            else deconnexion();
+
+            const ctx = document.getElementById('mainChart');
+            if (ctx) {
+                new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({length: 30}, (_, i) => `J-${30-i}`),
+                        datasets: [{ data: Array.from({length: 30}, () => Math.floor(Math.random() * 5000 + 10000)), borderColor: '#2A8C9C', tension: 0.4, fill: true, backgroundColor: 'rgba(42, 140, 156, 0.05)', pointRadius: 0 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { border: { dash: [4, 4] } } } }
+                });
+            }
+        // Graphique Hebdomadaire (Data Center)
+            const ctxWeekly = document.getElementById('weeklyChart');
+            if (ctxWeekly) {
+                new Chart(ctxWeekly.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                        datasets: [{ 
+                            label: 'Scans', 
+                            data: [0, 0, 0, 0, 0, 0, 0], // Vide pour l'instant
+                            backgroundColor: '#2A8C9C', 
+                            borderRadius: 4 
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { border: { dash: [4, 4] } } } }
+                });
+            }
+
+            // Graphique Appareils (Data Center)
+            const ctxDevice = document.getElementById('deviceChart');
+            if (ctxDevice) {
+                new Chart(ctxDevice.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['iPhone', 'Android', 'Autre'],
+                        datasets: [{ 
+                            data: [68, 28, 4], // Fake data design
+                            backgroundColor: ['#0f172a', '#cbd5e1', '#f1f5f9'], 
+                            borderWidth: 0 
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                });
+            }
+        });
+        // --- GESTION DES MENUS DÉROULANTS ---
+        function toggleDropdown(event, id) {
+            // Empêcher le clic de se propager et de fermer le menu instantanément
+            event.stopPropagation();
+            
+            // 1. Fermer tous les autres menus ouverts
+            document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+                if (el.id !== id) el.classList.add('hidden');
+            });
+            
+            // 2. Ouvrir/Fermer le menu ciblé
+            const menu = document.getElementById(id);
+            if (menu) menu.classList.toggle('hidden');
+        }
+
+        // Fermer le menu si le CEO clique n'importe où ailleurs sur la page
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown-container')) {
+                document.querySelectorAll('[id^="dropdown-"]').forEach(el => el.classList.add('hidden'));
+            }
+        });
+        // --- RÉINITIALISATION MANUELLE DU MOT DE PASSE ---
+        async function promptResetPassword(boutiqueId, username) {
+            // 1. Demander le nouveau mot de passe au CEO
+            const newPassword = prompt(`🔑 Réinitialisation pour @${username}\n\nEntre le nouveau mot de passe que tu veux attribuer à ce commerçant :`);
+            
+            // Si le CEO annule ou ne tape rien, on arrête tout
+            if (!newPassword) return;
+            
+            // 2. Demande de confirmation par sécurité
+            if (!confirm(`⚠️ Confirmer le changement pour @${username} ?\nLe nouveau mot de passe sera : "${newPassword}"\nL'ancien sera définitivement écrasé.`)) return;
+
+            try {
+                // 3. Appel à ta route existante dans index.js
+                const res = await fetch('/admin/force-reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ boutiqueId: boutiqueId, newPassword: newPassword, ceoKey: CEO_KEY })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    alert(`✅ Succès !\n\nLe mot de passe a bien été changé.\nTu peux envoyer ce nouveau mot de passe au commerçant : ${newPassword}`);
+                } else {
+                    alert("❌ Erreur : " + (data.message || "Action refusée"));
+                }
+            } catch (e) {
+                alert("❌ Erreur de connexion au serveur.");
+            }
+        }
+
+        function deconnexion() { window.location.href = '/admin-login'; }
+    </script>
 </body>
 </html>
