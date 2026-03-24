@@ -308,7 +308,8 @@
         element.classList.remove('text-gray-700'); element.classList.add('bg-nuvy/10', 'text-nuvy');
         
         if (viewId === 'view-analytics' || viewId === 'view-clients') loadAnalyticsData(); 
-        if (viewId === 'view-account') loadAccountData(); 
+        if (viewId === 'view-account') loadAccountData();
+        history.pushState(null, '', '#' + viewId);
     }
 
     async function loadAnalyticsData() {

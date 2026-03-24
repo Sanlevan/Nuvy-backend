@@ -261,7 +261,7 @@
                         <div class="flex items-center gap-4">
                             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-nuvy/10"><i data-lucide="database" class="h-6 w-6 text-nuvy"></i></div>
                             <div>
-                                <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Scans Totaux (30j)</p>
+                                <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Scans Totaux (Période)</p>
                                 <p id="data-kpi-scans" class="text-2xl font-black text-slate-900">...</p>
                             </div>
                         </div>
@@ -280,7 +280,7 @@
                             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100"><i data-lucide="smartphone" class="h-6 w-6 text-amber-600"></i></div>
                             <div>
                                 <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Cartes Apple Wallet</p>
-                                <p id="data-kpi-clients" class="text-2xl font-black text-slate-900">...</p>
+                                <p id="data-kpi-wallets" class="text-2xl font-black text-slate-900">...</p>
                             </div>
                         </div>
                     </div>
@@ -289,7 +289,7 @@
                             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-nuvy/10"><i data-lucide="trending-up" class="h-6 w-6 text-nuvy"></i></div>
                             <div>
                                 <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Taux de Rétention</p>
-                                <p id="data-kpi-clients" class="text-2xl font-black text-slate-900">...</p>
+                                <p id="data-kpi-retention" class="text-2xl font-black text-slate-900">...</p>
                             </div>
                         </div>
                     </div>
@@ -498,6 +498,7 @@
             });
             btnElement.classList.remove('hover:bg-slate-800', 'hover:text-white', 'text-slate-400');
             btnElement.classList.add('bg-nuvy', 'text-white', 'shadow-md');
+            history.pushState(null, '', '#' + viewId);
         }
 
         function openModalCreate() { document.getElementById('modal-create').classList.remove('hidden'); }
@@ -677,6 +678,12 @@
                 inputFin.value = now.toISOString().split('T')[0];
                 inputDebut.value = past.toISOString().split('T')[0];
             }
+            const hash = window.location.hash.substring(1); // On récupère le mot après le '#'
+            if (hash) {
+                // On cherche le bouton du menu correspondant et on simule un clic dessus
+                const btnToClick = document.querySelector(`button[onclick*="switchView('${hash}'"]`);
+                if (btnToClick) btnToClick.click();
+            }
 
             // 2. On charge les données qui vont utiliser ces dates
             if(CEO_KEY) {
@@ -847,7 +854,7 @@
                 const kpiWallets = document.getElementById('data-kpi-wallets');
                 const kpiRetention = document.getElementById('data-kpi-retention');
 
-                if (kpiScans) kpiScans.innerText = data.kpis.scans30j;
+                if (kpiScans) kpiScans.innerText = data.kpis.scansPeriode; // Correction du "undefined"
                 if (kpiClients) kpiClients.innerText = data.kpis.totalClients;
                 if (kpiWallets) kpiWallets.innerText = data.kpis.cartesAppleWallet;
                 if (kpiRetention) kpiRetention.innerText = data.kpis.tauxRetention;
@@ -857,7 +864,7 @@
                 // ==========================================
                 const ctxWeekly = document.getElementById('weeklyChart');
                 if (ctxWeekly) {
-                    let existing = Chart.getChart(ctxMain); if (existing) existing.destroy();
+                    let existing = Chart.getChart(ctxWeekly); if (existing) existing.destroy(); // Correction du doublon
                     new Chart(ctxWeekly.getContext('2d'), {
                         type: 'bar',
                         data: {
@@ -870,7 +877,7 @@
 
                 const ctxDevice = document.getElementById('deviceChart');
                 if (ctxDevice) {
-                    let existing = Chart.getChart(ctxMain); if (existing) existing.destroy();
+                    let existing = Chart.getChart(ctxDevice); if (existing) existing.destroy(); // Correction du doublon
                     new Chart(ctxDevice.getContext('2d'), {
                         type: 'doughnut',
                         data: {

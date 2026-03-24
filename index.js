@@ -400,7 +400,7 @@ app.get('/admin/stats-globales', async (req, res) => {
         // 2. Récupération globale
         const [clientsRes, visitesRes, boutiquesRes, devicesRes] = await Promise.all([
             supabase.from('clients').select('id, tampons, recompenses, boutique_id, created_at'),
-            supabase.from('visites').select('id, created_at, boutique_id'),
+            supabase.from('visites').select('id, created_at, boutique_id, client_id'),
             supabase.from('boutiques').select('id, adresse, nom'),
             supabase.from('devices').select('id')
         ]);
@@ -419,7 +419,16 @@ app.get('/admin/stats-globales', async (req, res) => {
         // 4. Calculs KPIs
         const scansPeriode = visitesPeriode.length;
         const totalClients = clients.length; // Total global du réseau
-        const clientsFideles = clients.filter(c => c.tampons > 1 || c.recompenses > 0).length;
+        // --- NOUVEAU CALCUL DE RÉTENTION (Basé sur les vrais passages en caisse) ---
+        const comptageVisites = {};
+        visites.forEach(v => {
+            if (v.client_id) {
+                comptageVisites[v.client_id] = (comptageVisites[v.client_id] || 0) + 1;
+            }
+        });
+        
+        // On ne garde que les clients qui ont été scannés au moins 2 fois (2 vraies visites)
+        const clientsFideles = Object.values(comptageVisites).filter(nbVisites => nbVisites > 1).length;
         const tauxRetention = totalClients > 0 ? Math.round((clientsFideles / totalClients) * 100) : 0;
         const cartesAppleWallet = devices.length;
 
