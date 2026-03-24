@@ -810,12 +810,27 @@ app.get('/v1/passes/:pId/:sN', async (req, res) => {
         
         const { data: all } = await supabase.from('clients').select('tampons, recompenses').eq('boutique_id', c.boutique_id);
         const maxT = c.boutiques.max_tampons || 10;
-const score = (c.recompenses * maxT) + c.tampons;
-        let rank = 1; all.forEach(o => { if(((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
+        const score = (c.recompenses * maxT) + c.tampons;
+        let rank = 1; 
+        if (all) all.forEach(o => { if(((o.recompenses||0)*maxT + (o.tampons||0)) > score) rank++; });
         
+        // 🚨 CORRECTION 1 : On ajoute req.get('host') pour que la carte garde son URL de mise à jour !
         const buf = await generatePassBuffer(c, c.boutiques, rank, req.get('host'));
-        res.set('Content-Type', 'application/vnd.apple.pkpass').send(buf);
-    } catch (e) { res.status(500).send(); }
+        
+        // 🚨 CORRECTION 2 : On force la date de modification pour forcer l'iPhone à rafraîchir l'écran
+        res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
+        res.setHeader('Last-Modified', new Date().toUTCString());
+        res.status(200).send(buf);
+    } catch (e) { 
+        console.error("Erreur génération pass (Apple Fetch) :", e);
+        res.status(500).send(); 
+    }
+});
+
+app.post('/v1/log', (req, res) => {
+    // 🚨 CORRECTION 3 : Si Apple boude, il va nous écrire son problème exact ici !
+    console.error("🍎 LOG ERREUR APPLE WALLET :", req.body);
+    res.status(200).send();
 });
 
 app.post('/v1/log', (req, res) => res.status(200).send());
