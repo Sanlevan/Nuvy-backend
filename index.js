@@ -57,135 +57,99 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     fs.readdirSync(modelPath).forEach(f => fs.copyFileSync(path.join(modelPath, f), path.join(tmpDir, f)));
     
     if (boutique.logo_url && boutique.logo_url.trim() !== "") {
-            try {
-                const response = await fetch(boutique.logo_url);
-                if (response.ok) {
-                    const buffer = Buffer.from(await response.arrayBuffer());
+        try {
+            const response = await fetch(boutique.logo_url);
+            if (response.ok) {
+                const buffer = Buffer.from(await response.arrayBuffer());
 
-                    // --- 🖼️ LOGO (SUR LA CARTE) ---
-                    await sharp(buffer).resize(480, 150, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
-                    await sharp(buffer).resize(320, 100, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
+                // ✂️ TRIM : Enlève le vide transparent autour de l'image pour aligner parfaitement à gauche
+                await sharp(buffer).trim().resize(480, 150, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
+                await sharp(buffer).trim().resize(320, 100, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
+                await sharp(buffer).trim().resize(160, 50, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo.png'));
 
-                    // --- 🔔 ICON (DANS LES NOTIFS) - ON AJOUTE LE @3x ---
-                    // On attend bien chaque écriture avec await
-                    await sharp(buffer)
-                        .resize(174, 174, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-                        .png()
-                        .toFile(path.join(tmpDir, 'icon@3x.png')); // 👈 Crucial pour ton iPhone
-
-                    await sharp(buffer)
-                        .resize(116, 116, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-                        .png()
-                        .toFile(path.join(tmpDir, 'icon@2x.png'));
-
-                    await sharp(buffer)
-                        .resize(58, 58, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-                        .png()
-                        .toFile(path.join(tmpDir, 'icon.png'));
-                        
-                    console.log("✅ Toutes les icônes (@1x, @2x, @3x) sont prêtes sur le disque.");
-                }
-            } catch (e) {
-                console.error("❌ Erreur de traitement d'image :", e);
+                await sharp(buffer).trim().resize(174, 174, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'icon@3x.png')); 
+                await sharp(buffer).trim().resize(116, 116, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'icon@2x.png'));
+                await sharp(buffer).trim().resize(58, 58, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'icon.png'));
             }
+        } catch (e) {
+            console.error("❌ Erreur image :", e);
         }
+    }
 
     const passJson = JSON.parse(fs.readFileSync(path.join(tmpDir, 'pass.json'), 'utf8'));
-    // 🚫 DESTRUCTION DU QR CODE 🚫
-        delete passJson.barcode;
-        delete passJson.barcodes;
+    delete passJson.barcode;
+    delete passJson.barcodes;
+    
     passJson.backgroundColor = boutique.color_bg || "#FAF8F5";
     passJson.foregroundColor = boutique.color_text || "#2A8C9C";
     passJson.labelColor = (STEREOTYPES[boutique.categorie] || STEREOTYPES.default).label;
     
+    // 🔔 NOUVEAU : Nom de la boutique sur la notification Push au lieu de "Nuvy"
+    passJson.organizationName = boutique.nom || "Fidélité";
+    passJson.description = `Carte de fidélité ${boutique.nom || ""}`;
+    passJson.logoText = boutique.nom || "Fidélité";
+
+    // 🛡️ OBLIGATOIRE POUR LES MISES A JOUR APPLE WALLET
+    passJson.serialNumber = client.serial_number;
+    passJson.authenticationToken = client.token;
+    if (hostUrl) { passJson.webServiceURL = `https://${hostUrl}`; }
+
+    // CALCUL DU RANG
+    const maxT = boutique.max_tampons || 10;
+    const { data: allClients } = await supabase.from('clients').select('id, total_historique').eq('boutique_id', boutique.id);
+    let vraiRang = 1;
+    if (allClients) {
+        const monScore = client.total_historique || 0;
+        allClients.forEach(c => { if ((c.total_historique || 0) > monScore) vraiRang++; });
+    }
     
-   // --- 🧠 1. INTELLIGENCE : CALCUL DU RANG EN TEMPS RÉEL ---
-        const maxT = boutique.max_tampons || 10;
-        
-        // On va chercher le score À VIE de tous les clients de la boutique
-        const { data: allClients } = await supabase
-            .from('clients')
-            .select('id, total_historique')
-            .eq('boutique_id', boutique.id);
+    const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
+    const suffixe = (vraiRang === 1) ? "er" : "ème";
 
-        let vraiRang = 1;
-        if (allClients) {
-            const monScore = client.total_historique || 0; // Ton score à vie
-            allClients.forEach(c => {
-                const sonScore = c.total_historique || 0; // Le score à vie de l'autre
-                // Si l'autre a poinçonné plus de fois que toi dans sa vie, tu descends d'une place
-                if (sonScore > monScore) vraiRang++;
-            });
-        }
-        
-        const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
-        const suffixe = (vraiRang === 1) ? "er" : "ème";
+    const symbolePlein = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].full : "⭐";
+    const symboleVide = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].empty : "⚪";
+    let fideliteTexte = "";
+    for(let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
-        // --- 🎨 2. PRÉPARATION DU DESIGN ---
-        const adresseParts = boutique.adresse ? boutique.adresse.split(',') : [];
-        const ville = adresseParts.length > 0 ? adresseParts[adresseParts.length - 1].trim() : "En boutique";
-
-        const symbolePlein = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].full : "⭐";
-        const symboleVide = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].empty : "⚪";
-        let fideliteTexte = "";
-        for(let i = 0; i < maxT; i++) {
-            fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide;
-        }
-// 🛡️ SÉCURITÉ APPLE : Le texte à côté du logo ne doit JAMAIS être vide
-        passJson.logoText = (boutique.nom && boutique.nom.trim() !== "") ? boutique.nom : "Fidélité";
-        
-        // 🔔 NOUVEAU : Le nom qui s'affiche sur la notification Push (Lockscreen)
-        passJson.organizationName = boutique.nom;
-        passJson.description = `Carte de fidélité ${boutique.nom}`;
-
-        // --- 🛡️ CORRECTIONS CRITIQUES APPLE WALLET ---
-        passJson.serialNumber = client.serial_number;
-        passJson.authenticationToken = client.token;
-        if (hostUrl) {
-            passJson.webServiceURL = `https://${hostUrl}`;
-        }
-
-        // --- 🏗️ 3. DESTRUCTION ET RECONSTRUCTION TOTALE DU LAYOUT ---
-        passJson.storeCard = {
-            // 🎯 NOUVEAU : En haut à droite (Face au logo)
-            "headerFields": [{
-                "key": "score_header",
-                "label": "TAMPONS",
+    passJson.storeCard = {
+        // 🎯 NOUVEAU : Score en haut à droite (Face au logo)
+        "headerFields": [{
+            "key": "score_header",
+            "label": "TAMPONS",
+            "value": `${client.tampons || 0} / ${maxT}`,
+            "textAlignment": "PKTextAlignmentRight"
+        }],
+        "primaryFields": [{
+            "key": "bienvenue",
+            "label": `Vous êtes le ${vraiRang}${suffixe} meilleur client`,
+            "value": `Bonjour, ${prenom} ! 👋`
+        }],
+        "secondaryFields": [{
+            "key": "fidelite",
+            "label": "VOTRE FIDÉLITÉ",
+            "value": fideliteTexte,
+            "textAlignment": "PKTextAlignmentCenter"
+        }],
+        "backFields": [
+            {
+                "key": "carte_en_cours",
+                "label": "CARTE EN COURS",
                 "value": `${client.tampons || 0} / ${maxT}`,
-                "textAlignment": "PKTextAlignmentRight"
-            }],
-            "primaryFields": [{
-                "key": "bienvenue",
-                "label": `Vous êtes le ${vraiRang}${suffixe} meilleur client`,
-                "value": `Bonjour, ${prenom} ! 👋`
-            }],
-            "secondaryFields": [{
-                "key": "fidelite",
-                "label": "VOTRE FIDÉLITÉ",
-                "value": fideliteTexte,
-                "textAlignment": "PKTextAlignmentCenter"
-            }],
-            "backFields": [
-                {
-                    "key": "carte_en_cours",
-                    "label": "CARTE EN COURS",
-                    "value": `${client.tampons || 0} / ${maxT}`,
-                    // C'est ce message qui s'affiche dans la notification lors d'une mise à jour !
-                    "changeMessage": "Nouveau solde : %@ 🎁"
-                },
-                {
-                    "key": "adresse",
-                    "label": "ADRESSE DE LA BOUTIQUE",
-                    "value": boutique.adresse || "Adresse non renseignée"
-                },
-                {
-                    "key": "telephone",
-                    "label": "CONTACT",
-                    "value": boutique.telephone || "Non renseigné",
-                    "dataDetectorTypes": ["PKDataDetectorTypePhoneNumber"]
-                }
-            ]
-        };
+                "changeMessage": "Nouveau solde : %@ 🎁"
+            },
+            {
+                "key": "adresse",
+                "label": "ADRESSE DE LA BOUTIQUE",
+                "value": boutique.adresse || "Adresse non renseignée"
+            },
+            {
+                "key": "telephone",
+                "label": "CONTACT",
+                "value": boutique.telephone || "Non renseigné",
+                "dataDetectorTypes": ["PKDataDetectorTypePhoneNumber"]
+            }
+        ]
+    };
 
     fs.writeFileSync(path.join(tmpDir, 'pass.json'), JSON.stringify(passJson));
     const pass = await PKPass.from({ model: tmpDir, certificates: { wwdr: WWDR, signerCert, signerKey } });
@@ -609,58 +573,66 @@ app.post('/clients/:id/tampon', async (req, res) => {
     try {
         const pointsAjoutes = parseInt(req.body.nb);
         
-        // On récupère le client ET les infos de sa boutique associée
-        const { data: client } = await supabase
-            .from('clients')
-            .select('*, boutiques(max_tampons)')
-            .eq('id', req.params.id)
-            .single();
-        
-        // On récupère la limite de la boutique (ou 10 par défaut si non défini)
+        // On récupère le client
+        const { data: client } = await supabase.from('clients').select('*, boutiques(max_tampons)').eq('id', req.params.id).single();
         const maxT = client.boutiques.max_tampons || 10;
 
         let finalTampons = client.tampons || 0;
-    let finalRecompenses = client.recompenses || 0;
-    let totalHistorique = client.total_historique || 0; // 👈 1. On charge la mémoire du client
+        let finalRecompenses = client.recompenses || 0;
+        let totalHistorique = client.total_historique || 0;
 
-    if (pointsAjoutes === -10) {
-        // Clic sur "OFFRIR CADEAU" : on enlève 1 récompense (mais on ne touche pas à l'historique)
-        finalRecompenses = Math.max(0, finalRecompenses - 1);
-    } else {
-        // Ajout classique : on calcule avec la limite dynamique (maxT)
-        let totalStamps = finalTampons + pointsAjoutes;
-        finalTampons = totalStamps % maxT;
-        finalRecompenses += Math.floor(totalStamps / maxT);
+        if (pointsAjoutes === -10) {
+            finalRecompenses = Math.max(0, finalRecompenses - 1);
+        } else {
+            let totalStamps = finalTampons + pointsAjoutes;
+            finalTampons = totalStamps % maxT;
+            finalRecompenses += Math.floor(totalStamps / maxT);
+            totalHistorique += pointsAjoutes;
+        }
+
+        const { data: updatedClient } = await supabase.from('clients').update({
+            tampons: finalTampons,
+            recompenses: finalRecompenses,
+            total_historique: totalHistorique,
+            last_visit: new Date().toISOString()
+        }).eq('id', req.params.id).select().single();
         
-        totalHistorique += pointsAjoutes; // 👈 2. Le compteur à vie monte !
-    }
+        if (pointsAjoutes > 0) {
+            await supabase.from('visites').insert([{ client_id: client.id, boutique_id: client.boutique_id, points_ajoutes: pointsAjoutes }]);
+        }
 
-    const { data: updatedClient } = await supabase.from('clients').update({
-        tampons: finalTampons,
-        recompenses: finalRecompenses,
-        total_historique: totalHistorique, // 👈 3. On sauvegarde la mémoire en base
-        last_visit: new Date().toISOString()
-    }).eq('id', req.params.id).select().single();
-        
-        if (pointsAjoutes > 0) await supabase.from('visites').insert([{ client_id: client.id, boutique_id: client.boutique_id, points_ajoutes: pointsAjoutes }]);
-
+        // 🚀 MOTEUR DE NOTIFICATION PUSH APPLE WALLET
         const { data: devices } = await supabase.from('devices').select('push_token').eq('serial_number', client.serial_number);
+        
         if (devices && devices.length > 0) {
-            const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
-            const teamId = process.env.APPLE_TEAM_ID || 'Q762BTBA98'; 
-            const keyId = process.env.APPLE_KEY_ID || 'RM6P22PX7A';
+            console.log(`📡 Préparation du Push pour ${devices.length} appareil(s)`);
             
-            const provider = new apn.Provider({ token: { key: p8Key, keyId: keyId, teamId: teamId }, production: true });
+            const p8Path = path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8');
+            const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : (fs.existsSync(p8Path) ? fs.readFileSync(p8Path).toString('utf8') : null);
             
-            // Le payload Wallet DOIT être vide pour fonctionner
-            const notification = new apn.Notification();
-            notification.topic = 'pass.pro.nuvy.loyalty';
-            
-            for (const d of devices) { await provider.send(notification, d.push_token); }
-            provider.shutdown();
+            if (!p8Key) {
+                console.error("❌ ERREUR: Fichier .p8 introuvable pour les notifications.");
+            } else {
+                const provider = new apn.Provider({ 
+                    token: { key: p8Key, keyId: process.env.APPLE_KEY_ID || 'RM6P22PX7A', teamId: process.env.APPLE_TEAM_ID || 'Q762BTBA98' }, 
+                    production: true 
+                });
+                
+                const notification = new apn.Notification();
+                notification.topic = 'pass.pro.nuvy.loyalty';
+                
+                const pushTokens = devices.map(d => d.push_token);
+                const result = await provider.send(notification, pushTokens);
+                
+                console.log("✅ Résultat APNs :", JSON.stringify(result));
+                provider.shutdown();
+            }
         }
         res.json(updatedClient);
-    } catch (e) { res.status(500).send(); }
+    } catch (e) { 
+        console.error("❌ Erreur ajout tampon :", e);
+        res.status(500).send(); 
+    }
 });
 
 // ==========================================
