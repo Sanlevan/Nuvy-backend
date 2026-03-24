@@ -133,9 +133,12 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         }
 // 🛡️ SÉCURITÉ APPLE : Le texte à côté du logo ne doit JAMAIS être vide
         passJson.logoText = (boutique.nom && boutique.nom.trim() !== "") ? boutique.nom : "Fidélité";
+        
+        // 🔔 NOUVEAU : Le nom qui s'affiche sur la notification Push (Lockscreen)
+        passJson.organizationName = boutique.nom;
+        passJson.description = `Carte de fidélité ${boutique.nom}`;
 
         // --- 🛡️ CORRECTIONS CRITIQUES APPLE WALLET ---
-        // Apple rejette toute carte qui n'a pas ces 3 lignes
         passJson.serialNumber = client.serial_number;
         passJson.authenticationToken = client.token;
         if (hostUrl) {
@@ -143,8 +146,14 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         }
 
         // --- 🏗️ 3. DESTRUCTION ET RECONSTRUCTION TOTALE DU LAYOUT ---
-        // En créant un objet vide {}, on empêche l'iPhone de fusionner avec des vieux champs !
         passJson.storeCard = {
+            // 🎯 NOUVEAU : En haut à droite (Face au logo)
+            "headerFields": [{
+                "key": "score_header",
+                "label": "TAMPONS",
+                "value": `${client.tampons || 0} / ${maxT}`,
+                "textAlignment": "PKTextAlignmentRight"
+            }],
             "primaryFields": [{
                 "key": "bienvenue",
                 "label": `Vous êtes le ${vraiRang}${suffixe} meilleur client`,
@@ -161,6 +170,7 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                     "key": "carte_en_cours",
                     "label": "CARTE EN COURS",
                     "value": `${client.tampons || 0} / ${maxT}`,
+                    // C'est ce message qui s'affiche dans la notification lors d'une mise à jour !
                     "changeMessage": "Nouveau solde : %@ 🎁"
                 },
                 {
@@ -654,7 +664,7 @@ app.post('/clients/:id/tampon', async (req, res) => {
 });
 
 // ==========================================
-// LE TAP NFC
+// LE TAP NFC (Check-in ultra rapide)
 // ==========================================
 app.get('/tap/:slug', (req, res) => {
     const slug = req.params.slug;
@@ -662,30 +672,70 @@ app.get('/tap/:slug', (req, res) => {
     <!DOCTYPE html>
     <html lang="fr">
     <head>
-        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Magic Tap Nuvy</title><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;800&display=swap" rel="stylesheet">
-        <style>body{background:#FAF8F5;display:flex;justify-content:center;align-items:center;height:100vh;font-family:'Manrope',sans-serif;margin:0;} .c{background:white;padding:40px;border-radius:35px;text-align:center;box-shadow:0 15px 35px rgba(0,0,0,0.03);border:1px solid #E0DEDA;max-width:380px;width:100%;} .loader{border:4px solid rgba(42,140,156,0.1);border-left-color:#2A8C9C;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 20px auto;} @keyframes spin{0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);}}</style>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Nuvy Tap</title>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;800&display=swap" rel="stylesheet">
+        <style>
+            body { background: #FAF8F5; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Manrope', sans-serif; margin: 0; overflow: hidden; }
+            .c { background: white; padding: 40px 30px; border-radius: 35px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.04); border: 1px solid #E0DEDA; max-width: 340px; width: 90%; }
+            .loader { border: 4px solid rgba(42,140,156,0.1); border-left-color: #2A8C9C; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
+            
+            /* L'animation de validation type Apple Pay */
+            .success-circle { width: 80px; height: 80px; background: #E8F5E9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; transform: scale(0); animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+            .success-circle svg { width: 40px; height: 40px; color: #2E7D32; }
+            
+            h2 { margin: 0 0 10px 0; font-weight: 800; font-size: 24px; color: #111; }
+            p { color: #888; font-weight: 600; margin: 0; font-size: 15px; }
+            .btn { display: block; background: #111; color: white; padding: 18px 24px; border-radius: 20px; text-decoration: none; font-weight: 800; font-size: 16px; margin-top: 30px; transition: transform 0.2s; }
+            .btn:active { transform: scale(0.96); }
+            
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            @keyframes popIn { 100% { transform: scale(1); } }
+        </style>
     </head>
     <body>
         <div class="c" id="ui-box">
-            <div class="loader"></div><h2 style="color:#2A8C9C; margin-bottom: 5px; font-weight:800;">Magic Tap⚡️</h2><p style="color:#888; font-weight:600; margin:0;">Reconnaissance client...</p>
+            <div class="loader"></div>
+            <h2 style="color:#2A8C9C;">Transmission...</h2>
+            <p>Ne bougez pas votre téléphone</p>
         </div>
         <script>
+            // 1. On cherche la mémoire du client
             const token = localStorage.getItem('nuvy_token');
-            if (!token) window.location.href = '/join/${slug}';
-            else {
+            
+            // 2. Si Inconnu -> Redirection immédiate vers l'inscription
+            if (!token) {
+                window.location.replace('/join/${slug}');
+            } else {
+                // 3. Si Connu -> On "bip" la caisse du commerçant
                 fetch('/tap/${slug}/notify?token=' + token, { method: 'POST' })
                 .then(r => {
                     if(r.ok) {
-                        document.getElementById('ui-box').innerHTML = '<div style="font-size: 60px; margin-bottom:10px;">✅</div><h2 style="color:#2E7D32; font-weight:800; margin:0;">Validé !</h2><p style="color:#888; font-weight:600; margin-bottom:20px;">Regardez l\\'écran du commerçant.</p><a href="/pass/' + token + '" style="display:inline-block; background:#111; color:white; padding:10px 20px; border-radius:20px; text-decoration:none; font-weight:bold; font-size:14px;">Apple Wallet </a>';
+                        // --- EFFET MAGIQUE : Vibration Haptique Apple ---
+                        if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+                        
+                        // --- INTERFACE : Apparition du checkmark ---
+                        document.getElementById('ui-box').innerHTML = \`
+                            <div class="success-circle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </div>
+                            <h2>Connecté !</h2>
+                            <p>Le commerçant ajoute vos points.</p>
+                            <a href="/pass/\${token}" class="btn">Voir ma carte </a>
+                        \`;
                     } else if (r.status === 404) {
-                        // Le jeton n'existe plus en BDD : on nettoie le tel et on renvoie à l'inscription
+                        // Le client a vidé son cache ou changé de téléphone
                         localStorage.removeItem('nuvy_token');
-                        window.location.href = '/join/${slug}';
+                        window.location.replace('/join/${slug}');
                     } else {
                         throw new Error();
                     }
                 })
-                }).catch(() => document.getElementById('ui-box').innerHTML = '<div style="font-size: 60px; margin-bottom:10px;">❌</div><h2 style="color:#C62828; font-weight:800; margin:0;">Erreur</h2><p style="color:#888; font-weight:600;">Erreur réseau.</p>');
+                .catch(() => {
+                    if (navigator.vibrate) navigator.vibrate(200); // Grosse vibration d'erreur
+                    document.getElementById('ui-box').innerHTML = '<h2 style="color:#C62828;">Erreur réseau</h2><p>Vérifiez votre connexion 4G/5G.</p>';
+                });
             }
         </script>
     </body>
