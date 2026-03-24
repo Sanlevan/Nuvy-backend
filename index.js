@@ -111,13 +111,14 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     let fideliteTexte = "";
     for(let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
-    passJson.storeCard = {
-        // 🎯 NOUVEAU : Score en haut à droite (Face au logo)
+    // --- NOUVEAU DESIGN INTELLIGENT ---
+    const layout = {
         "headerFields": [{
             "key": "score_header",
             "label": "TAMPONS",
             "value": `${client.tampons || 0} / ${maxT}`,
-            "textAlignment": "PKTextAlignmentRight"
+            "textAlignment": "PKTextAlignmentRight",
+            "changeMessage": "Nouveau solde : %@ 🎁" // La notification Push est déclenchée d'ici
         }],
         "primaryFields": [{
             "key": "bienvenue",
@@ -130,13 +131,8 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             "value": fideliteTexte,
             "textAlignment": "PKTextAlignmentCenter"
         }],
+        "auxiliaryFields": [], // Vide par défaut, on le remplit juste en dessous si besoin
         "backFields": [
-            {
-                "key": "carte_en_cours",
-                "label": "CARTE EN COURS",
-                "value": `${client.tampons || 0} / ${maxT}`,
-                "changeMessage": "Nouveau solde : %@ 🎁"
-            },
             {
                 "key": "adresse",
                 "label": "ADRESSE DE LA BOUTIQUE",
@@ -150,6 +146,18 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             }
         ]
     };
+
+    // 🎁 AFFICHAGE MAGIQUE DES CADEAUX SUR LE DEVANT DE LA CARTE
+    if (client.recompenses && client.recompenses > 0) {
+        layout.auxiliaryFields.push({
+            "key": "cadeaux",
+            "label": "CADEAUX",
+            "value": `${client.recompenses} 🎁`,
+            "textAlignment": "PKTextAlignmentCenter"
+        });
+    }
+
+    passJson.storeCard = layout;
 
     fs.writeFileSync(path.join(tmpDir, 'pass.json'), JSON.stringify(passJson));
     const pass = await PKPass.from({ model: tmpDir, certificates: { wwdr: WWDR, signerCert, signerKey } });
