@@ -49,7 +49,7 @@ const WWDR = getCert('WWDR_CERT', 'WWDR-pem.pem');
 const signerCert = getCert('SIGNER_CERT', 'signer-clean.pem');
 const signerKey = getCert('SIGNER_KEY', 'nuvy-pass.key');
 
-async function generatePassBuffer(client, boutique, clientRank) {
+async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     const modelPath = path.resolve(__dirname, 'pass-model.pass');
     const tmpDir = path.join('/tmp', 'gen-' + crypto.randomBytes(4).toString('hex') + '.pass');
     
@@ -133,6 +133,15 @@ async function generatePassBuffer(client, boutique, clientRank) {
         }
 // 🛡️ SÉCURITÉ APPLE : Le texte à côté du logo ne doit JAMAIS être vide
         passJson.logoText = (boutique.nom && boutique.nom.trim() !== "") ? boutique.nom : "Fidélité";
+
+        // --- 🛡️ CORRECTIONS CRITIQUES APPLE WALLET ---
+        // Apple rejette toute carte qui n'a pas ces 3 lignes
+        passJson.serialNumber = client.serial_number;
+        passJson.authenticationToken = client.token;
+        if (hostUrl) {
+            passJson.webServiceURL = `https://${hostUrl}`;
+        }
+
         // --- 🏗️ 3. DESTRUCTION ET RECONSTRUCTION TOTALE DU LAYOUT ---
         // En créant un objet vide {}, on empêche l'iPhone de fusionner avec des vieux champs !
         passJson.storeCard = {
@@ -705,7 +714,7 @@ app.get('/pass/:token', async (req, res) => {
         let rank = 1; 
         if (all) all.forEach(o => { if(((o.recompenses||0)*maxT + (o.tampons||0)) > score) rank++; });
         
-        const buf = await generatePassBuffer(c, c.boutiques, rank);
+        const buf = await generatePassBuffer(c, c.boutiques, rank, req.get('host'));
 
         // --- 🛡️ PROTECTION SAFARI (CORRECTION 1) ---
         res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
@@ -724,30 +733,25 @@ app.get('/pass/:token', async (req, res) => {
 
 app.post('/join/:slug/create', async (req, res) => {
     try {
-        const { prenom, nom, telephone } = req.body;
+        // ⚠️ CORRECTION : on récupère juste 'nom' depuis le front-end
+        const { nom, telephone } = req.body;
         const { data: b } = await supabase.from('boutiques').select('id').eq('slug', req.params.slug).single();
 
-        // 1. LE DÉTECTEUR : Est-ce que ce numéro existe déjà dans CETTE pizzeria ?
         const { data: existingClient } = await supabase
             .from('clients')
             .select('*')
             .eq('telephone', telephone)
             .eq('boutique_id', b.id)
-            .maybeSingle(); // maybeSingle évite que le code plante s'il ne trouve personne
+            .maybeSingle(); 
 
         if (existingClient) {
-            // SCÉNARIO A : LA CLIENTE REVIENT !
-            // On ne crée rien. On lui redonne juste la clé de son ancien compte.
-            // Son téléphone va télécharger l'ancienne carte avec ses 3 points intacts.
             return res.json({ token: existingClient.token });
         }
 
-        // SCÉNARIO B : NOUVEAU CLIENT
-        // On génère la carte à 0 point comme d'habitude.
         const token = crypto.randomUUID();
         const { data } = await supabase.from('clients').insert([{ 
             boutique_id: b.id, 
-            nom: `${prenom} ${nom}`, 
+            nom: nom, // ⚠️ CORRECTION : Le nom est propre, sans "undefined"
             telephone, 
             tampons: 0, 
             recompenses: 0, 
@@ -787,7 +791,7 @@ app.get('/v1/passes/:pId/:sN', async (req, res) => {
 const score = (c.recompenses * maxT) + c.tampons;
         let rank = 1; all.forEach(o => { if(((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
         
-        const buf = await generatePassBuffer(c, c.boutiques, rank);
+        const buf = await generatePassBuffer(c, c.boutiques, rank, req.get('host'));
         res.set('Content-Type', 'application/vnd.apple.pkpass').send(buf);
     } catch (e) { res.status(500).send(); }
 });
