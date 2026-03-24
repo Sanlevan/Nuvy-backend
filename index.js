@@ -432,6 +432,23 @@ app.get('/admin/stats-globales', async (req, res) => {
             }).length;
             weeklyData[6 - i] = scansJour;
         }
+        // --- NOUVEAU : Répartition Mensuelle (30 jours) pour le grand graphique ---
+        const monthlyData = new Array(30).fill(0);
+        const labelsMensuel = new Array(30).fill('');
+        
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            // On crée un label au format "Jour/Mois" (ex: "24/03")
+            labelsMensuel[29 - i] = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+            
+            // On compte les visites pour ce jour précis
+            const scansJour = visites.filter(v => {
+                const dateVisite = new Date(v.created_at);
+                return dateVisite.getDate() === d.getDate() && dateVisite.getMonth() === d.getMonth();
+            }).length;
+            monthlyData[29 - i] = scansJour;
+        }
 
         // 4. Distribution des appareils (Approximation car Wallet = 100% Apple pour le moment, mais on prépare le terrain)
         const totalDevices = cartesAppleWallet || 1; // Eviter la division par zéro
@@ -470,11 +487,11 @@ app.get('/admin/stats-globales', async (req, res) => {
                 cartesAppleWallet,
                 tauxRetention: `${tauxRetention}%`
             },
-            graphiques: {
+           graphiques: {
                 hebdo: { labels: labelsHebdo, data: weeklyData },
+                mensuel: { labels: labelsMensuel, data: monthlyData }, 
                 appareils: statsAppareils
             },
-            topVilles
         });
 
     } catch (err) {
