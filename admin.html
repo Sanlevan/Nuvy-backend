@@ -131,10 +131,10 @@
                 <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                     <div class="relative w-[400px]">
                         <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
-                        <input type="text" placeholder="Rechercher une boutique, une ville, un ID..." class="w-full pl-11 pr-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-nuvy/50 transition-all">
+                        <input type="text" id="search-boutique" onkeyup="filtrerFlotte()" placeholder="Rechercher une boutique, une ville, un ID..." class="w-full pl-11 pr-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-nuvy/50 transition-all">
                     </div>
                     <div class="flex items-center gap-3">
-                        <button class="h-11 px-4 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all">
+                        <button onclick="exporterFlotteCSV()" class="h-11 px-4 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold rounded-xl shadow-sm flex items-center gap-2 transition-all">
                             <i data-lucide="download" class="h-4 w-4"></i> Exporter CSV
                         </button>
                         <button onclick="openModalCreate()" class="h-11 px-6 bg-slate-900 hover:bg-nuvy text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 transition-all active:scale-95">
@@ -146,7 +146,7 @@
                 <div class="grid grid-cols-4 gap-4">
                     <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
                         <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Total Flotte</p>
-                        <p class="text-2xl font-black text-slate-900">...</p>
+                        <p id="fleet-kpi-total" class="text-2xl font-black text-slate-900">...</p>
                     </div>
                     <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between border-b-4 border-b-green-500">
                         <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Boutiques Actives</p>
@@ -163,9 +163,9 @@
                 </div>
 
                 <div class="flex items-center gap-6 border-b border-slate-200 px-2">
-                    <button class="sub-tab active pb-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">Toutes les boutiques</button>
-                    <button class="sub-tab pb-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">À surveiller</button>
-                    <button class="sub-tab pb-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">Récemment ajoutées</button>
+                    <button onclick="filtrerParOnglet('toutes', this)" class="sub-tab active pb-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">Toutes les boutiques</button>
+                    <button onclick="filtrerParOnglet('surveiller', this)" class="sub-tab pb-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">À surveiller</button>
+                    <button onclick="filtrerParOnglet('recentes', this)" class="sub-tab pb-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">Récemment ajoutées</button>
                 </div>
 
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-visible">
@@ -200,7 +200,7 @@
                             <div class="h-10 w-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600"><i data-lucide="trending-down" class="h-5 w-5"></i></div>
                             <div><h3 class="font-extrabold text-slate-900">Risque de Churn</h3><p class="text-[10px] font-bold uppercase tracking-wider text-red-500">Chute d'activité</p></div>
                         </div>
-                        <div class="p-5 flex-1 overflow-y-auto space-y-3 bg-slate-50/50">
+                        <div id="radar-churn" class="p-5 flex-1 overflow-y-auto space-y-3 bg-slate-50/50">
                             <div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 opacity-50">
                                 <i data-lucide="shield-check" class="h-8 w-8"></i>
                                 <span class="text-xs font-bold">Aucun risque détecté</span>
@@ -213,7 +213,7 @@
                             <div class="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600"><i data-lucide="snowflake" class="h-5 w-5"></i></div>
                             <div><h3 class="font-extrabold text-slate-900">Cold Start</h3><p class="text-[10px] font-bold uppercase tracking-wider text-amber-500">Zéro scan depuis création</p></div>
                         </div>
-                        <div class="p-5 flex-1 overflow-y-auto space-y-3 bg-slate-50/50">
+                        <div id="radar-churn" class="p-5 flex-1 overflow-y-auto space-y-3 bg-slate-50/50">
                             <div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 opacity-50">
                                 <i data-lucide="check-circle-2" class="h-8 w-8"></i>
                                 <span class="text-xs font-bold">Onboarding réussi partout</span>
@@ -242,11 +242,15 @@
                         <h2 class="text-xl font-extrabold text-slate-900">Données consolidées</h2>
                         <p class="text-sm text-slate-500 font-medium">Analyse globale du réseau Nuvy</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold rounded-lg shadow-sm flex items-center gap-2 transition-all">
-                            <i data-lucide="calendar" class="h-4 w-4"></i> 30 derniers jours
-                        </button>
-                        <button class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold rounded-lg shadow-sm flex items-center gap-2 transition-all">
+                    <div class="flex items-center gap-3 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-2 px-2">
+                            <i data-lucide="calendar" class="h-4 w-4 text-slate-400"></i>
+                            <input type="date" id="date-debut" onchange="chargerStatsGlobales()" class="text-xs font-bold text-slate-600 bg-transparent outline-none cursor-pointer" title="Date de début">
+                            <span class="text-slate-300">-</span>
+                            <input type="date" id="date-fin" onchange="chargerStatsGlobales()" class="text-xs font-bold text-slate-600 bg-transparent outline-none cursor-pointer" title="Date de fin">
+                        </div>
+                        <div class="w-px h-6 bg-slate-200"></div>
+                        <button onclick="exporterDataCenter()" class="px-3 py-1 text-slate-600 hover:bg-slate-50 hover:text-nuvy text-sm font-bold rounded-lg flex items-center gap-2 transition-all">
                             <i data-lucide="download" class="h-4 w-4"></i> Exporter
                         </button>
                     </div>
@@ -258,7 +262,7 @@
                             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-nuvy/10"><i data-lucide="database" class="h-6 w-6 text-nuvy"></i></div>
                             <div>
                                 <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Scans Totaux (30j)</p>
-                                <p class="text-2xl font-black text-slate-900">...</p>
+                                <p id="data-kpi-scans" class="text-2xl font-black text-slate-900">...</p>
                             </div>
                         </div>
                     </div>
@@ -267,7 +271,7 @@
                             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100"><i data-lucide="users" class="h-6 w-6 text-green-600"></i></div>
                             <div>
                                 <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Utilisateurs Uniques</p>
-                                <p id="total-clients-global" class="text-2xl font-black text-slate-900">...</p>
+                                <p id="data-kpi-clients" class="text-2xl font-black text-slate-900">...</p>
                             </div>
                         </div>
                     </div>
@@ -276,7 +280,7 @@
                             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100"><i data-lucide="smartphone" class="h-6 w-6 text-amber-600"></i></div>
                             <div>
                                 <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Cartes Apple Wallet</p>
-                                <p class="text-2xl font-black text-slate-900">...</p>
+                                <p id="data-kpi-clients" class="text-2xl font-black text-slate-900">...</p>
                             </div>
                         </div>
                     </div>
@@ -285,7 +289,7 @@
                             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-nuvy/10"><i data-lucide="trending-up" class="h-6 w-6 text-nuvy"></i></div>
                             <div>
                                 <p class="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-1">Taux de Rétention</p>
-                                <p class="text-2xl font-black text-slate-900">...</p>
+                                <p id="data-kpi-clients" class="text-2xl font-black text-slate-900">...</p>
                             </div>
                         </div>
                     </div>
@@ -311,43 +315,7 @@
 
                 <div class="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                     <h3 class="text-sm font-extrabold text-slate-900 mb-6">Top 5 Villes</h3>
-                    <div class="space-y-5">
-                        <div class="flex items-center gap-4">
-                            <span class="w-6 text-sm font-black text-slate-400">#1</span>
-                            <div class="flex-1">
-                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Paris</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
-                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="w-6 text-sm font-black text-slate-400">#2</span>
-                            <div class="flex-1">
-                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Lyon</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
-                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="w-6 text-sm font-black text-slate-400">#3</span>
-                            <div class="flex-1">
-                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Marseille</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
-                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="w-6 text-sm font-black text-slate-400">#4</span>
-                            <div class="flex-1">
-                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Bordeaux</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
-                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="w-6 text-sm font-black text-slate-400">#5</span>
-                            <div class="flex-1">
-                                <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">Lille</span><span class="text-xs font-bold text-slate-500">... scans (0%)</span></div>
-                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: 0%"></div></div>
-                            </div>
-                        </div>
-                    </div>
+                    <div id="top-villes-container" class="space-y-5"></div>
                 </div>
             </section>
             <section id="system" class="view max-w-6xl mx-auto space-y-6">
@@ -551,6 +519,17 @@
                 const tbody = document.getElementById('fleet-tbody');
                 tbody.innerHTML = '';
 
+                // --- PRÉPARATION DU RADAR ---
+                const radarChurn = document.getElementById('radar-churn');
+                const radarColdStart = document.getElementById('radar-coldstart');
+                if (radarChurn) radarChurn.innerHTML = '';
+                if (radarColdStart) radarColdStart.innerHTML = '';
+                
+                let countChurn = 0;
+                let countColdStart = 0;
+                const septJoursMs = 7 * 24 * 60 * 60 * 1000;
+                const maintenant = new Date();
+
                 boutiques.forEach(b => {
                     let statut = b.statut || 'actif'; 
 
@@ -562,6 +541,37 @@
                     if (statut === 'actif') badgeHtml = `<span class="bg-green-100 text-green-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-md border border-green-200">Actif</span>`;
                     else if (statut === 'attention') badgeHtml = `<span class="bg-amber-100 text-amber-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-md border border-amber-200">Attention</span>`;
                     else badgeHtml = `<span class="bg-slate-100 text-slate-500 text-[10px] uppercase font-extrabold px-2 py-1 rounded-md border border-slate-200">Inactif</span>`;
+
+                    // --- LOGIQUE RADAR & RISQUES ---
+                    const dateCreationBoutique = new Date(b.created_at);
+                    const estRecent = (maintenant - dateCreationBoutique) < septJoursMs;
+
+                    // Design de la petite carte d'alerte (cliquable pour ouvrir le dashboard commerçant)
+                    const carteRadarHtml = `
+                        <div onclick="forceLoginCommercant('${b.id}', '${b.slug}', '${b.nom.replace(/'/g, "\\'")}')" class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between group cursor-pointer hover:border-nuvy/50 hover:shadow-md transition-all">
+                            <div>
+                                <p class="text-sm font-bold text-slate-900">${b.nom}</p>
+                                <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mt-0.5">@${b.username}</p>
+                            </div>
+                            <div class="h-8 w-8 bg-slate-50 group-hover:bg-nuvy group-hover:text-white rounded-lg flex items-center justify-center text-slate-400 transition-colors">
+                                <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                            </div>
+                        </div>
+                    `;
+
+                    // Distribution dans les bonnes colonnes
+                    if (statut === 'attention') {
+                        if (estRecent) {
+                            if (radarColdStart) radarColdStart.innerHTML += carteRadarHtml;
+                            countColdStart++;
+                        } else {
+                            if (radarChurn) radarChurn.innerHTML += carteRadarHtml;
+                            countChurn++;
+                        }
+                    } else if (statut === 'inactif') {
+                        if (radarChurn) radarChurn.innerHTML += carteRadarHtml;
+                        countChurn++;
+                    }
 
                     const dateCreation = new Date(b.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
                     
@@ -593,11 +603,16 @@
                     tbody.appendChild(tr);
                 });
 
+                // --- FINITION DU RADAR ---
+                if (radarChurn && countChurn === 0) radarChurn.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 opacity-50"><i data-lucide="shield-check" class="h-8 w-8"></i><span class="text-xs font-bold">Aucun risque détecté</span></div>';
+                if (radarColdStart && countColdStart === 0) radarColdStart.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-2 opacity-50"><i data-lucide="check-circle-2" class="h-8 w-8"></i><span class="text-xs font-bold">Onboarding réussi</span></div>';
+
                 const safeUpdate = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
                 
                 safeUpdate('kpi-total-boutiques', boutiques.length);
                 safeUpdate('overview-kpi-actives', countActives);
                 safeUpdate('fleet-kpi-actives', countActives);
+                safeUpdate('fleet-kpi-total', boutiques.length);
                 safeUpdate('fleet-kpi-attention', countAttention);
                 safeUpdate('fleet-kpi-inactives', countInactives);
                 safeUpdate('total-clients-global', (boutiques.length * 12).toLocaleString());
@@ -653,45 +668,22 @@
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
-            if(CEO_KEY) {
-                await chargerFlotteCommercants(); // On attend que la flotte soit comptée...
-                chargerStatsGlobales();           // ...Puis on calcule le Health Score !
-            } else {
-                deconnexion();
-            }
-        // Graphique Hebdomadaire (Data Center)
-            const ctxWeekly = document.getElementById('weeklyChart');
-            if (ctxWeekly) {
-                new Chart(ctxWeekly.getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
-                        datasets: [{ 
-                            label: 'Scans', 
-                            data: [0, 0, 0, 0, 0, 0, 0], // Vide pour l'instant
-                            backgroundColor: '#2A8C9C', 
-                            borderRadius: 4 
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { border: { dash: [4, 4] } } } }
-                });
+            // 1. On met les dates par défaut dans le calendrier
+            const inputFin = document.getElementById('date-fin');
+            const inputDebut = document.getElementById('date-debut');
+            if(inputFin && inputDebut) {
+                const now = new Date();
+                const past = new Date(now.getTime() - (29 * 24 * 60 * 60 * 1000));
+                inputFin.value = now.toISOString().split('T')[0];
+                inputDebut.value = past.toISOString().split('T')[0];
             }
 
-            // Graphique Appareils (Data Center)
-            const ctxDevice = document.getElementById('deviceChart');
-            if (ctxDevice) {
-                new Chart(ctxDevice.getContext('2d'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['iPhone', 'Android', 'Autre'],
-                        datasets: [{ 
-                            data: [68, 28, 4], // Fake data design
-                            backgroundColor: ['#0f172a', '#cbd5e1', '#f1f5f9'], 
-                            borderWidth: 0 
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
-                });
+            // 2. On charge les données qui vont utiliser ces dates
+            if(CEO_KEY) {
+                await chargerFlotteCommercants();
+                chargerStatsGlobales();
+            } else {
+                deconnexion();
             }
         });
         // --- GESTION DES MENUS DÉROULANTS ---
@@ -759,7 +751,13 @@
         // --- CHARGEMENT DES STATISTIQUES GLOBALES (Vue d'ensemble & Data Center) ---
         async function chargerStatsGlobales() {
             try {
-                const res = await fetch('/admin/stats-globales', { headers: { 'x-ceo-key': CEO_KEY } });
+                // Récupération des dates
+                const debut = document.getElementById('date-debut')?.value;
+                const fin = document.getElementById('date-fin')?.value;
+                let url = '/admin/stats-globales';
+                if (debut && fin) url += `?debut=${debut}&fin=${fin}`;
+
+                const res = await fetch(url, { headers: { 'x-ceo-key': CEO_KEY } });
                 if (!res.ok) throw new Error("Erreur chargement stats");
                 
                 const data = await res.json();
@@ -778,15 +776,12 @@
                     badge.innerHTML = '<span class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span> En direct';
                 }
                 // 2. VUE D'ENSEMBLE : Health Score
-                // On récupère les valeurs de la flotte (qui viennent d'être chargées à l'écran)
                 const totalBoutiques = parseInt(document.getElementById('kpi-total-boutiques').innerText) || 1;
                 const activesBoutiques = parseInt(document.getElementById('overview-kpi-actives').innerText) || 0;
                 const tauxActives = Math.round((activesBoutiques / totalBoutiques) * 100);
                 
-                // On récupère le taux de rétention fourni par ton backend (ex: "45%")
                 const tauxRetention = parseInt(data.kpis.tauxRetention) || 0;
                 
-                // Le fameux calcul (Moyenne des deux)
                 const healthScore = Math.round((tauxActives * 0.5) + (tauxRetention * 0.5));
                 
                 const healthEl = document.getElementById('overview-kpi-health');
@@ -795,28 +790,29 @@
                 if (healthEl && healthSvg) {
                     healthEl.innerText = healthScore;
                     
-                    // Animation mathématique de la jauge SVG
-                    const offset = 141.37 - (healthScore / 100 * 141.37);
+                    // Calcul mathématique exact
+                    const offset = 141.37 - ((healthScore / 100) * 141.37);
                     
                     setTimeout(() => {
-                        healthSvg.style.strokeDashoffset = offset;
+                        // 🛠️ LA CORRECTION : On utilise setAttribute au lieu de style !
+                        healthSvg.setAttribute('stroke-dashoffset', offset);
                         
-                        // Changement de couleur dynamique en fonction de la santé
                         if (healthScore >= 80) {
                             healthEl.className = "text-3xl font-black text-green-500";
-                            healthSvg.setAttribute('stroke', '#10b981'); // Vert = Excellent
+                            healthSvg.setAttribute('stroke', '#10b981'); 
                         } else if (healthScore >= 50) {
                             healthEl.className = "text-3xl font-black text-amber-500";
-                            healthSvg.setAttribute('stroke', '#f59e0b'); // Orange = Attention
+                            healthSvg.setAttribute('stroke', '#f59e0b'); 
                         } else {
                             healthEl.className = "text-3xl font-black text-red-500";
-                            healthSvg.setAttribute('stroke', '#ef4444'); // Rouge = Danger
+                            healthSvg.setAttribute('stroke', '#ef4444'); 
                         }
                     }, 100);
                 }
                 // 3. VUE D'ENSEMBLE : Grand Graphique d'Affluence (30 Jours)
                 const ctxMain = document.getElementById('mainChart');
                 if (ctxMain) {
+                    let existing = Chart.getChart(ctxMain); if (existing) existing.destroy();
                     new Chart(ctxMain.getContext('2d'), {
                         type: 'line',
                         data: {
@@ -843,11 +839,202 @@
                     });
                 }
 
-                // (On rajoutera le code pour l'onglet Data Center ici juste après !)
+                // ==========================================
+                // 4. DATA CENTER : Les 4 KPIs
+                // ==========================================
+                const kpiScans = document.getElementById('data-kpi-scans');
+                const kpiClients = document.getElementById('data-kpi-clients');
+                const kpiWallets = document.getElementById('data-kpi-wallets');
+                const kpiRetention = document.getElementById('data-kpi-retention');
+
+                if (kpiScans) kpiScans.innerText = data.kpis.scans30j;
+                if (kpiClients) kpiClients.innerText = data.kpis.totalClients;
+                if (kpiWallets) kpiWallets.innerText = data.kpis.cartesAppleWallet;
+                if (kpiRetention) kpiRetention.innerText = data.kpis.tauxRetention;
+
+                // ==========================================
+                // 5. DATA CENTER : Graphiques Hebdo & Appareils
+                // ==========================================
+                const ctxWeekly = document.getElementById('weeklyChart');
+                if (ctxWeekly) {
+                    let existing = Chart.getChart(ctxMain); if (existing) existing.destroy();
+                    new Chart(ctxWeekly.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: data.graphiques.hebdo.labels,
+                            datasets: [{ label: 'Scans', data: data.graphiques.hebdo.data, backgroundColor: '#2A8C9C', borderRadius: 4 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { border: { dash: [4, 4] } } } }
+                    });
+                }
+
+                const ctxDevice = document.getElementById('deviceChart');
+                if (ctxDevice) {
+                    let existing = Chart.getChart(ctxMain); if (existing) existing.destroy();
+                    new Chart(ctxDevice.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['iPhone', 'Android', 'Autre'],
+                            datasets: [{ 
+                                data: [data.graphiques.appareils.iphone, data.graphiques.appareils.android, data.graphiques.appareils.autre],
+                                backgroundColor: ['#0f172a', '#cbd5e1', '#f1f5f9'], borderWidth: 0 
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                    });
+                    
+                    // Mise à jour du texte à côté du graphique Appareils
+                    const textIphone = document.querySelector('#data .space-y-4 div:nth-child(1) span:last-child');
+                    if(textIphone) textIphone.innerText = data.graphiques.appareils.iphone + '%';
+                }
+
+                // ==========================================
+                // 6. DATA CENTER : Top 5 Villes
+                // ==========================================
+                const villesContainer = document.getElementById('top-villes-container');
+                if (villesContainer && data.topVilles) {
+                    villesContainer.innerHTML = ''; // On vide au cas où
+                    
+                    if (data.topVilles.length === 0) {
+                        villesContainer.innerHTML = '<p class="text-sm font-bold text-slate-400">Pas encore assez de données géographiques.</p>';
+                    } else {
+                        data.topVilles.forEach((ville, index) => {
+                            villesContainer.innerHTML += `
+                            <div class="flex items-center gap-4">
+                                <span class="w-6 text-sm font-black text-slate-400">#${index + 1}</span>
+                                <div class="flex-1">
+                                    <div class="mb-1 flex items-center justify-between"><span class="text-sm font-bold text-slate-900">${ville.nom}</span><span class="text-xs font-bold text-slate-500">${ville.scans} scans (${ville.pourcentage}%)</span></div>
+                                    <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-nuvy transition-all" style="width: ${ville.pourcentage}%"></div></div>
+                                </div>
+                            </div>`;
+                        });
+                    }
+                }
 
             } catch (error) {
                 console.error("Erreur stats globales:", error);
             }
+        }
+        // --- MOTEUR DE RECHERCHE : FLOTTE COMMERÇANTS ---
+        function filtrerFlotte() {
+            const input = document.getElementById("search-boutique");
+            const filter = input.value.toLowerCase(); // On passe tout en minuscules pour comparer facilement
+            const tbody = document.getElementById("fleet-tbody");
+            const lignes = tbody.getElementsByTagName("tr");
+
+            // On boucle sur chaque ligne du tableau
+            for (let i = 0; i < lignes.length; i++) {
+                // On récupère tout le texte de la ligne (Nom de la boutique, ID, Statut, etc.)
+                const texteLigne = lignes[i].textContent.toLowerCase();
+                
+                // Si le texte de la ligne contient ce qu'on a tapé, on l'affiche, sinon on la cache
+                if (texteLigne.includes(filter)) {
+                    lignes[i].style.display = ""; 
+                } else {
+                    lignes[i].style.display = "none"; 
+                }
+            }
+        }
+        // --- EXPORTATION CSV : FLOTTE COMMERÇANTS ---
+        function exporterFlotteCSV() {
+            const tbody = document.getElementById("fleet-tbody");
+            const lignes = tbody.getElementsByTagName("tr");
+            
+            // 1. On prépare les en-têtes des colonnes pour Excel
+            let csvContent = "Statut,Boutique,Identifiant,Catégorie,Date de création\n";
+
+            // 2. On boucle sur les lignes du tableau
+            for (let i = 0; i < lignes.length; i++) {
+                // On n'exporte que les lignes qui sont actuellement visibles (non filtrées par la recherche)
+                if (lignes[i].style.display !== "none") {
+                    const colonnes = lignes[i].getElementsByTagName("td");
+                    
+                    if (colonnes.length >= 5) {
+                        const statut = colonnes[0].innerText.trim();
+                        // On enlève les retours à la ligne et on protège les éventuelles virgules dans le nom
+                        const nom = colonnes[1].innerText.trim().replace(/"/g, '""'); 
+                        const identifiant = colonnes[2].innerText.trim();
+                        const categorie = colonnes[3].innerText.trim();
+                        const creation = colonnes[4].innerText.trim();
+
+                        // On assemble la ligne au format CSV
+                        csvContent += `"${statut}","${nom}","${identifiant}","${categorie}","${creation}"\n`;
+                    }
+                }
+            }
+
+            // 3. On génère le fichier téléchargeable
+            // Le tableau Uint8Array avec 0xEF, 0xBB, 0xBF force Excel à lire les accents (UTF-8)
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            // On simule un clic sur un lien invisible pour lancer le téléchargement
+            const lien = document.createElement("a");
+            lien.href = url;
+            lien.download = `Nuvy_Flotte_${new Date().toISOString().split('T')[0]}.csv`; // Ex: Nuvy_Flotte_2026-03-24.csv
+            document.body.appendChild(lien);
+            lien.click();
+            document.body.removeChild(lien);
+        }
+        // --- FILTRES SOUS-ONGLETS : FLOTTE COMMERÇANTS ---
+        function filtrerParOnglet(filtre, btnElement) {
+            // 1. Visuel : On déplace la barre bleue sous l'onglet cliqué
+            document.querySelectorAll('.sub-tab').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            // 2. Logique : On filtre les lignes du tableau
+            const tbody = document.getElementById("fleet-tbody");
+            const lignes = tbody.getElementsByTagName("tr");
+
+            for (let i = 0; i < lignes.length; i++) {
+                // On récupère le texte du badge de statut (colonne 0)
+                const statut = lignes[i].getElementsByTagName("td")[0].innerText.toLowerCase();
+                
+                if (filtre === 'toutes') {
+                    lignes[i].style.display = ""; // On affiche tout
+                    
+                } else if (filtre === 'surveiller') {
+                    // On ne garde que "attention" ou "inactif"
+                    if (statut.includes('attention') || statut.includes('inactif')) {
+                        lignes[i].style.display = "";
+                    } else {
+                        lignes[i].style.display = "none";
+                    }
+                    
+                } else if (filtre === 'recentes') {
+                    // On affiche uniquement les 5 premières lignes (les plus récentes)
+                    if (i < 5) {
+                        lignes[i].style.display = "";
+                    } else {
+                        lignes[i].style.display = "none";
+                    }
+                }
+            }
+        }
+        // --- EXPORTATION CSV : DATA CENTER ---
+        function exporterDataCenter() {
+            // On récupère directement les données du graphique généré !
+            const chart = Chart.getChart("mainChart");
+            if(!chart) return;
+            
+            const debut = document.getElementById('date-debut').value;
+            const fin = document.getElementById('date-fin').value;
+            
+            let csvContent = `Statistiques d'Affluence Globale (${debut} au ${fin})\n\n`;
+            csvContent += "Date,Nombre de Scans\n";
+
+            for(let i=0; i < chart.data.labels.length; i++) {
+                csvContent += `${chart.data.labels[i]},${chart.data.datasets[0].data[i]}\n`;
+            }
+            
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const lien = document.createElement("a");
+            lien.href = url;
+            lien.download = `Nuvy_Stats_${debut}_au_${fin}.csv`;
+            document.body.appendChild(lien);
+            lien.click();
+            document.body.removeChild(lien);
         }
 
         function deconnexion() { window.location.href = '/admin-login'; }

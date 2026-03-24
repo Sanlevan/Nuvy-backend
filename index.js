@@ -381,14 +381,23 @@ app.get('/admin/boutiques', async (req, res) => {
     }
 });
 // ==========================================
-// DATA CENTER CEO : STATISTIQUES GLOBALES
+// DATA CENTER CEO : STATISTIQUES GLOBALES (DYNAMIQUE)
 // ==========================================
 app.get('/admin/stats-globales', async (req, res) => {
     const ceoKey = req.headers['x-ceo-key'];
     if (ceoKey !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
 
     try {
-        // 1. Récupération des données brutes depuis Supabase
+        // 1. Définition de la période (Par défaut : 30 derniers jours)
+        let dateFin = req.query.fin ? new Date(req.query.fin) : new Date();
+        dateFin.setHours(23, 59, 59, 999);
+        
+        let dateDebut = req.query.debut ? new Date(req.query.debut) : new Date(dateFin.getTime() - (29 * 24 * 60 * 60 * 1000));
+        dateDebut.setHours(0, 0, 0, 0);
+
+        const diffJours = Math.round((dateFin - dateDebut) / (1000 * 60 * 60 * 24)) + 1;
+
+        // 2. Récupération globale
         const [clientsRes, visitesRes, boutiquesRes, devicesRes] = await Promise.all([
             supabase.from('clients').select('id, tampons, recompenses, boutique_id, created_at'),
             supabase.from('visites').select('id, created_at, boutique_id'),
@@ -401,102 +410,79 @@ app.get('/admin/stats-globales', async (req, res) => {
         const boutiques = boutiquesRes.data || [];
         const devices = devicesRes.data || [];
 
-        // 2. Calcul des KPIs principaux
-        const totalClients = clients.length;
-        
-        // On compte les visites des 30 derniers jours
-        const trenteJoursEnMs = 30 * 24 * 60 * 60 * 1000;
-        const dateLimite = new Date(Date.now() - trenteJoursEnMs);
-        const scans30j = visites.filter(v => new Date(v.created_at) >= dateLimite).length;
-        
-        const cartesAppleWallet = devices.length; // Nombre d'appareils synchronisés
+        // 3. Filtrage temporel sur les visites
+        const visitesPeriode = visites.filter(v => {
+            const d = new Date(v.created_at);
+            return d >= dateDebut && d <= dateFin;
+        });
 
-        // Taux de rétention (clients ayant au moins 2 tampons ou 1 récompense)
+        // 4. Calculs KPIs
+        const scansPeriode = visitesPeriode.length;
+        const totalClients = clients.length; // Total global du réseau
         const clientsFideles = clients.filter(c => c.tampons > 1 || c.recompenses > 0).length;
         const tauxRetention = totalClients > 0 ? Math.round((clientsFideles / totalClients) * 100) : 0;
+        const cartesAppleWallet = devices.length;
 
-        // 3. Répartition Hebdomadaire (7 derniers jours)
-        const weeklyData = [0, 0, 0, 0, 0, 0, 0]; // Lundi à Dimanche
+        // 5. Graphique principal dynamique (Affluence)
+        // On limite à 30 points affichés pour que la courbe reste belle même si tu sélectionnes 1 an
+        const nbPoints = Math.min(diffJours, 30); 
+        const step = diffJours / nbPoints;
+        const dynamicData = new Array(nbPoints).fill(0);
+        const dynamicLabels = new Array(nbPoints).fill('');
+
+        for (let i = 0; i < nbPoints; i++) {
+            const d = new Date(dateFin.getTime() - ((nbPoints - 1 - i) * step * 24 * 60 * 60 * 1000));
+            dynamicLabels[i] = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+            
+            const scansJour = visitesPeriode.filter(v => {
+                const dateVisite = new Date(v.created_at);
+                return dateVisite.getDate() === d.getDate() && dateVisite.getMonth() === d.getMonth() && dateVisite.getFullYear() === d.getFullYear();
+            }).length;
+            dynamicData[i] = scansJour;
+        }
+
+        // Graphique Hebdo (7 derniers jours de la période sélectionnée)
+        const weeklyData = [0, 0, 0, 0, 0, 0, 0];
         const joursSemaine = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
         const labelsHebdo = [];
-        
         for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
+            const d = new Date(dateFin.getTime() - (i * 24 * 60 * 60 * 1000));
             labelsHebdo.push(joursSemaine[d.getDay()]);
-            
-            // Compter les visites pour ce jour précis
-            const scansJour = visites.filter(v => {
+            const scansJour = visitesPeriode.filter(v => {
                 const dateVisite = new Date(v.created_at);
-                return dateVisite.getDate() === d.getDate() && dateVisite.getMonth() === d.getMonth();
+                return dateVisite.getDate() === d.getDate() && dateVisite.getMonth() === d.getMonth() && dateVisite.getFullYear() === d.getFullYear();
             }).length;
             weeklyData[6 - i] = scansJour;
         }
-        // --- NOUVEAU : Répartition Mensuelle (30 jours) pour le grand graphique ---
-        const monthlyData = new Array(30).fill(0);
-        const labelsMensuel = new Array(30).fill('');
-        
-        for (let i = 29; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            // On crée un label au format "Jour/Mois" (ex: "24/03")
-            labelsMensuel[29 - i] = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-            
-            // On compte les visites pour ce jour précis
-            const scansJour = visites.filter(v => {
-                const dateVisite = new Date(v.created_at);
-                return dateVisite.getDate() === d.getDate() && dateVisite.getMonth() === d.getMonth();
-            }).length;
-            monthlyData[29 - i] = scansJour;
-        }
 
-        // 4. Distribution des appareils (Approximation car Wallet = 100% Apple pour le moment, mais on prépare le terrain)
-        const totalDevices = cartesAppleWallet || 1; // Eviter la division par zéro
-        const statsAppareils = {
-            iphone: Math.round((cartesAppleWallet / totalDevices) * 100),
-            android: 0, // Nuvy est 100% Apple Wallet actuellement
-            autre: 0
-        };
+        const statsAppareils = { iphone: cartesAppleWallet > 0 ? 100 : 0, android: 0, autre: 0 };
 
-        // 5. Top 5 des Villes
+        // 6. Top Villes (sur la période sélectionnée)
         const villesCount = {};
         boutiques.forEach(b => {
-            // Extraction basique de la ville depuis l'adresse (ex: "12 rue de la Paix, 75000 Paris" -> "Paris")
             const adresseParts = b.adresse ? b.adresse.split(',') : [];
             let ville = adresseParts.length > 0 ? adresseParts[adresseParts.length - 1].trim().replace(/[0-9]/g, '').trim() : "Inconnue";
             if (!ville || ville === "") ville = "Non renseignée";
 
-            // Compter les visites de cette boutique
-            const visitesBoutique = visites.filter(v => v.boutique_id === b.id).length;
-            
+            const visitesBoutique = visitesPeriode.filter(v => v.boutique_id === b.id).length;
             if (!villesCount[ville]) villesCount[ville] = 0;
             villesCount[ville] += visitesBoutique;
         });
 
-        // Trier et prendre le Top 5
         const topVilles = Object.entries(villesCount)
-            .map(([nom, scans]) => ({ nom, scans, pourcentage: visites.length > 0 ? Math.round((scans / visites.length) * 100) : 0 }))
+            .map(([nom, scans]) => ({ nom, scans, pourcentage: visitesPeriode.length > 0 ? Math.round((scans / visitesPeriode.length) * 100) : 0 }))
             .sort((a, b) => b.scans - a.scans)
             .slice(0, 5);
 
-        // Envoi du rapport complet
         res.json({
-            kpis: {
-                scans30j,
-                totalClients,
-                cartesAppleWallet,
-                tauxRetention: `${tauxRetention}%`
-            },
-           graphiques: {
-                hebdo: { labels: labelsHebdo, data: weeklyData },
-                mensuel: { labels: labelsMensuel, data: monthlyData }, 
-                appareils: statsAppareils
-            },
+            kpis: { scansPeriode, totalClients, cartesAppleWallet, tauxRetention: `${tauxRetention}%` },
+            graphiques: { hebdo: { labels: labelsHebdo, data: weeklyData }, mensuel: { labels: dynamicLabels, data: dynamicData }, appareils: statsAppareils },
+            topVilles
         });
 
     } catch (err) {
-        console.error("Erreur Stats Data Center:", err);
-        res.status(500).json({ error: "Erreur lors de la génération des statistiques globales" });
+        console.error("Erreur Stats:", err);
+        res.status(500).json({ error: "Erreur serveur" });
     }
 });
 // FORCER LA CONNEXION À UNE BOUTIQUE (GOD MODE CEO)
