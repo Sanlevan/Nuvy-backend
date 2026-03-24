@@ -237,6 +237,7 @@
     lucide.createIcons(); // Active les icônes
 
     let todayPassages = 0;
+    let clientsCache = []; // Stockage local des clients pour éviter de spammer le serveur
     const socket = io();
     const boutiqueNom = localStorage.getItem('nuvy_boutique_nom');
     const boutiqueId = localStorage.getItem('nuvy_boutique_id');
@@ -315,13 +316,15 @@
     async function loadAnalyticsData() {
         try {
             const resClients = await fetch(`/boutiques/${boutiqueId}/clients`);
-            const clientsData = await resClients.json();
+            clientsCache = await resClients.json(); // On met à jour le cache local
             const storeMax = localStorage.getItem('nuvy_max_tampons') || 10;
             
-            const clientsTries = [...clientsData].sort((a, b) => (b.total_historique || 0) - (a.total_historique || 0));
+            const clientsTries = [...clientsCache].sort((a, b) => (b.total_historique || 0) - (a.total_historique || 0));
             const listBody = document.getElementById('list-body');
+            
+            // On limite l'affichage aux 100 meilleurs clients pour ne pas faire lagger la page
             if (listBody) {
-                listBody.innerHTML = clientsTries.map((c, index) => {
+                listBody.innerHTML = clientsTries.slice(0, 100).map((c, index) => {
                     const badge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
                     return `<tr class="border-b hover:bg-gray-50">
                         <td class="py-3 px-4 text-lg font-bold text-gray-400">${badge}</td>
@@ -333,8 +336,8 @@
                 }).join('');
             }
 
-            document.getElementById('s-tot').innerText = clientsData.length;
-            document.getElementById('s-gft').innerText = clientsData.reduce((acc, c) => acc + (c.recompenses || 0), 0);
+            document.getElementById('s-tot').innerText = clientsCache.length;
+            document.getElementById('s-gft').innerText = clientsCache.reduce((acc, c) => acc + (c.recompenses || 0), 0);
 
             const resStats = await fetch(`/boutiques/${boutiqueId}/stats`);
             const stats = await resStats.json();
@@ -419,14 +422,22 @@
     async function chercherClient(query) {
         const resultsBox = document.getElementById('search-results');
         if (query.length < 2) { resultsBox.style.display = 'none'; return; }
+        
         try {
-            const res = await fetch(`/boutiques/${boutiqueId}/clients`);
-            const clients = await res.json();
-            const matches = clients.filter(c => c.nom.toLowerCase().includes(query.toLowerCase()) || c.telephone.includes(query)).slice(0, 5);
+            // RECHERCHE INSTANTANÉE DANS LE CACHE (Zéro requête serveur !)
+            const matches = clientsCache.filter(c => 
+                (c.nom && c.nom.toLowerCase().includes(query.toLowerCase())) || 
+                (c.telephone && c.telephone.includes(query))
+            ).slice(0, 5);
+            
             if (matches.length > 0) {
                 resultsBox.style.display = 'block';
-                resultsBox.innerHTML = matches.map(c => `<div onclick='selectionnerClientManuel(${JSON.stringify(c)})' class="p-4 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"><div><b class="text-gray-900">${c.nom}</b><br><span class="text-xs text-gray-500">${c.telephone}</span></div><div class="font-bold text-nuvy">${c.tampons} pts</div></div>`).join('');
-            } else { resultsBox.style.display = 'block'; resultsBox.innerHTML = '<div class="p-4 text-center text-gray-500">Aucun client trouvé 😕</div>'; }
+                // On utilise replace pour éviter les bugs si un nom contient une apostrophe
+                resultsBox.innerHTML = matches.map(c => `<div onclick='selectionnerClientManuel(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="p-4 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"><div><b class="text-gray-900">${c.nom}</b><br><span class="text-xs text-gray-500">${c.telephone}</span></div><div class="font-bold text-nuvy">${c.tampons} pts</div></div>`).join('');
+            } else { 
+                resultsBox.style.display = 'block'; 
+                resultsBox.innerHTML = '<div class="p-4 text-center text-gray-500">Aucun client trouvé 😕</div>'; 
+            }
         } catch (e) { console.error(e); }
     }
 

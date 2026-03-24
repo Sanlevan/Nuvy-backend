@@ -696,13 +696,30 @@ app.post('/tap/:slug/notify', async (req, res) => {
 app.get('/pass/:token', async (req, res) => {
     try {
         const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('token', req.params.token).single();
+        if (!c) return res.status(404).send("Client introuvable");
+
         const { data: all } = await supabase.from('clients').select('tampons, recompenses').eq('boutique_id', c.boutique_id);
         const maxT = c.boutiques.max_tampons || 10;
-const score = (c.recompenses * maxT) + c.tampons;
-        let rank = 1; all.forEach(o => { if(((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
+        const score = (c.recompenses * maxT) + c.tampons;
+        
+        let rank = 1; 
+        if (all) all.forEach(o => { if(((o.recompenses||0)*maxT + (o.tampons||0)) > score) rank++; });
+        
         const buf = await generatePassBuffer(c, c.boutiques, rank);
-        res.set('Content-Type', 'application/vnd.apple.pkpass').send(buf);
-    } catch (e) { res.status(500).send(); }
+
+        // --- 🛡️ PROTECTION SAFARI (CORRECTION 1) ---
+        res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
+        res.setHeader('Content-Disposition', `attachment; filename="nuvy-${c.boutiques.slug}.pkpass"`);
+        res.setHeader('Content-Length', buf.length); 
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
+        return res.status(200).send(buf);
+    } catch (e) { 
+        console.error("Erreur téléchargement pass:", e);
+        res.status(500).send("Erreur interne"); 
+    }
 });
 
 app.post('/join/:slug/create', async (req, res) => {

@@ -30,10 +30,16 @@
         <div id="form-view">
             <h1>Bienvenue</h1>
             <p>Créez votre carte de fidélité digitale en quelques secondes et commencez à cumuler vos avantages.</p>
-            <input type="text" id="prenom" placeholder="Votre prénom">
-            <input type="text" id="nom" placeholder="Votre nom">
-            <input type="tel" id="telephone" placeholder="Numéro de téléphone">
-            <button class="btn-submit" onclick="creerCarte()">CRÉER MA CARTE</button>
+            
+            <div style="position: relative; margin-bottom: 15px;">
+                <input type="text" id="nom" name="name" autocomplete="name" placeholder="Prénom Nom" required>
+            </div>
+
+            <div style="position: relative; margin-bottom: 15px;">
+                <input type="tel" id="telephone" name="tel" autocomplete="tel" placeholder="Numéro de mobile" required>
+            </div>
+
+            <button class="btn-submit" id="submit-btn" onclick="creerCarte()">CRÉER MA CARTE</button>
         </div>
         <div id="success-view">
             <div class="spinner"></div>
@@ -61,33 +67,61 @@
             return null; // Renvoie null si le numéro est faux
         }
         async function creerCarte() {
-            const prenom = document.getElementById('prenom').value.trim(); 
-            const nom = document.getElementById('nom').value.trim(); 
+            // On récupère seulement le champ "nom" qui existe dans ton HTML
+            const nomSaisi = document.getElementById('nom').value.trim(); 
             const telephoneBrut = document.getElementById('telephone').value.trim(); 
             const btn = document.querySelector('.btn-submit');
 
-            if (!prenom || !nom || !telephoneBrut) { 
+            // Vérification simple
+            if (!nomSaisi || !telephoneBrut) { 
                 alert("Merci de remplir tous les champs."); 
                 return; 
             }
 
-            // 🛡️ On passe le numéro dans le nettoyeur
+            // Nettoyage du numéro
             const telephone = formaterTelephone(telephoneBrut);
             
             if (!telephone) {
-                alert("Le numéro de téléphone n'est pas valide (ex: 06 12 34 56 78).");
-                return; // Bloque l'inscription si le format est mauvais !
+                alert("Le numéro de téléphone n'est pas valide.");
+                return;
             }
-            btn.innerText = "CRÉATION EN COURS..."; btn.disabled = true;
+
+            btn.innerText = "CRÉATION EN COURS..."; 
+            btn.disabled = true;
+
             try {
-                const res = await fetch(`/join/${urlSlug}/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prenom, nom, telephone }) });
+                // On envoie les données exactes attendues par ton serveur (index.js)
+                const res = await fetch(`/join/${urlSlug}/create`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        nom: nomSaisi, 
+                        telephone: telephone 
+                    }) 
+                });
+
                 if (res.ok) {
-                    const data = await res.json(); passToken = data.token;
-                    localStorage.setItem('nuvy_token', passToken);
-                    document.getElementById('form-view').style.display = 'none'; document.getElementById('success-view').style.display = 'block';
-                    setTimeout(() => { window.location.href = `/pass/${passToken}`; }, 1000);
-                } else { alert("Erreur."); btn.innerText = "CRÉER MA CARTE"; btn.disabled = false; }
-            } catch (error) { alert("Erreur réseau."); btn.innerText = "CRÉER MA CARTE"; btn.disabled = false; }
+                    const data = await res.json(); 
+                    passToken = data.token;
+                    
+                    // On affiche la vue de succès
+                    document.getElementById('form-view').style.display = 'none'; 
+                    document.getElementById('success-view').style.display = 'block';
+                    
+                    // Redirection vers le téléchargement de la carte
+                    setTimeout(() => { 
+                        window.location.href = `/pass/${passToken}`; 
+                    }, 1200);
+                } else { 
+                    alert("Erreur lors de la création."); 
+                    btn.innerText = "CRÉER MA CARTE"; 
+                    btn.disabled = false; 
+                }
+            } catch (error) { 
+                alert("Erreur réseau."); 
+                btn.innerText = "CRÉER MA CARTE"; 
+                btn.disabled = false; 
+            }
         }
         function telechargerPass() { if (passToken) window.location.href = `/pass/${passToken}`; }
     </script>
