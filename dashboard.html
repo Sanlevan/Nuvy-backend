@@ -377,14 +377,14 @@
         if (!currentClient) return;
 
         let nbCadeaux = 1;
-        // Le pop-up si le client a plus de 1 cadeau en réserve
+        // 💡 La condition est ici : Il faut au moins 2 cadeaux pour afficher le pop-up !
         if (currentClient.recompenses > 1) {
             const reponse = prompt(`Ce client a ${currentClient.recompenses} cadeaux disponibles 🎁 !\nCombien voulez-vous en valider ?`, "1");
             if (reponse === null) return; 
             
             nbCadeaux = parseInt(reponse);
             if (isNaN(nbCadeaux) || nbCadeaux < 1 || nbCadeaux > currentClient.recompenses) {
-                alert("Nombre invalide. Veuillez entrer un chiffre correct.");
+                alert("Nombre invalide.");
                 return;
             }
         } else {
@@ -396,7 +396,6 @@
         btn.innerText = "TRAITEMENT...";
         
         try {
-            // On envoie le nombre en négatif au serveur (-1, -2, etc.)
             const res = await fetch(`/clients/${currentClient.id}/tampon`, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
@@ -412,7 +411,7 @@
         } catch (e) { 
             console.error(e); 
         } finally { 
-            // 🚨 CORRECTION : On débloque le bouton pour le client suivant !
+            // 🚨 ICI : On remet le texte normal du bouton pour le client suivant !
             btn.disabled = false; 
             btn.innerText = "OFFRIR CADEAU 🎁"; 
             updateUI(); 

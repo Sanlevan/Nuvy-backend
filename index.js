@@ -61,19 +61,25 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             const response = await fetch(boutique.logo_url);
             if (response.ok) {
                 const buffer = Buffer.from(await response.arrayBuffer());
-                // --- 🖼️ LOGO (SUR LA CARTE) ---
-                // 🪄 CORRECTION : 'inside' empêche la création de marges transparentes fantômes !
-                await sharp(buffer).resize(480, 150, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
-                await sharp(buffer).resize(320, 100, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
-                await sharp(buffer).resize(160, 50,  { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo.png'));
-                await sharp(buffer).resize(174, 174, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@3x.png'));
-                await sharp(buffer).resize(116, 116, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@2x.png'));
-                await sharp(buffer).resize(58, 58, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon.png'));
+                
+                // ✂️ MAGIE : On coupe le vide transparent géant autour du logo !
+                let logoBuffer = buffer;
+                try { logoBuffer = await sharp(buffer).trim().toBuffer(); } catch(e) {}
+
+                // --- 1. LE LOGO (SUR LA CARTE, EN HAUT À GAUCHE) ---
+                await sharp(logoBuffer).resize(480, 150, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
+                await sharp(logoBuffer).resize(320, 100, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
+                await sharp(logoBuffer).resize(160, 50,  { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo.png'));
+                
+                // --- 2. L'ICÔNE (SUR L'ÉCRAN DE VERROUILLAGE / NOTIFICATIONS) ---
+                // On utilise le logo "découpé" pour qu'il soit bien visible et gros dans la notification
+                await sharp(logoBuffer).resize(174, 174, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@3x.png'));
+                await sharp(logoBuffer).resize(116, 116, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@2x.png'));
+                await sharp(logoBuffer).resize(58, 58, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon.png'));
             }
         } catch (e) {
             console.error("❌ Erreur de traitement d'image :", e);
         }
-    }
 
     const passJson = JSON.parse(fs.readFileSync(path.join(tmpDir, 'pass.json'), 'utf8'));
     delete passJson.barcode;
