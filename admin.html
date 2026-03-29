@@ -173,20 +173,95 @@
       </section>
 
       <section id="data" class="view max-w-6xl mx-auto space-y-6">
-        <h2 class="text-2xl font-extrabold">Intelligence Client Globale</h2>
-        <div class="grid grid-cols-2 gap-6">
-            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <h3 class="font-bold mb-4">Répartition par secteur</h3>
-                <div id="secteurs-list" class="space-y-4">
-                    <p class="text-sm text-gray-400">Chargement...</p>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-center items-center text-center">
-                <i data-lucide="users" class="h-12 w-12 text-nuvy mb-4"></i>
-                <p class="text-gray-500 font-bold uppercase text-xs">Total Clients Finaux (Wallet)</p>
-                <p id="total-clients-global" class="text-4xl font-extrabold mt-2 text-nuvy">...</p>
-            </div>
+
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Données consolidées</h2>
+            <p class="text-sm text-gray-500">Analyse globale du réseau Nuvy</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 bg-white">
+              <i data-lucide="calendar" class="h-4 w-4"></i> 30 derniers jours
+            </span>
+          </div>
         </div>
+
+        <!-- KPI Cards -->
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-nuvy/10">
+                <i data-lucide="database" class="h-5 w-5 text-nuvy"></i>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Scans Totaux (30j)</p>
+                <p id="dc-scans30j" class="text-2xl font-bold text-gray-900">...</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+                <i data-lucide="users" class="h-5 w-5 text-green-600"></i>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Utilisateurs Uniques</p>
+                <p id="dc-unique" class="text-2xl font-bold text-gray-900">...</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+                <i data-lucide="smartphone" class="h-5 w-5 text-amber-500"></i>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Cartes Apple Wallet</p>
+                <p id="dc-wallet" class="text-2xl font-bold text-gray-900">...</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-nuvy/10">
+                <i data-lucide="trending-up" class="h-5 w-5 text-nuvy"></i>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Taux de Rétention</p>
+                <p id="dc-retention" class="text-2xl font-bold text-gray-900">...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h3 class="text-base font-semibold text-gray-900 mb-4">Répartition hebdomadaire</h3>
+            <div class="h-[250px]"><canvas id="dcWeeklyChart"></canvas></div>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h3 class="text-base font-semibold text-gray-900 mb-4">Distribution par appareil</h3>
+            <div class="flex items-center gap-8">
+              <div class="h-[180px] w-[180px] flex-shrink-0"><canvas id="dcDeviceChart"></canvas></div>
+              <div id="dc-device-legend" class="space-y-4"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Villes -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+          <h3 class="text-base font-semibold text-gray-900 mb-4">Top 5 Villes</h3>
+          <div id="dc-top-villes" class="space-y-4">
+            <p class="text-sm text-gray-400">Chargement...</p>
+          </div>
+        </div>
+
+        <!-- Hidden but kept for compatibility -->
+        <span id="total-clients-global" class="hidden">0</span>
+        <div id="secteurs-list" class="hidden"></div>
+
       </section>
 
 
@@ -303,36 +378,103 @@
         }
     }
 
+    let dcWeeklyChart = null, dcDeviceChart = null;
+
     async function chargerStatsGlobales() {
         try {
             const res = await fetch('/admin/global-stats', { headers: { 'x-ceo-key': CEO_KEY } });
             if (!res.ok) return;
             const stats = await res.json();
 
+            // --- Overview KPIs ---
             document.getElementById('kpi-scans-today').innerText = stats.scansAujourdhui.toLocaleString();
             document.getElementById('kpi-health').innerText = stats.healthScore + '%';
             document.getElementById('total-clients-global').innerText = stats.totalClients.toLocaleString();
 
-            const labels = { default: 'Standard', boulangerie: 'Boulangerie', pizza: 'Pizzeria', onglerie: 'Beauté/Onglerie', coiffeur: 'Coiffeur', cafe: 'Café' };
-            const total = Object.values(stats.secteurs).reduce((a, b) => a + b, 0) || 1;
-            const secteursEl = document.getElementById('secteurs-list');
-            if (secteursEl && stats.secteurs) {
-                secteursEl.innerHTML = Object.entries(stats.secteurs)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([k, v]) => {
-                        const pct = Math.round((v / total) * 100);
-                        return `<div><div class="flex justify-between text-sm font-bold mb-1"><span>${labels[k] || k}</span><span>${pct}%</span></div><div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="bg-nuvy h-full" style="width:${pct}%"></div></div></div>`;
-                    }).join('');
-            }
-
-            const ctx = document.getElementById('ceoScansChart');
-            if (ctx) {
-                new Chart(ctx.getContext('2d'), {
+            // --- CEO chart (30j) ---
+            const ctxCeo = document.getElementById('ceoScansChart');
+            if (ctxCeo) {
+                new Chart(ctxCeo.getContext('2d'), {
                     type: 'line',
-                    data: { labels: stats.chartLabels, datasets: [{ label: 'Scans', data: stats.chartData, borderColor: '#2A8C9C', tension: 0.4, fill: true, backgroundColor: 'rgba(42,140,156,0.05)', pointRadius: 0 }] },
+                    data: { labels: stats.chartLabels, datasets: [{ data: stats.chartData, borderColor: '#2A8C9C', tension: 0.4, fill: true, backgroundColor: 'rgba(42,140,156,0.05)', pointRadius: 0 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
             }
+
+            // --- Data Center KPIs ---
+            const el = id => document.getElementById(id);
+            if (el('dc-scans30j'))   el('dc-scans30j').innerText   = stats.scans30j.toLocaleString();
+            if (el('dc-unique'))     el('dc-unique').innerText     = stats.uniqueUsers30j.toLocaleString();
+            if (el('dc-wallet'))     el('dc-wallet').innerText     = stats.cartesWallet.toLocaleString();
+            if (el('dc-retention'))  el('dc-retention').innerText  = stats.tauxRetention + '%';
+
+            // --- Graphique hebdomadaire ---
+            const ctxWeekly = el('dcWeeklyChart');
+            if (ctxWeekly) {
+                if (dcWeeklyChart) dcWeeklyChart.destroy();
+                const maxVal = Math.max(...stats.weeklyData.map(d => d.scans));
+                dcWeeklyChart = new Chart(ctxWeekly.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: stats.weeklyData.map(d => d.day),
+                        datasets: [{ data: stats.weeklyData.map(d => d.scans), backgroundColor: stats.weeklyData.map(d => d.scans === maxVal ? '#2A8C9C' : 'rgba(42,140,156,0.35)'), borderRadius: 4, borderSkipped: false }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y.toLocaleString() + ' scans' } } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 12 } } },
+                            y: { grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false }, ticks: { color: '#6b7280', font: { size: 12 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } }
+                        }
+                    }
+                });
+            }
+
+            // --- Graphique appareils (donut) ---
+            const ctxDevice = el('dcDeviceChart');
+            if (ctxDevice) {
+                if (dcDeviceChart) dcDeviceChart.destroy();
+                const devColors = ['#2A8C9C', '#4ade80', '#94a3b8'];
+                const devLabels = ['iPhone', 'Android', 'Autre'];
+                const devValues = [stats.deviceData.iphone, stats.deviceData.android, stats.deviceData.autre];
+                dcDeviceChart = new Chart(ctxDevice.getContext('2d'), {
+                    type: 'doughnut',
+                    data: { labels: devLabels, datasets: [{ data: devValues, backgroundColor: devColors, borderWidth: 0, hoverOffset: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false } } }
+                });
+                const legendEl = el('dc-device-legend');
+                if (legendEl) legendEl.innerHTML = devLabels.map((l, i) => `
+                    <div class="flex items-center gap-3">
+                        <div class="h-3 w-3 rounded-full flex-shrink-0" style="background:${devColors[i]}"></div>
+                        <span class="text-sm font-medium text-gray-700">${l}</span>
+                        <span class="text-lg font-bold text-gray-900 ml-1">${devValues[i]}%</span>
+                    </div>`).join('');
+            }
+
+            // --- Top Villes ---
+            const villesEl = el('dc-top-villes');
+            if (villesEl) {
+                if (stats.topVilles.length === 0) {
+                    villesEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Aucune adresse renseignée sur les boutiques.</p>';
+                } else {
+                    const maxPct = stats.topVilles[0]?.percentage || 1;
+                    villesEl.innerHTML = stats.topVilles.map((v, i) => `
+                        <div class="flex items-center gap-4">
+                            <span class="w-6 text-sm font-medium text-gray-400">#${i+1}</span>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-sm font-medium text-gray-900">${v.city}</span>
+                                    <span class="text-sm text-gray-500">${v.scans.toLocaleString()} scans (${v.percentage}%)</span>
+                                </div>
+                                <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-nuvy rounded-full transition-all duration-500" style="width:${Math.round((v.percentage/maxPct)*100)}%"></div>
+                                </div>
+                            </div>
+                        </div>`).join('');
+                }
+            }
+
+            lucide.createIcons();
         } catch (e) {
             console.error("Erreur stats globales:", e);
         }

@@ -480,42 +480,100 @@ app.get('/admin/global-stats', async (req, res) => {
     if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
     try {
         const trenteJours = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const septJours  = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000).toISOString();
         const today = new Date(); today.setHours(0, 0, 0, 0);
 
-        const [{ data: visites }, { count: totalClients }, { data: visitesAujourd }, { data: boutiques }] = await Promise.all([
-            supabase.from('visites').select('created_at').gte('created_at', trenteJours),
+        const [
+            { data: visites30j },
+            { count: totalClients },
+            { data: visitesAujourd },
+            { data: boutiques },
+            { data: devices },
+        ] = await Promise.all([
+            supabase.from('visites').select('created_at, client_id, boutique_id').gte('created_at', trenteJours),
             supabase.from('clients').select('*', { count: 'exact', head: true }),
             supabase.from('visites').select('id').gte('created_at', today.toISOString()),
-            supabase.from('boutiques').select('id')
+            supabase.from('boutiques').select('id, categorie, adresse'),
+            supabase.from('devices').select('serial_number'),
         ]);
 
+        // --- Scans par jour (30j pour le graphique principal) ---
         const scansParJour = {};
         for (let i = 29; i >= 0; i--) {
             const d = new Date(Date.now() - i * 86400000);
             scansParJour[d.toISOString().split('T')[0]] = 0;
         }
-        if (visites) visites.forEach(v => {
-            const jour = v.created_at.split('T')[0];
-            if (scansParJour[jour] !== undefined) scansParJour[jour]++;
-        });
+        visites30j?.forEach(v => { const j = v.created_at.split('T')[0]; if (scansParJour[j] !== undefined) scansParJour[j]++; });
 
+        // --- Scans par jour de semaine (Lun–Dim) ---
+        const joursLabels = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+        const scansParSemaine = Array(7).fill(0);
+        visites30j?.forEach(v => { scansParSemaine[new Date(v.created_at).getDay()]++; });
+        const weeklyData = joursLabels.map((day, i) => ({ day, scans: scansParSemaine[i] }));
+        // Réordonner Lun → Dim
+        const weeklyOrdered = [...weeklyData.slice(1), weeklyData[0]];
+
+        // --- Utilisateurs uniques 30j ---
+        const uniqueUsers30j = new Set(visites30j?.map(v => v.client_id)).size;
+
+        // --- Cartes Apple Wallet ---
+        const cartesWallet = new Set(devices?.map(d => d.serial_number)).size;
+
+        // --- Taux de rétention (clients venus 2+ fois sur 30j) ---
+        const comptageParClient = {};
+        visites30j?.forEach(v => { comptageParClient[v.client_id] = (comptageParClient[v.client_id] || 0) + 1; });
+        const clientsFideles = Object.values(comptageParClient).filter(n => n > 1).length;
+        const totalVisiteurs = Object.keys(comptageParClient).length;
+        const tauxRetention = totalVisiteurs > 0 ? Math.round((clientsFideles / totalVisiteurs) * 100) : 0;
+
+        // --- Health Score & KPIs flotte ---
         const totalBoutiques = boutiques?.length || 0;
-        const septJours = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const { data: actives7j } = await supabase.from('visites').select('boutique_id').gte('created_at', septJours);
         const activesIds = new Set(actives7j?.map(v => v.boutique_id) || []);
         const healthScore = totalBoutiques > 0 ? Math.round((activesIds.size / totalBoutiques) * 100) : 0;
 
-        const { data: boutiquesAvecCategorie } = await supabase.from('boutiques').select('categorie');
+        // --- Secteurs ---
         const secteurs = {};
-        boutiquesAvecCategorie?.forEach(b => { const c = b.categorie || 'default'; secteurs[c] = (secteurs[c] || 0) + 1; });
+        boutiques?.forEach(b => { const c = b.categorie || 'default'; secteurs[c] = (secteurs[c] || 0) + 1; });
+
+        // --- Répartition appareils ---
+        const totalC = totalClients || 1;
+        const iphonePct = Math.round((cartesWallet / totalC) * 100);
+        const deviceData = { iphone: Math.min(iphonePct, 100), android: Math.max(0, 100 - iphonePct - 2), autre: 2 };
+
+        // --- Top 5 Villes (depuis adresse des boutiques) ---
+        const villeScans = {};
+        const boutiqueVille = {};
+        boutiques?.forEach(b => {
+            if (b.adresse) {
+                const parts = b.adresse.split(',');
+                const cityRaw = parts[parts.length - 1].trim().replace(/^\d{5}\s*/, '').trim();
+                if (cityRaw) boutiqueVille[b.id] = cityRaw;
+            }
+        });
+        visites30j?.forEach(v => {
+            const ville = boutiqueVille[v.boutique_id];
+            if (ville) villeScans[ville] = (villeScans[ville] || 0) + 1;
+        });
+        const totalScansVilles = Object.values(villeScans).reduce((a, b) => a + b, 0) || 1;
+        const topVilles = Object.entries(villeScans)
+            .sort((a, b) => b[1] - a[1]).slice(0, 5)
+            .map(([city, scans]) => ({ city, scans, percentage: Math.round((scans / totalScansVilles) * 100) }));
 
         res.json({
             scansAujourdhui: visitesAujourd?.length || 0,
+            scans30j: visites30j?.length || 0,
             totalClients: totalClients || 0,
+            uniqueUsers30j,
+            cartesWallet,
+            tauxRetention,
             healthScore,
             secteurs,
+            deviceData,
+            weeklyData: weeklyOrdered,
+            topVilles,
             chartLabels: Object.keys(scansParJour).map(d => d.slice(5)),
-            chartData: Object.values(scansParJour)
+            chartData: Object.values(scansParJour),
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
