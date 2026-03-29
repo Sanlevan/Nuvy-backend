@@ -37,10 +37,10 @@
         </div>
         <div id="success-view">
             <h1 style="color: #2A8C9C;">Carte prête !</h1>
-            <p>Appuyez sur le bouton ci-dessous pour l'ajouter à votre Apple Wallet.</p>
-            <a id="wallet-link" href="#" class="wallet-btn">
-                <img src="https://developer.apple.com/wallet/add-to-apple-wallet-badge.svg" alt="Ajouter à Apple Wallet">
-            </a>
+            <p>Votre carte s'ouvre automatiquement...</p>
+            <button onclick="telechargerPass()" style="background: #000; color: white; padding: 18px 25px; border-radius: 18px; border: none; font-weight: 800; font-size: 16px; margin-top: 10px; cursor: pointer; width: 100%;">
+                OUVRIR MA CARTE 
+            </button>
         </div>
     </div>
     <script>
@@ -91,20 +91,15 @@
                     passToken = data.token;
                     localStorage.setItem('nuvy_token', passToken);
                     
-                    // 🪄 L'UX PARFAITE : Le bouton devient noir façon Apple Wallet
-                    btn.innerText = "OUVRIR MA CARTE ";
-                    btn.style.backgroundColor = "#000"; 
-                    btn.disabled = false;
-                    btn.onclick = function() {
-                        window.location.href = `/pass/${passToken}`;
-                    };
-                    
-                    // 🚀 OUVERTURE AUTOMATIQUE
+                    document.getElementById('form-view').style.display = 'none';
+                    document.getElementById('success-view').style.display = 'block';
+
+                    // Ouverture automatique instantanée !
                     setTimeout(() => {
                         window.location.href = `/pass/${passToken}`;
                     }, 400);
 
-                } else { 
+                } else {
                     alert("Erreur."); 
                     btn.innerText = "CRÉER MA CARTE"; 
                     btn.disabled = false; 
