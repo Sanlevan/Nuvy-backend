@@ -536,10 +536,17 @@ app.get('/admin/global-stats', async (req, res) => {
         const secteurs = {};
         boutiques?.forEach(b => { const c = b.categorie || 'default'; secteurs[c] = (secteurs[c] || 0) + 1; });
 
-        // --- Répartition appareils ---
-        const totalC = totalClients || 1;
-        const iphonePct = Math.round((cartesWallet / totalC) * 100);
-        const deviceData = { iphone: Math.min(iphonePct, 100), android: Math.max(0, 100 - iphonePct - 2), autre: 2 };
+        // --- Répartition appareils (depuis device_type enregistré à l'inscription) ---
+        const { data: deviceTypes } = await supabase.from('clients').select('device_type');
+        const totalD = deviceTypes?.length || 1;
+        const iosCount     = deviceTypes?.filter(c => c.device_type === 'ios').length     || 0;
+        const androidCount = deviceTypes?.filter(c => c.device_type === 'android').length || 0;
+        const otherCount   = deviceTypes?.filter(c => !c.device_type || c.device_type === 'other').length || 0;
+        const deviceData = {
+            iphone:  Math.round((iosCount     / totalD) * 100),
+            android: Math.round((androidCount / totalD) * 100),
+            autre:   Math.round((otherCount   / totalD) * 100),
+        };
 
         // --- Top 5 Villes (depuis adresse des boutiques) ---
         const villeScans = {};
@@ -754,15 +761,18 @@ app.post('/join/:slug/create', async (req, res) => {
         // SCÉNARIO B : NOUVEAU CLIENT
         // On génère la carte à 0 point comme d'habitude.
         const token = crypto.randomUUID();
-        const { data } = await supabase.from('clients').insert([{ 
-            boutique_id: b.id, 
-            nom: `${prenom} ${nom}`, 
-            telephone, 
-            tampons: 0, 
-            recompenses: 0, 
-            token, 
-            serial_number: `NUVY-${token.split('-')[0].toUpperCase()}`, 
-            last_visit: new Date().toISOString() 
+        const ua = req.headers['user-agent'] || '';
+        const device_type = /iphone|ipad|ipod/i.test(ua) ? 'ios' : /android/i.test(ua) ? 'android' : 'other';
+        const { data } = await supabase.from('clients').insert([{
+            boutique_id: b.id,
+            nom: `${prenom} ${nom}`,
+            telephone,
+            tampons: 0,
+            recompenses: 0,
+            token,
+            serial_number: `NUVY-${token.split('-')[0].toUpperCase()}`,
+            last_visit: new Date().toISOString(),
+            device_type,
         }]).select().single();
         
         res.json({ token: data.token });
