@@ -62,25 +62,31 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             if (response.ok) {
                 const buffer = Buffer.from(await response.arrayBuffer());
                 
-                // ✂️ 1. On coupe le vide transparent autour du logo original
-                let imgClean = buffer;
-                try { imgClean = await sharp(buffer).trim().toBuffer(); } catch(e) {}
-
-                // --- 2. LE LOGO (SUR LA CARTE) ---
-                // Il a le droit d'être rectangulaire, on le laisse s'adapter parfaitement (inside)
-                await sharp(imgClean).resize(480, 150, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
-                await sharp(imgClean).resize(320, 100, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
-                await sharp(imgClean).resize(160, 50,  { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo.png'));
+                // 🛡️ TRAITEMENT 100% EN MÉMOIRE (Évite les fichiers corrompus ou carrés blancs)
+                // On a retiré "trim()" qui détruisait les JPG. On redimensionne direct.
+                const logo3x = await sharp(buffer).resize(480, 150, { fit: 'inside' }).png().toBuffer();
+                const logo2x = await sharp(buffer).resize(320, 100, { fit: 'inside' }).png().toBuffer();
+                const logo1x = await sharp(buffer).resize(160, 50,  { fit: 'inside' }).png().toBuffer();
                 
-                // --- 3. L'ICÔNE (NOTIFICATIONS ET ÉCRAN VERROUILLÉ) ---
-                // 🚨 OBLIGATOIRE : Doit être un carré parfait (contain avec fond transparent)
-                // Et on utilise les VRAIES tailles exigées par Apple (87, 58, 29)
-                await sharp(imgClean).resize(87, 87, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@3x.png'));
-                await sharp(imgClean).resize(58, 58, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@2x.png'));
-                await sharp(imgClean).resize(29, 29, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon.png'));
+                const icon3x = await sharp(buffer).resize(87, 87, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toBuffer();
+                const icon2x = await sharp(buffer).resize(58, 58, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toBuffer();
+                const icon1x = await sharp(buffer).resize(29, 29, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toBuffer();
+                
+                // 💾 Écriture sécurisée une fois que tout est généré
+                fs.writeFileSync(path.join(tmpDir, 'logo@3x.png'), logo3x);
+                fs.writeFileSync(path.join(tmpDir, 'logo@2x.png'), logo2x);
+                fs.writeFileSync(path.join(tmpDir, 'logo.png'), logo1x);
+                fs.writeFileSync(path.join(tmpDir, 'icon@3x.png'), icon3x);
+                fs.writeFileSync(path.join(tmpDir, 'icon@2x.png'), icon2x);
+                fs.writeFileSync(path.join(tmpDir, 'icon.png'), icon1x);
+                
+                console.log(`✅ Images Wallet générées avec succès pour : ${boutique.nom}`);
+            } else {
+                console.error(`❌ ERREUR LIEN IMAGE : Le serveur (Supabase/Facebook) a refusé l'accès (Code ${response.status}).`);
+                console.error(`👉 Lien bloqué : ${boutique.logo_url}`);
             }
         } catch (e) {
-            console.error("❌ Erreur de traitement d'image :", e);
+            console.error("❌ CRASH TRAITEMENT IMAGE (Un carré blanc par défaut sera affiché) :", e.message);
         }
     }
 
