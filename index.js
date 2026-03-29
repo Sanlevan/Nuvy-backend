@@ -65,6 +65,7 @@ async function generatePassBuffer(client, boutique, clientRank) {
                     // --- 🖼️ LOGO (SUR LA CARTE) ---
                     await sharp(buffer).resize(480, 150, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
                     await sharp(buffer).resize(320, 100, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
+                    await sharp(buffer).resize(160, 50,  { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo.png'));
 
                     // --- 🔔 ICON (DANS LES NOTIFS) - ON AJOUTE LE @3x ---
                     // On attend bien chaque écriture avec await
