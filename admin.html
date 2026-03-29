@@ -475,6 +475,10 @@
                         <label class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Taille Carte</label>
                         <input type="number" id="new-max" value="10" class="w-full mt-1.5 h-11 border border-slate-200 rounded-xl px-4 text-sm font-medium outline-none focus:border-nuvy focus:ring-1 focus:ring-nuvy bg-slate-50 focus:bg-white transition-all">
                     </div>
+                    <div class="col-span-2">
+                        <label class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Logo URL (affiché sur la carte Wallet)</label>
+                        <input type="url" id="new-logo" placeholder="https://..." class="w-full mt-1.5 h-11 border border-slate-200 rounded-xl px-4 text-sm font-medium outline-none focus:border-nuvy focus:ring-1 focus:ring-nuvy bg-slate-50 focus:bg-white transition-all">
+                    </div>
                 </div>
                 <p id="modal-error" class="text-red-500 text-xs font-bold hidden text-center bg-red-50 py-2 rounded-lg border border-red-100"></p>
                 <button id="btn-create" onclick="creerBoutique()" class="w-full h-12 bg-slate-900 hover:bg-nuvy text-white font-extrabold rounded-xl shadow-lg mt-2 transition-all active:scale-95 flex items-center justify-center gap-2">
@@ -648,7 +652,7 @@
                 const res = await fetch('/admin/create-boutique', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nom, username, password, categorie, max_tampons, ceoKey: CEO_KEY })
+                    body: JSON.stringify({ nom, username, password, categorie, max_tampons, logo_url: document.getElementById('new-logo').value.trim() || null, ceoKey: CEO_KEY })
                 });
 
                 const data = await res.json();
