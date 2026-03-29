@@ -620,17 +620,18 @@ app.post('/clients/:id/tampon', async (req, res) => {
     let finalRecompenses = client.recompenses || 0;
     let totalHistorique = client.total_historique || 0; // 👈 1. On charge la mémoire du client
 
-    if (pointsAjoutes === -10) {
-        // Clic sur "OFFRIR CADEAU" : on enlève 1 récompense (mais on ne touche pas à l'historique)
-        finalRecompenses = Math.max(0, finalRecompenses - 1);
-    } else {
-        // Ajout classique : on calcule avec la limite dynamique (maxT)
-        let totalStamps = finalTampons + pointsAjoutes;
-        finalTampons = totalStamps % maxT;
-        finalRecompenses += Math.floor(totalStamps / maxT);
-        
-        totalHistorique += pointsAjoutes; // 👈 2. Le compteur à vie monte !
-    }
+    if (pointsAjoutes < 0) {
+            // 🎁 GESTION DE MULTIPLES CADEAUX
+            // Si le dashboard envoie -1, on retire 1 cadeau. Si -2, on retire 2, etc.
+            let cadeauxARetirer = (pointsAjoutes <= -10) ? Math.abs(pointsAjoutes) / 10 : Math.abs(pointsAjoutes);
+            finalRecompenses = Math.max(0, finalRecompenses - cadeauxARetirer);
+        } else {
+            // Ajout classique de tampons
+            let totalStamps = finalTampons + pointsAjoutes;
+            finalTampons = totalStamps % maxT;
+            finalRecompenses += Math.floor(totalStamps / maxT);
+            totalHistorique += pointsAjoutes; 
+        }
 
     const { data: updatedClient } = await supabase.from('clients').update({
         tampons: finalTampons,
