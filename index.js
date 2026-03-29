@@ -669,7 +669,7 @@ app.post('/clients/:id/tampon', async (req, res) => {
 });
 
 // ==========================================
-// LE TAP NFC
+// LE TAP NFC (EXPÉRIENCE PREMIUM)
 // ==========================================
 app.get('/tap/:slug', (req, res) => {
     const slug = req.params.slug;
@@ -677,34 +677,89 @@ app.get('/tap/:slug', (req, res) => {
     <!DOCTYPE html>
     <html lang="fr">
     <head>
-        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Magic Tap Nuvy</title><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;800&display=swap" rel="stylesheet">
-        <style>body{background:#FAF8F5;display:flex;justify-content:center;align-items:center;height:100vh;font-family:'Manrope',sans-serif;margin:0;} .c{background:white;padding:40px;border-radius:35px;text-align:center;box-shadow:0 15px 35px rgba(0,0,0,0.03);border:1px solid #E0DEDA;max-width:380px;width:100%;} .loader{border:4px solid rgba(42,140,156,0.1);border-left-color:#2A8C9C;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 20px auto;} @keyframes spin{0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);}}</style>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Nuvy Tap</title>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;800&display=swap" rel="stylesheet">
+        <style>
+            body { background: #FAF8F5; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Manrope', sans-serif; margin: 0; overflow: hidden; }
+            .c { background: white; padding: 40px 30px; border-radius: 35px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.06); border: 1px solid #E0DEDA; max-width: 360px; width: 90%; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+            .c.success { background: #111111; border-color: #111111; box-shadow: 0 30px 60px rgba(0,0,0,0.2); transform: scale(1.05); }
+            
+            .loader { border: 4px solid rgba(42,140,156,0.1); border-left-color: #2A8C9C; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            
+            .check-box { display: flex; justify-content: center; align-items: center; width: 64px; height: 64px; background: #34C759; border-radius: 50%; margin: 0 auto 20px auto; animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+            @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+            .check-icon { color: white; font-size: 32px; font-weight: bold; }
+            
+            h2 { font-weight: 800; margin: 0 0 8px 0; font-size: 24px; color: #2A8C9C; transition: color 0.4s; }
+            .c.success h2 { color: #FFFFFF; }
+            p { color: #888; font-weight: 600; margin: 0; font-size: 15px; line-height: 1.5; transition: color 0.4s; }
+            .c.success p { color: #AAAAAA; }
+            
+            .btn { display: inline-block; background: #2A8C9C; color: white; padding: 14px 28px; border-radius: 20px; text-decoration: none; font-weight: 800; font-size: 15px; margin-top: 25px; transition: transform 0.2s; }
+            .c.success .btn { background: #FFFFFF; color: #111111; }
+            .btn:active { transform: scale(0.95); }
+        </style>
     </head>
     <body>
         <div class="c" id="ui-box">
-            <div class="loader"></div><h2 style="color:#2A8C9C; margin-bottom: 5px; font-weight:800;">Magic Tap⚡️</h2><p style="color:#888; font-weight:600; margin:0;">Reconnaissance client...</p>
+            <div id="loader-view">
+                <div class="loader"></div>
+                <h2>Magic Tap ⚡️</h2>
+                <p>Transmission de votre carte...</p>
+            </div>
+            <div id="success-view" style="display: none;">
+                <div class="check-box"><span class="check-icon">✓</span></div>
+                <h2>C'est validé ! 🎉</h2>
+                <p>Le commerçant a bien reçu votre carte sur sa caisse.</p>
+                <a href="#" id="wallet-btn" class="btn">Fermer & Voir ma carte </a>
+            </div>
         </div>
+        
         <script>
             const token = localStorage.getItem('nuvy_token');
+            const slug = '${slug}';
+            
+            // Le petit "Ding" de succès !
+            function playDing() {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'sine'; 
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    osc.start(); 
+                    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.3);
+                    osc.stop(audioCtx.currentTime + 0.3);
+                } catch(e) {}
+            }
+
             if (!token) {
-                window.location.href = '/join/${slug}';
+                window.location.href = '/join/' + slug;
             } else {
-                fetch('/tap/${slug}/notify?token=' + token, { method: 'POST' })
+                fetch('/tap/' + slug + '/notify?token=' + token, { method: 'POST' })
                 .then(r => {
                     if(r.ok) {
-                        if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
-                        document.getElementById('ui-box').innerHTML = '<div style="font-size: 60px; margin-bottom:10px;">✅</div><h2 style="color:#2E7D32; font-weight:800; margin:0;">Validé !</h2><p style="color:#888; font-weight:600; margin-bottom:20px;">Regardez l\\'écran du commerçant.</p><a href="/pass/' + token + '" style="display:inline-block; background:#111; color:white; padding:10px 20px; border-radius:20px; text-decoration:none; font-weight:bold; font-size:14px;">Apple Wallet </a>';
+                        playDing();
+                        // Animation vers le succès
+                        const box = document.getElementById('ui-box');
+                        document.getElementById('loader-view').style.display = 'none';
+                        document.getElementById('success-view').style.display = 'block';
+                        box.classList.add('success');
+                        document.getElementById('wallet-btn').href = '/pass/' + token;
                     } else if (r.status === 404) {
-                        // Le jeton n'existe plus en BDD : on nettoie le tel et on renvoie à l'inscription
                         localStorage.removeItem('nuvy_token');
-                        window.location.href = '/join/${slug}';
+                        window.location.href = '/join/' + slug;
                     } else {
                         throw new Error();
                     }
                 })
                 .catch(() => {
-                    if (navigator.vibrate) navigator.vibrate(200);
-                    document.getElementById('ui-box').innerHTML = '<div style="font-size: 60px; margin-bottom:10px;">❌</div><h2 style="color:#C62828; font-weight:800; margin:0;">Erreur</h2><p style="color:#888; font-weight:600;">Erreur réseau.</p>';
+                    document.getElementById('ui-box').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">⚠️</div><h2 style="color:#C62828;">Oups...</h2><p>Vérifiez votre connexion internet.</p>';
                 });
             }
         </script>
