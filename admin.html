@@ -147,11 +147,11 @@
           </div>
           <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
             <p class="text-xs font-bold text-gray-400 uppercase">Attention (7J)</p>
-            <p class="text-2xl font-extrabold text-amber-500 mt-1">42</p>
+            <p id="fleet-kpi-attention" class="text-2xl font-extrabold text-amber-500 mt-1">...</p>
           </div>
           <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
             <p class="text-xs font-bold text-gray-400 uppercase">Inactives</p>
-            <p class="text-2xl font-extrabold text-gray-400 mt-1">12</p>
+            <p id="fleet-kpi-inactives" class="text-2xl font-extrabold text-gray-400 mt-1">...</p>
           </div>
         </div>
 
@@ -306,40 +306,38 @@
     const urlParams = new URLSearchParams(window.location.search);
     const CEO_KEY = urlParams.get('key');
 
-    async function chargerFlotteCommercants() {
-        try {
-            console.log("🔍 Envoi de la requête API avec la clé :", CEO_KEY);
-
-            const res = await fetch('/admin/boutiques', { 
-                headers: { 'x-ceo-key': CEO_KEY } 
-            });
-            
-            if (!res.ok) {
-                console.error("❌ L'API a refusé l'accès ! Code d'erreur :", res.status);
-                return;
-            }
-            
-            const boutiques = await res.json();
-            console.log("✅ Données reçues de Supabase :", boutiques);
-            
-            // Mise à jour de TOUS les compteurs
+    // 1. Initialisation de tes compteurs réels
             const totalBoutiques = boutiques.length;
-            document.getElementById('kpi-total-boutiques').innerText = totalBoutiques;
-            document.getElementById('overview-kpi-actives').innerText = totalBoutiques;
-            document.getElementById('fleet-kpi-actives').innerText = totalBoutiques;
-            document.getElementById('total-clients-global').innerText = (totalBoutiques * 12).toLocaleString();
+            let countActives = 0;
+            let countAttention = 0;
+            let countInactives = 0;
 
             const tbody = document.getElementById('fleet-tbody');
             tbody.innerHTML = '';
 
+            // 2. Traitement de la flotte
             boutiques.forEach(b => {
-                const dateCreation = new Date(b.created_at).toLocaleDateString('fr-FR', {
-                    day: '2-digit', month: 'short', year: 'numeric'
-                });
+                // Le compteur tourne
+                if (b.statut === 'actif') countActives++;
+                else if (b.statut === 'attention') countAttention++;
+                else countInactives++;
+
+                // Le design de la pastille s'adapte au statut
+                let badgeHtml = '';
+                if (b.statut === 'actif') {
+                    badgeHtml = `<span class="bg-green-100 text-green-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-green-200 shadow-sm">Actif</span>`;
+                } else if (b.statut === 'attention') {
+                    badgeHtml = `<span class="bg-amber-100 text-amber-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-amber-200 shadow-sm">Attention</span>`;
+                } else {
+                    badgeHtml = `<span class="bg-gray-100 text-gray-500 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-gray-200 shadow-sm">Inactif</span>`;
+                }
+
+                const dateCreation = new Date(b.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-gray-50 transition group";
+                
                 tr.innerHTML = `
-                    <td class="py-4 px-6"><span class="bg-green-100 text-green-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-green-200">Actif</span></td>
+                    <td class="py-4 px-6">${badgeHtml}</td>
                     <td class="py-4 px-6 font-bold text-gray-900">${b.nom}</td>
                     <td class="py-4 px-6 text-gray-400 font-mono text-xs">@${b.slug || b.username}</td>
                     <td class="py-4 px-6 text-right text-sm text-gray-500 font-medium">${dateCreation}</td>
@@ -351,11 +349,16 @@
                 `;
                 tbody.appendChild(tr);
             });
+
+            // 3. Affichage des KPIs dynamiques
+            document.getElementById('kpi-total-boutiques').innerText = totalBoutiques;
+            document.getElementById('overview-kpi-actives').innerText = countActives;
+            document.getElementById('fleet-kpi-actives').innerText = countActives;
+            document.getElementById('fleet-kpi-attention').innerText = countAttention;
+            document.getElementById('fleet-kpi-inactives').innerText = countInactives;
+            document.getElementById('total-clients-global').innerText = (totalBoutiques * 12).toLocaleString();
+
             lucide.createIcons();
-        } catch (error) { 
-            console.error("❌ Crash total du script :", error); 
-        }
-    }
 
     window.addEventListener('DOMContentLoaded', () => {
         if(CEO_KEY) {

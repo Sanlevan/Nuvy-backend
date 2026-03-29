@@ -333,63 +333,51 @@ app.post('/admin/force-reset-password', async (req, res) => {
         res.status(500).json({ message: "Erreur lors de la réinitialisation." });
     }
 });
-app.get('/boutiques/:id/stats', async (req, res) => {
+// VOIR TOUTES LES BOUTIQUES (AVEC INTELLIGENCE DES STATUTS)
+app.get('/admin/boutiques', async (req, res) => {
+    const ceoKey = req.headers['x-ceo-key'];
+    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
+
     try {
-        const boutiqueId = req.params.id;
+        // 1. Récupérer toutes les boutiques
+        const { data: boutiques, error } = await supabase.from('boutiques').select('id, nom, username, slug, created_at');
+        if (error) throw error;
 
-        const { data: boutique } = await supabase.from('boutiques').select('max_tampons').eq('id', boutiqueId).single();
-        const maxT = boutique?.max_tampons || 10;
+        // 2. Analyse temporelle : Qui a scanné récemment ?
+        const septJours = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const trenteJours = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-        const [clientsRes, visitesRes] = await Promise.all([
-            supabase.from('clients').select('tampons').eq('boutique_id', boutiqueId),
-            supabase.from('visites').select('client_id, created_at').eq('boutique_id', boutiqueId).order('created_at', { ascending: true })
+        // On interroge la table des visites en parallèle pour aller très vite
+        const [visites7j, visites30j] = await Promise.all([
+            supabase.from('visites').select('boutique_id').gte('created_at', septJours),
+            supabase.from('visites').select('boutique_id').gte('created_at', trenteJours)
         ]);
 
-        const clients = clientsRes.data || [];
-        const visites = visitesRes.data || [];
+        // On crée des "Sets" (listes uniques) pour trier ultra-rapidement
+        const actives7jIds = new Set(visites7j.data?.map(v => v.boutique_id) || []);
+        const actives30jIds = new Set(visites30j.data?.map(v => v.boutique_id) || []);
 
-        // --- STAT 2 : DISTRIBUTION ---
-        const distribution = new Array(maxT).fill(0);
-        clients.forEach(c => { if (c.tampons >= 0 && c.tampons < maxT) distribution[c.tampons]++; });
-
-        // --- STAT 4 : FRÉQUENCE ---
-        const clientVisits = {};
-        visites.forEach(v => {
-            if (!clientVisits[v.client_id]) clientVisits[v.client_id] = [];
-            clientVisits[v.client_id].push(new Date(v.created_at));
-        });
-
-        let totalDaysDiff = 0;
-        let countClientsWithMultipleVisits = 0;
-
-        Object.values(clientVisits).forEach(dates => {
-            if (dates.length > 1) {
-                const diffInDays = (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24);
-                totalDaysDiff += (diffInDays / (dates.length - 1));
-                countClientsWithMultipleVisits++;
+        // 3. Jugement de chaque boutique
+        const boutiquesAnalysees = boutiques.map(b => {
+            let statut = 'inactif'; // Pire scénario par défaut
+            
+            if (actives7jIds.has(b.id)) {
+                statut = 'actif'; // Scan récent = tout va bien
+            } else if (actives30jIds.has(b.id)) {
+                statut = 'attention'; // Actif ce mois-ci, mais rien cette semaine = Churn Risk
+            } else {
+                // Tolérance "Cold Start" : Créée il y a moins de 7 jours = Attention, pas Inactif
+                if (new Date(b.created_at) > new Date(septJours)) {
+                    statut = 'attention';
+                }
             }
+            return { ...b, statut }; // On fusionne les données de la boutique avec son nouveau statut
         });
-        const avgFrequency = countClientsWithMultipleVisits > 0 ? (totalDaysDiff / countClientsWithMultipleVisits).toFixed(1) : 0;
 
-        // --- STAT 5 : HEURES DE POINTE (Moyenne 30 jours) ---
-        const trenteJoursEnMs = 30 * 24 * 60 * 60 * 1000;
-        const dateLimite = new Date(Date.now() - trenteJoursEnMs).toISOString();
-
-        const { data: visitesRecentes } = await supabase.from('visites').select('created_at').eq('boutique_id', boutiqueId).gt('created_at', dateLimite);
-        
-        const peakHours = new Array(24).fill(0);
-        if (visitesRecentes) {
-            visitesRecentes.forEach(v => { peakHours[new Date(v.created_at).getHours()]++; });
-        }
-        
-        // Division par 30 pour avoir la moyenne
-        const peakHoursAverage = peakHours.map(total => (total / 30).toFixed(1));
-
-        res.json({ distribution, peakHours: peakHoursAverage, avgFrequency });
-
-    } catch (e) {
-        console.error("Erreur stats:", e);
-        res.status(500).send("Erreur calcul des statistiques");
+        res.json(boutiquesAnalysees);
+    } catch (error) {
+        console.error("Erreur API Boutiques:", error);
+        res.status(500).json({ error: "Erreur lors de l'analyse de la flotte" });
     }
 });
 
