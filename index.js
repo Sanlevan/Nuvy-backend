@@ -730,14 +730,21 @@ app.get('/pass/:token', async (req, res) => {
     try {
         const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('token', req.params.token).single();
         if (!c) return res.status(404).send('Client introuvable');
+        
         const { data: all } = await supabase.from('clients').select('tampons, recompenses').eq('boutique_id', c.boutique_id);
         const maxT = c.boutiques.max_tampons || 10;
         const score = (c.recompenses * maxT) + c.tampons;
         let rank = 1;
         if (all) all.forEach(o => { if (((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
+        
         const buf = await generatePassBuffer(c, c.boutiques, rank, req.get('host'));
+        
+        // 🛡️ CORRECTIONS CRITIQUES APPLE WALLET (Empêche l'erreur "Safari ne peut pas télécharger")
         res.set('Content-Type', 'application/vnd.apple.pkpass');
-        res.set('Content-Length', buf.length);
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+        
         res.status(200).send(buf);
     } catch (e) {
         console.error('❌ Erreur génération pass:', e);

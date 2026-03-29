@@ -69,24 +69,51 @@
                 return; 
             }
 
-            // 🛡️ On passe le numéro dans le nettoyeur
+            // 🛡️ Nettoyage du numéro
             const telephone = formaterTelephone(telephoneBrut);
-            
             if (!telephone) {
                 alert("Le numéro de téléphone n'est pas valide (ex: 06 12 34 56 78).");
-                return; // Bloque l'inscription si le format est mauvais !
+                return;
             }
-            btn.innerText = "CRÉATION EN COURS..."; btn.disabled = true;
+
+            btn.innerText = "CRÉATION EN COURS..."; 
+            btn.disabled = true;
+
             try {
-                const res = await fetch(`/join/${urlSlug}/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prenom, nom, telephone }) });
+                const res = await fetch(`/join/${urlSlug}/create`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ prenom, nom, telephone }) 
+                });
+
                 if (res.ok) {
-                    const data = await res.json(); passToken = data.token;
+                    const data = await res.json(); 
+                    passToken = data.token;
                     localStorage.setItem('nuvy_token', passToken);
-                    document.getElementById('wallet-link').href = `/pass/${passToken}`;
-                    document.getElementById('form-view').style.display = 'none';
-                    document.getElementById('success-view').style.display = 'block';
-                } else { alert("Erreur."); btn.innerText = "CRÉER MA CARTE"; btn.disabled = false; }
-            } catch (error) { alert("Erreur réseau."); btn.innerText = "CRÉER MA CARTE"; btn.disabled = false; }
+                    
+                    // 🪄 L'UX PARFAITE : Le bouton devient noir façon Apple Wallet
+                    btn.innerText = "OUVRIR MA CARTE ";
+                    btn.style.backgroundColor = "#000"; 
+                    btn.disabled = false;
+                    btn.onclick = function() {
+                        window.location.href = `/pass/${passToken}`;
+                    };
+                    
+                    // 🚀 OUVERTURE AUTOMATIQUE
+                    setTimeout(() => {
+                        window.location.href = `/pass/${passToken}`;
+                    }, 400);
+
+                } else { 
+                    alert("Erreur."); 
+                    btn.innerText = "CRÉER MA CARTE"; 
+                    btn.disabled = false; 
+                }
+            } catch (error) { 
+                alert("Erreur réseau."); 
+                btn.innerText = "CRÉER MA CARTE"; 
+                btn.disabled = false; 
+            }
         }
         function telechargerPass() { if (passToken) window.location.href = `/pass/${passToken}`; }
     </script>
