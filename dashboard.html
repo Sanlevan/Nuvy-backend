@@ -376,19 +376,14 @@
     async function offrirCadeau() {
         if (!currentClient) return;
 
-        let nbCadeaux = 1;
-        // 💡 La condition est ici : Il faut au moins 2 cadeaux pour afficher le pop-up !
-        if (currentClient.recompenses > 1) {
-            const reponse = prompt(`Ce client a ${currentClient.recompenses} cadeaux disponibles 🎁 !\nCombien voulez-vous en valider ?`, "1");
-            if (reponse === null) return; 
-            
-            nbCadeaux = parseInt(reponse);
-            if (isNaN(nbCadeaux) || nbCadeaux < 1 || nbCadeaux > currentClient.recompenses) {
-                alert("Nombre invalide.");
-                return;
-            }
-        } else {
-            if (!confirm("Confirmer la remise du cadeau ?")) return;
+        // Le pop-up s'affiche TOUJOURS maintenant, peu importe le nombre de cadeaux !
+        const reponse = prompt(`Ce client a ${currentClient.recompenses} cadeaux disponibles 🎁 !\nCombien voulez-vous en valider ?`, "1");
+        if (reponse === null) return; // Si le commerçant fait Annuler
+        
+        let nbCadeaux = parseInt(reponse);
+        if (isNaN(nbCadeaux) || nbCadeaux < 1 || nbCadeaux > currentClient.recompenses) {
+            alert("Nombre invalide.");
+            return;
         }
 
         const btn = document.getElementById('btn-gift');
