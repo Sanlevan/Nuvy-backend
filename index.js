@@ -61,9 +61,11 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             const response = await fetch(boutique.logo_url);
             if (response.ok) {
                 const buffer = Buffer.from(await response.arrayBuffer());
-                await sharp(buffer).resize(480, 150, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
-                await sharp(buffer).resize(320, 100, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
-                await sharp(buffer).resize(160, 50,  { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'logo.png'));
+                // --- 🖼️ LOGO (SUR LA CARTE) ---
+                // 🪄 CORRECTION : 'inside' empêche la création de marges transparentes fantômes !
+                await sharp(buffer).resize(480, 150, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
+                await sharp(buffer).resize(320, 100, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
+                await sharp(buffer).resize(160, 50,  { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo.png'));
                 await sharp(buffer).resize(174, 174, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@3x.png'));
                 await sharp(buffer).resize(116, 116, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@2x.png'));
                 await sharp(buffer).resize(58, 58, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon.png'));
