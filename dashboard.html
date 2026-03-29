@@ -377,10 +377,10 @@
         if (!currentClient) return;
 
         let nbCadeaux = 1;
-        // Si le client a plus d'1 cadeau, on demande combien il veut en utiliser !
+        // Le pop-up si le client a plus de 1 cadeau en réserve
         if (currentClient.recompenses > 1) {
             const reponse = prompt(`Ce client a ${currentClient.recompenses} cadeaux disponibles 🎁 !\nCombien voulez-vous en valider ?`, "1");
-            if (reponse === null) return; // Le commerçant a cliqué sur Annuler
+            if (reponse === null) return; 
             
             nbCadeaux = parseInt(reponse);
             if (isNaN(nbCadeaux) || nbCadeaux < 1 || nbCadeaux > currentClient.recompenses) {
@@ -392,7 +392,9 @@
         }
 
         const btn = document.getElementById('btn-gift');
-        btn.disabled = true; btn.innerText = "TRAITEMENT...";
+        btn.disabled = true; 
+        btn.innerText = "TRAITEMENT...";
+        
         try {
             // On envoie le nombre en négatif au serveur (-1, -2, etc.)
             const res = await fetch(`/clients/${currentClient.id}/tampon`, { 
@@ -403,9 +405,18 @@
             if (res.ok) {
                 const s = nbCadeaux > 1 ? "s" : "";
                 addActivity(currentClient.nom, `${nbCadeaux} Cadeau${s} validé${s} 🎁`, '#D4AF37');
-                resetLive(); rafraichirCompteurJournalier(); loadAnalyticsData();
+                resetLive(); 
+                rafraichirCompteurJournalier(); 
+                loadAnalyticsData();
             }
-        } catch (e) { console.error(e); } finally { btn.disabled = false; updateUI(); }
+        } catch (e) { 
+            console.error(e); 
+        } finally { 
+            // 🚨 CORRECTION : On débloque le bouton pour le client suivant !
+            btn.disabled = false; 
+            btn.innerText = "OFFRIR CADEAU 🎁"; 
+            updateUI(); 
+        }
     }
 
     function addActivity(nom, action, couleur) {
