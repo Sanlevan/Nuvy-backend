@@ -80,6 +80,7 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         } catch (e) {
             console.error("❌ Erreur de traitement d'image :", e);
         }
+    }
 
     const passJson = JSON.parse(fs.readFileSync(path.join(tmpDir, 'pass.json'), 'utf8'));
     delete passJson.barcode;
@@ -816,7 +817,6 @@ app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
     res.status(201).send();
 });
 
-// Nettoyage des iPhone qui suppriment la carte
 app.delete('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
     await supabase.from('devices').delete().eq('device_id', req.params.dId).eq('serial_number', req.params.sN);
     res.status(200).send();
@@ -838,23 +838,16 @@ app.get('/v1/passes/:pId/:sN', async (req, res) => {
         const score = (c.recompenses * maxT) + c.tampons;
         let rank = 1; all.forEach(o => { if(((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
         
-        // 🚨 CORRECTION NOTIFICATIONS : On passe 'req.get("host")' pour la prochaine mise à jour
+        // La bonne fonction avec l'URL pour les mises à jour Apple
         const buf = await generatePassBuffer(c, c.boutiques, rank, req.get('host'));
         
-        // 🚨 CORRECTION NOTIFICATIONS : On force l'iPhone à recharger avec la date du jour !
         res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
-        res.setHeader('Last-Modified', new Date().toUTCString());
+        res.setHeader('Last-Modified', new Date().toUTCString()); // Force l'iPhone à se mettre à jour
         res.status(200).send(buf);
-    } catch (e) { 
-        console.error("❌ Erreur Apple Update:", e);
-        res.status(500).send(); 
-    }
+    } catch (e) { res.status(500).send(); }
 });
 
-app.post('/v1/log', (req, res) => {
-    console.error("🍎 LOG APPLE WALLET :", req.body);
-    res.status(200).send();
-});
+app.post('/v1/log', (req, res) => res.status(200).send());
 
 // ==========================================
 // SOCKET.IO (TEMPS RÉEL DASHBOARD)
