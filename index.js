@@ -881,5 +881,4 @@ io.on('connection', (socket) => {
     socket.on('join-boutique', (slug) => { socket.join(slug.toLowerCase().trim()); });
 });
 
-const PORT = process.env.PORT || 8080;
 server.listen(PORT, '0.0.0.0', () => console.log(`=== MOTEUR NUVY PRÊT SUR LE PORT ${PORT} ===`));
