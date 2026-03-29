@@ -72,10 +72,10 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 await sharp(imgClean).resize(160, 50,  { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo.png'));
                 
                 // --- 2. L'ICÔNE (POUR LES NOTIFICATIONS) ---
-                // On utilise le logo "découpé" pour qu'il soit bien gros sur l'écran verrouillé
-                await sharp(imgClean).resize(174, 174, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@3x.png'));
-                await sharp(imgClean).resize(116, 116, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@2x.png'));
-                await sharp(imgClean).resize(58, 58, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon.png'));
+                // 🚨 CORRECTION : "inside" pour empêcher le logo de devenir minuscule !
+                await sharp(imgClean).resize(174, 174, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'icon@3x.png'));
+                await sharp(imgClean).resize(116, 116, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'icon@2x.png'));
+                await sharp(imgClean).resize(58, 58, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'icon.png'));
             }
         } catch (e) {
             console.error("❌ Erreur de traitement d'image :", e);
@@ -149,14 +149,14 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         ]
     };
 
-    if (client.recompenses && client.recompenses > 0) {
-        layout.auxiliaryFields.push({
-            "key": "cadeaux",
-            "label": "CADEAUX DISPONIBLES",
-            "value": `${client.recompenses} 🎁`,
-            "textAlignment": "PKTextAlignmentCenter"
-        });
-    }
+    // 🚨 CORRECTION : Affiche toujours les cadeaux et déclenche la notification !
+    layout.auxiliaryFields.push({
+        "key": "cadeaux",
+        "label": "CADEAUX DISPONIBLES",
+        "value": `${client.recompenses || 0} 🎁`,
+        "textAlignment": "PKTextAlignmentCenter",
+        "changeMessage": "Vos cadeaux : %@ 🎁"
+    });
     passJson.storeCard = layout;
 
     fs.writeFileSync(path.join(tmpDir, 'pass.json'), JSON.stringify(passJson));

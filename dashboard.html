@@ -376,12 +376,12 @@
     async function offrirCadeau() {
         if (!currentClient) return;
 
-        // Le pop-up s'affiche TOUJOURS maintenant, peu importe le nombre de cadeaux !
-        const reponse = prompt(`Ce client a ${currentClient.recompenses} cadeaux disponibles 🎁 !\nCombien voulez-vous en valider ?`, "1");
-        if (reponse === null) return; // Si le commerçant fait Annuler
+        // 🚨 CORRECTION : Le pop-up s'affiche TOUJOURS, même pour 1 seul cadeau !
+        const reponse = prompt(`Ce client a ${currentClient.recompenses || 0} cadeau(x) disponibles 🎁 !\nCombien voulez-vous en valider ?`, "1");
+        if (reponse === null) return; 
         
         let nbCadeaux = parseInt(reponse);
-        if (isNaN(nbCadeaux) || nbCadeaux < 1 || nbCadeaux > currentClient.recompenses) {
+        if (isNaN(nbCadeaux) || nbCadeaux < 1 || nbCadeaux > (currentClient.recompenses || 0)) {
             alert("Nombre invalide.");
             return;
         }
@@ -406,7 +406,7 @@
         } catch (e) { 
             console.error(e); 
         } finally { 
-            // 🚨 ICI : On remet le texte normal du bouton pour le client suivant !
+            // 🚨 CORRECTION : Le bouton se répare tout seul pour le client suivant !
             btn.disabled = false; 
             btn.innerText = "OFFRIR CADEAU 🎁"; 
             updateUI(); 
