@@ -370,7 +370,7 @@
                 addActivity(currentClient.nom, `+${pointsToAdd} points`, '#2A8C9C');
                 resetLive(); rafraichirCompteurJournalier(); loadAnalyticsData();
             }
-        } catch (e) { console.error(e); } finally { btn.disabled = false; updateUI(); }
+        } catch (e) { console.error(e); } finally { btn.disabled = false; btn.innerText = "OFFRIR CADEAU 🎁"; updateUI(); }
     }
 
     async function offrirCadeau() {

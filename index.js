@@ -803,11 +803,17 @@ app.post('/join/:slug/create', async (req, res) => {
 });
 
 // ==========================================
-// WEB SERVICES APPLE (OBLIGATOIRES POUR LA MISE A JOUR)
+// WEB SERVICES APPLE (ÉCOUTE ET MISES À JOUR)
 // ==========================================
 app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
     await supabase.from('devices').upsert([{ device_id: req.params.dId, push_token: req.body.pushToken, pass_type_id: req.params.pId, serial_number: req.params.sN }]);
     res.status(201).send();
+});
+
+// 🚨 ROUTE MANQUANTE : Nettoie les iPhone qui suppriment la carte !
+app.delete('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
+    await supabase.from('devices').delete().eq('device_id', req.params.dId).eq('serial_number', req.params.sN);
+    res.status(200).send();
 });
 
 app.get('/v1/devices/:dId/registrations/:pId', async (req, res) => {
@@ -815,6 +821,41 @@ app.get('/v1/devices/:dId/registrations/:pId', async (req, res) => {
     if (data && data.length > 0) res.json({ serialNumbers: data.map(d => d.serial_number), lastUpdated: new Date().toISOString() });
     else res.status(204).send();
 });
+
+app.get('/v1/passes/:pId/:sN', async (req, res) => {
+    try {
+        const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('serial_number', req.params.sN).single();
+        if(!c) return res.status(404).send();
+        
+        const { data: all } = await supabase.from('clients').select('tampons, recompenses').eq('boutique_id', c.boutique_id);
+        const maxT = c.boutiques.max_tampons || 10;
+        const score = (c.recompenses * maxT) + c.tampons;
+        let rank = 1; all.forEach(o => { if(((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
+        
+        // 🚨 CORRECTION : On renvoie bien l'URL (host)
+        const buf = await generatePassBuffer(c, c.boutiques, rank, req.get('host'));
+        
+        // 🚨 CORRECTION : On FORCE l'iPhone à comprendre que le fichier est nouveau !
+        res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
+        res.setHeader('Last-Modified', new Date().toUTCString());
+        res.status(200).send(buf);
+    } catch (e) { res.status(500).send(); }
+});
+
+app.post('/v1/log', (req, res) => {
+    console.error("🍎 ALERTE APPLE WALLET :", req.body);
+    res.status(200).send();
+});
+
+// ==========================================
+// SOCKET.IO (TEMPS RÉEL DASHBOARD)
+// ==========================================
+io.on('connection', (socket) => {
+    socket.on('join-boutique', (slug) => { socket.join(slug.toLowerCase().trim()); });
+});
+
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, '0.0.0.0', () => console.log(`=== MOTEUR NUVY PRÊT SUR LE PORT ${PORT} ===`));
 
 app.get('/v1/passes/:pId/:sN', async (req, res) => {
     try {
