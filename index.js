@@ -749,8 +749,7 @@ app.get('/pass/:token', async (req, res) => {
 
         // --- 🛡️ PROTECTION SAFARI (CORRECTION 1) ---
         res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
-        res.setHeader('Content-Disposition', `attachment; filename="nuvy-${c.boutiques.slug}.pkpass"`);
-        res.setHeader('Content-Length', buf.length); 
+        res.setHeader('Content-Length', buf.length);
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
