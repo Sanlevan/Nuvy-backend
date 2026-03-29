@@ -676,11 +676,13 @@ app.get('/tap/:slug', (req, res) => {
         </div>
         <script>
             const token = localStorage.getItem('nuvy_token');
-            if (!token) window.location.href = '/join/${slug}';
-            else {
+            if (!token) {
+                window.location.href = '/join/${slug}';
+            } else {
                 fetch('/tap/${slug}/notify?token=' + token, { method: 'POST' })
                 .then(r => {
                     if(r.ok) {
+                        if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
                         document.getElementById('ui-box').innerHTML = '<div style="font-size: 60px; margin-bottom:10px;">✅</div><h2 style="color:#2E7D32; font-weight:800; margin:0;">Validé !</h2><p style="color:#888; font-weight:600; margin-bottom:20px;">Regardez l\\'écran du commerçant.</p><a href="/pass/' + token + '" style="display:inline-block; background:#111; color:white; padding:10px 20px; border-radius:20px; text-decoration:none; font-weight:bold; font-size:14px;">Apple Wallet </a>';
                     } else if (r.status === 404) {
                         // Le jeton n'existe plus en BDD : on nettoie le tel et on renvoie à l'inscription
@@ -690,7 +692,10 @@ app.get('/tap/:slug', (req, res) => {
                         throw new Error();
                     }
                 })
-                }).catch(() => document.getElementById('ui-box').innerHTML = '<div style="font-size: 60px; margin-bottom:10px;">❌</div><h2 style="color:#C62828; font-weight:800; margin:0;">Erreur</h2><p style="color:#888; font-weight:600;">Erreur réseau.</p>');
+                .catch(() => {
+                    if (navigator.vibrate) navigator.vibrate(200);
+                    document.getElementById('ui-box').innerHTML = '<div style="font-size: 60px; margin-bottom:10px;">❌</div><h2 style="color:#C62828; font-weight:800; margin:0;">Erreur</h2><p style="color:#888; font-weight:600;">Erreur réseau.</p>';
+                });
             }
         </script>
     </body>
@@ -701,10 +706,12 @@ app.get('/tap/:slug', (req, res) => {
 app.post('/tap/:slug/notify', async (req, res) => {
     try {
         const { data: clientData } = await supabase.from('clients').select('*').eq('token', req.query.token).single();
+        
         if (clientData) { 
-            // 🌟 1. On met à jour l'heure de visite pour remonter le client dans la liste
+            // 🌟 1. On met à jour l'heure de visite pour remonter le client dans la liste du Dashboard !
             await supabase.from('clients').update({ last_visit: new Date().toISOString() }).eq('id', clientData.id);
-            // 🌟 2. On fait "popper" la carte sur le dashboard commerçant
+            
+            // 🌟 2. On fait "popper" la carte sur le Dashboard Commerçant !
             io.to(req.params.slug.toLowerCase().trim()).emit('client-detected', clientData); 
             res.json({ success: true }); 
         } else {
