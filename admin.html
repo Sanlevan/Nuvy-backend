@@ -94,25 +94,18 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
             <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Boutiques Actives</h3><i data-lucide="store" class="h-4 w-4"></i></div>
-            <div class="flex items-baseline gap-1"><span id="overview-kpi-actives" class="text-3xl font-extrabold text-nuvy">...</span><span class="text-lg text-gray-400 font-bold">/600</span></div>
-            <p class="text-xs text-green-600 font-bold mt-2">📈 +3.2% vs mois dernier</p>
+            <div class="flex items-baseline gap-1"><span id="overview-kpi-actives" class="text-3xl font-extrabold text-nuvy">...</span></div>
           </div>
 
           <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
             <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Scans Aujourd'hui</h3><i data-lucide="scan" class="h-4 w-4"></i></div>
-            <div class="text-3xl font-extrabold text-gray-900">14,230</div>
-            <p class="text-xs text-green-600 font-bold mt-2">📈 +12.5% vs hier</p>
+            <div id="kpi-scans-today" class="text-3xl font-extrabold text-gray-900">...</div>
           </div>
 
           <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col items-center justify-center">
              <div class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 text-center w-full flex justify-between">Health Score <i data-lucide="activity" class="h-4 w-4"></i></div>
-             <div class="relative h-16 w-32">
-                <svg class="h-full w-full" viewBox="0 0 120 70">
-                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="#f3f4f6" stroke-width="8" stroke-linecap="round" />
-                  <path d="M 10 60 A 45 45 0 0 1 110 60" fill="none" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-dasharray="141.37" stroke-dashoffset="11.3" />
-                </svg>
-                <div class="absolute inset-0 flex items-end justify-center pb-0"><span class="text-2xl font-extrabold text-green-600">92%</span></div>
-             </div>
+             <div id="kpi-health" class="text-3xl font-extrabold text-green-600">...</div>
+             <p class="text-xs text-gray-400 mt-1">boutiques actives / 7j</p>
           </div>
         </div>
 
@@ -163,26 +156,17 @@
       </section>
 
       <section id="radar" class="view max-w-6xl mx-auto">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div class="p-5 border-b flex items-center gap-3"><i data-lucide="trending-down" class="text-red-500"></i><h3 class="font-bold">Risque de Churn</h3></div>
-                <div class="p-4 space-y-3">
-                    <div class="flex justify-between p-3 bg-red-50 rounded-lg border border-red-100">
-                        <div class="text-sm font-bold">Boulangerie Le Pain d'Or<br><span class="text-xs font-normal text-gray-500">Lyon</span></div>
-                        <span class="text-red-600 font-bold">-67%</span>
-                    </div>
-                    <button class="w-full py-2 text-xs font-bold border rounded-lg hover:bg-gray-50 transition-all">Analyser tous les risques</button>
+                <div id="radar-churn" class="p-4 space-y-3">
+                    <p class="text-sm text-gray-400 text-center py-4">Chargement...</p>
                 </div>
             </div>
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="alert-octagon" class="text-red-600"></i><h3 class="font-bold">Suspicion Fraude</h3></div>
-                <div class="p-4">
-                    <div class="p-4 bg-red-600 text-white rounded-xl shadow-lg">
-                        <p class="text-xs opacity-80 uppercase font-bold mb-1">Alerte Critique</p>
-                        <p class="font-bold">Quick Burger Express</p>
-                        <p class="text-sm mt-2">📍 247 scans en 10 min</p>
-                        <div class="mt-4 flex gap-2"><button class="bg-white text-red-600 text-xs font-bold py-2 px-3 rounded-lg flex-1">Bloquer</button><button class="bg-red-700 text-white text-xs font-bold py-2 px-3 rounded-lg flex-1">Enquêter</button></div>
-                    </div>
+                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="zap" class="text-amber-500"></i><h3 class="font-bold">Boutiques les plus actives (7j)</h3></div>
+                <div id="radar-top" class="p-4 space-y-3">
+                    <p class="text-sm text-gray-400 text-center py-4">Chargement...</p>
                 </div>
             </div>
         </div>
@@ -193,17 +177,14 @@
         <div class="grid grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                 <h3 class="font-bold mb-4">Répartition par secteur</h3>
-                <div class="space-y-4">
-                    <div class="flex justify-between text-sm font-bold"><span>Boulangeries</span><span>45%</span></div>
-                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="bg-nuvy h-full" style="width: 45%"></div></div>
-                    <div class="flex justify-between text-sm font-bold"><span>Restauration</span><span>30%</span></div>
-                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="bg-nuvy h-full" style="width: 30%"></div></div>
+                <div id="secteurs-list" class="space-y-4">
+                    <p class="text-sm text-gray-400">Chargement...</p>
                 </div>
             </div>
             <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-center items-center text-center">
                 <i data-lucide="users" class="h-12 w-12 text-nuvy mb-4"></i>
                 <p class="text-gray-500 font-bold uppercase text-xs">Total Clients Finaux (Wallet)</p>
-                <p class="text-4xl font-extrabold mt-2"><p id="total-clients-global" class="text-4xl font-extrabold mt-2 text-nuvy">...</p></p>
+                <p id="total-clients-global" class="text-4xl font-extrabold mt-2 text-nuvy">...</p>
             </div>
         </div>
       </section>
@@ -266,6 +247,113 @@
   <script>
     lucide.createIcons();
 
+    function openModalCreate() { document.getElementById('modal-create').classList.remove('hidden'); }
+    function closeModalCreate() { document.getElementById('modal-create').classList.add('hidden'); }
+
+    // --- LOGIQUE API ---
+    // 1. On aspire la clé qui est dans ton URL (?key=natrisT05)
+    const urlParams = new URLSearchParams(window.location.search);
+    const CEO_KEY = urlParams.get('key');
+
+    async function chargerFlotteCommercants() {
+        try {
+            const res = await fetch('/admin/boutiques', { headers: { 'x-ceo-key': CEO_KEY } });
+            if (!res.ok) throw new Error("Accès refusé");
+            const boutiques = await res.json();
+
+            const totalBoutiques = boutiques.length;
+            let countActives = 0, countAttention = 0, countInactives = 0;
+            const tbody = document.getElementById('fleet-tbody');
+            tbody.innerHTML = '';
+
+            boutiques.forEach(b => {
+                if (b.statut === 'actif') countActives++;
+                else if (b.statut === 'attention') countAttention++;
+                else countInactives++;
+
+                let badgeHtml = '';
+                if (b.statut === 'actif') badgeHtml = `<span class="bg-green-100 text-green-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-green-200">Actif</span>`;
+                else if (b.statut === 'attention') badgeHtml = `<span class="bg-amber-100 text-amber-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-amber-200">Attention</span>`;
+                else badgeHtml = `<span class="bg-gray-100 text-gray-500 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-gray-200">Inactif</span>`;
+
+                const dateCreation = new Date(b.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition";
+                tr.innerHTML = `
+                    <td class="py-4 px-6">${badgeHtml}</td>
+                    <td class="py-4 px-6 font-bold text-gray-900">${b.nom}</td>
+                    <td class="py-4 px-6 text-gray-400 font-mono text-xs">@${b.slug || b.username}</td>
+                    <td class="py-4 px-6 text-right text-sm text-gray-500">${dateCreation}</td>
+                    <td class="py-4 px-6 text-right">
+                      <button onclick="window.open('/dashboard', '_blank')" class="bg-white border border-gray-200 text-nuvy hover:bg-nuvy hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ml-auto">
+                        <i data-lucide="external-link" class="h-3 w-3"></i> Gérer
+                      </button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('kpi-total-boutiques').innerText = totalBoutiques;
+            document.getElementById('overview-kpi-actives').innerText = countActives;
+            document.getElementById('fleet-kpi-actives').innerText = countActives;
+            document.getElementById('fleet-kpi-attention').innerText = countAttention;
+            document.getElementById('fleet-kpi-inactives').innerText = countInactives;
+            lucide.createIcons();
+        } catch (e) {
+            console.error("Erreur chargement flotte:", e);
+        }
+    }
+
+    async function chargerStatsGlobales() {
+        try {
+            const res = await fetch('/admin/global-stats', { headers: { 'x-ceo-key': CEO_KEY } });
+            if (!res.ok) return;
+            const stats = await res.json();
+
+            document.getElementById('kpi-scans-today').innerText = stats.scansAujourdhui.toLocaleString();
+            document.getElementById('kpi-health').innerText = stats.healthScore + '%';
+            document.getElementById('total-clients-global').innerText = stats.totalClients.toLocaleString();
+
+            const labels = { default: 'Standard', boulangerie: 'Boulangerie', pizza: 'Pizzeria', onglerie: 'Beauté/Onglerie', coiffeur: 'Coiffeur', cafe: 'Café' };
+            const total = Object.values(stats.secteurs).reduce((a, b) => a + b, 0) || 1;
+            const secteursEl = document.getElementById('secteurs-list');
+            if (secteursEl && stats.secteurs) {
+                secteursEl.innerHTML = Object.entries(stats.secteurs)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([k, v]) => {
+                        const pct = Math.round((v / total) * 100);
+                        return `<div><div class="flex justify-between text-sm font-bold mb-1"><span>${labels[k] || k}</span><span>${pct}%</span></div><div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="bg-nuvy h-full" style="width:${pct}%"></div></div></div>`;
+                    }).join('');
+            }
+
+            const ctx = document.getElementById('ceoScansChart');
+            if (ctx) {
+                new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: { labels: stats.chartLabels, datasets: [{ label: 'Scans', data: stats.chartData, borderColor: '#2A8C9C', tension: 0.4, fill: true, backgroundColor: 'rgba(42,140,156,0.05)', pointRadius: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+        } catch (e) {
+            console.error("Erreur stats globales:", e);
+        }
+    }
+
+    async function chargerRadar() {
+        try {
+            const res = await fetch('/admin/radar', { headers: { 'x-ceo-key': CEO_KEY } });
+            if (!res.ok) return;
+            const data = await res.json();
+            const churnEl = document.getElementById('radar-churn');
+            if (churnEl) churnEl.innerHTML = data.churn.length === 0
+                ? '<p class="text-sm text-green-600 font-bold text-center py-4">✅ Aucun risque détecté</p>'
+                : data.churn.map(b => `<div class="flex justify-between p-3 bg-red-50 rounded-lg border border-red-100"><span class="text-sm font-bold">${b.nom}</span><span class="text-red-600 font-bold text-xs uppercase">Inactif 7j</span></div>`).join('');
+            const topEl = document.getElementById('radar-top');
+            if (topEl) topEl.innerHTML = data.top.length === 0
+                ? '<p class="text-sm text-gray-400 text-center py-4">Aucune activité cette semaine</p>'
+                : data.top.map((b, i) => `<div class="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100"><span class="text-sm font-bold">${['🥇','🥈','🥉','4.','5.'][i]} ${b.nom}</span><span class="text-nuvy font-bold text-xs">${b.scans} scans</span></div>`).join('');
+        } catch (e) { console.error("Erreur radar:", e); }
+    }
+
     function switchView(viewId, title, btnElement) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(viewId).classList.add('active');
@@ -276,88 +364,16 @@
       });
       btnElement.classList.remove('hover:bg-slate-800', 'hover:text-white', 'text-slate-300');
       btnElement.classList.add('bg-nuvy', 'text-white');
+      if (viewId === 'radar') chargerRadar();
+      if (viewId === 'fleet') chargerFlotteCommercants();
     }
 
-    function openModalCreate() { document.getElementById('modal-create').classList.remove('hidden'); }
-    function closeModalCreate() { document.getElementById('modal-create').classList.add('hidden'); }
-
-    // --- LOGIQUE API ---
-    // 1. On aspire la clé qui est dans ton URL (?key=natrisT05)
-    const urlParams = new URLSearchParams(window.location.search);
-    const CEO_KEY = urlParams.get('key');
-
-    // 1. Initialisation de tes compteurs réels
-            const totalBoutiques = boutiques.length;
-            let countActives = 0;
-            let countAttention = 0;
-            let countInactives = 0;
-
-            const tbody = document.getElementById('fleet-tbody');
-            tbody.innerHTML = '';
-
-            // 2. Traitement de la flotte
-            boutiques.forEach(b => {
-                // Le compteur tourne
-                if (b.statut === 'actif') countActives++;
-                else if (b.statut === 'attention') countAttention++;
-                else countInactives++;
-
-                // Le design de la pastille s'adapte au statut
-                let badgeHtml = '';
-                if (b.statut === 'actif') {
-                    badgeHtml = `<span class="bg-green-100 text-green-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-green-200 shadow-sm">Actif</span>`;
-                } else if (b.statut === 'attention') {
-                    badgeHtml = `<span class="bg-amber-100 text-amber-700 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-amber-200 shadow-sm">Attention</span>`;
-                } else {
-                    badgeHtml = `<span class="bg-gray-100 text-gray-500 text-[10px] uppercase font-extrabold px-2 py-1 rounded-full border border-gray-200 shadow-sm">Inactif</span>`;
-                }
-
-                const dateCreation = new Date(b.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 transition group";
-                
-                tr.innerHTML = `
-                    <td class="py-4 px-6">${badgeHtml}</td>
-                    <td class="py-4 px-6 font-bold text-gray-900">${b.nom}</td>
-                    <td class="py-4 px-6 text-gray-400 font-mono text-xs">@${b.slug || b.username}</td>
-                    <td class="py-4 px-6 text-right text-sm text-gray-500 font-medium">${dateCreation}</td>
-                    <td class="py-4 px-6 text-right">
-                      <button onclick="window.open('/dashboard', '_blank')" class="bg-white border border-gray-200 text-nuvy hover:bg-nuvy hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ml-auto shadow-sm">
-                        <i data-lucide="external-link" class="h-3 w-3"></i> Gérer
-                      </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            // 3. Affichage des KPIs dynamiques
-            document.getElementById('kpi-total-boutiques').innerText = totalBoutiques;
-            document.getElementById('overview-kpi-actives').innerText = countActives;
-            document.getElementById('fleet-kpi-actives').innerText = countActives;
-            document.getElementById('fleet-kpi-attention').innerText = countAttention;
-            document.getElementById('fleet-kpi-inactives').innerText = countInactives;
-            document.getElementById('total-clients-global').innerText = (totalBoutiques * 12).toLocaleString();
-
-            lucide.createIcons();
-
     window.addEventListener('DOMContentLoaded', () => {
-        if(CEO_KEY) {
+        if (CEO_KEY) {
             chargerFlotteCommercants();
+            chargerStatsGlobales();
         } else {
             console.error("❌ Aucune clé trouvée dans l'URL !");
-        }
-        
-        // Graphique fictif pour le design
-        const ctx = document.getElementById('ceoScansChart');
-        if (ctx) {
-            new Chart(ctx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: Array.from({length: 30}, (_, i) => `J-${30-i}`),
-                    datasets: [{ label: 'Scans', data: Array.from({length: 30}, () => Math.floor(Math.random() * 5000 + 10000)), borderColor: '#2A8C9C', tension: 0.4, fill: true, backgroundColor: 'rgba(42, 140, 156, 0.05)', pointRadius: 0 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
         }
     });
     async function creerBoutique() {

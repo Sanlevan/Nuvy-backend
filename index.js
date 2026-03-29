@@ -230,17 +230,6 @@ app.post('/admin/create-boutique', async (req, res) => {
     } catch (e) { res.status(400).json({ message: e.message }); }
 });
 
-// VOIR TOUTES LES BOUTIQUES
-app.get('/admin/boutiques', async (req, res) => {
-    const ceoKey = req.headers['x-ceo-key'];
-    
-    // 🛡️ CORRECTION ICI
-    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
-
-    const { data, error } = await supabase.from('boutiques').select('id, nom, username, slug, created_at');
-    if (error) return res.status(500).json(error);
-    res.json(data);
-});
 
 // RÉINITIALISER UN MOT DE PASSE
 app.post('/admin/reset-password', async (req, res) => {
@@ -442,6 +431,123 @@ app.put('/boutiques/:id', async (req, res) => {
     } catch (e) {
         console.error("Erreur Profil:", e);
         res.status(500).json({ error: "Erreur lors de la mise à jour du profil" });
+    }
+});
+
+app.get('/boutiques/:id', async (req, res) => {
+    const { data, error } = await supabase.from('boutiques').select('*').eq('id', req.params.id).single();
+    if (error) return res.status(404).json({ error: 'Boutique introuvable' });
+    res.json(data);
+});
+
+app.get('/boutiques/:id/passages-du-jour', async (req, res) => {
+    const debut = new Date();
+    debut.setHours(0, 0, 0, 0);
+    const { data } = await supabase.from('visites').select('id').eq('boutique_id', req.params.id).gte('created_at', debut.toISOString());
+    res.json({ count: data?.length || 0 });
+});
+
+app.get('/boutiques/:id/stats', async (req, res) => {
+    try {
+        const [{ data: visites }, { data: clients }] = await Promise.all([
+            supabase.from('visites').select('created_at').eq('boutique_id', req.params.id),
+            supabase.from('clients').select('tampons').eq('boutique_id', req.params.id)
+        ]);
+        const { data: boutique } = await supabase.from('boutiques').select('max_tampons').eq('id', req.params.id).single();
+        const maxT = boutique?.max_tampons || 10;
+
+        const peakHours = Array(24).fill(0);
+        if (visites) visites.forEach(v => { peakHours[new Date(v.created_at).getHours()]++; });
+
+        const distribution = Array(maxT + 1).fill(0);
+        if (clients) clients.forEach(c => { distribution[Math.min(c.tampons || 0, maxT)]++; });
+
+        let avgFrequency = '--';
+        if (visites && visites.length > 1) {
+            const sorted = visites.map(v => new Date(v.created_at).getTime()).sort((a, b) => a - b);
+            const diffs = [];
+            for (let i = 1; i < sorted.length; i++) diffs.push((sorted[i] - sorted[i-1]) / 86400000);
+            avgFrequency = Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length);
+        }
+
+        res.json({ avgFrequency, peakHours, distribution });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/admin/global-stats', async (req, res) => {
+    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
+    try {
+        const trenteJours = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+
+        const [{ data: visites }, { count: totalClients }, { data: visitesAujourd }, { data: boutiques }] = await Promise.all([
+            supabase.from('visites').select('created_at').gte('created_at', trenteJours),
+            supabase.from('clients').select('*', { count: 'exact', head: true }),
+            supabase.from('visites').select('id').gte('created_at', today.toISOString()),
+            supabase.from('boutiques').select('id')
+        ]);
+
+        const scansParJour = {};
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date(Date.now() - i * 86400000);
+            scansParJour[d.toISOString().split('T')[0]] = 0;
+        }
+        if (visites) visites.forEach(v => {
+            const jour = v.created_at.split('T')[0];
+            if (scansParJour[jour] !== undefined) scansParJour[jour]++;
+        });
+
+        const totalBoutiques = boutiques?.length || 0;
+        const septJours = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: actives7j } = await supabase.from('visites').select('boutique_id').gte('created_at', septJours);
+        const activesIds = new Set(actives7j?.map(v => v.boutique_id) || []);
+        const healthScore = totalBoutiques > 0 ? Math.round((activesIds.size / totalBoutiques) * 100) : 0;
+
+        const { data: boutiquesAvecCategorie } = await supabase.from('boutiques').select('categorie');
+        const secteurs = {};
+        boutiquesAvecCategorie?.forEach(b => { const c = b.categorie || 'default'; secteurs[c] = (secteurs[c] || 0) + 1; });
+
+        res.json({
+            scansAujourdhui: visitesAujourd?.length || 0,
+            totalClients: totalClients || 0,
+            healthScore,
+            secteurs,
+            chartLabels: Object.keys(scansParJour).map(d => d.slice(5)),
+            chartData: Object.values(scansParJour)
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/admin/radar', async (req, res) => {
+    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
+    try {
+        const sept = new Date(Date.now() - 7 * 86400000).toISOString();
+        const trente = new Date(Date.now() - 30 * 86400000).toISOString();
+
+        const [{ data: boutiques }, { data: v7j }, { data: v30j }] = await Promise.all([
+            supabase.from('boutiques').select('id, nom'),
+            supabase.from('visites').select('boutique_id').gte('created_at', sept),
+            supabase.from('visites').select('boutique_id').gte('created_at', trente)
+        ]);
+
+        const ids7j = new Set(v7j?.map(v => v.boutique_id));
+        const compte7j = {};
+        v7j?.forEach(v => { compte7j[v.boutique_id] = (compte7j[v.boutique_id] || 0) + 1; });
+
+        const churn = boutiques?.filter(b => !ids7j.has(b.id) && v30j?.some(v => v.boutique_id === b.id)) || [];
+        const top = boutiques
+            ?.filter(b => ids7j.has(b.id))
+            .map(b => ({ ...b, scans: compte7j[b.id] || 0 }))
+            .sort((a, b) => b.scans - a.scans)
+            .slice(0, 5) || [];
+
+        res.json({ churn, top });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
