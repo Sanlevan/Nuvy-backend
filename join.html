@@ -18,8 +18,8 @@
         .btn-submit { width: 100%; padding: 22px; background: #2A8C9C; color: white; border: none; border-radius: 18px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(42, 140, 156, 0.2); }
         #success-view { display: none; }
-        .wallet-btn-fallback { background: #000; color: #FFF; border: none; padding: 18px 25px; border-radius: 12px; font-size: 16px; font-weight: 600; margin-top: 25px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s; }
-        .wallet-btn-fallback:hover { transform: scale(1.02); }
+        .wallet-btn { display: inline-block; margin-top: 25px; }
+        .wallet-btn img { height: 50px; }
         .spinner { border: 4px solid rgba(42, 140, 156, 0.1); border-left-color: #2A8C9C; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -36,13 +36,11 @@
             <button class="btn-submit" onclick="creerCarte()">CRÉER MA CARTE</button>
         </div>
         <div id="success-view">
-            <div class="spinner"></div>
             <h1 style="color: #2A8C9C;">Carte prête !</h1>
-            <p>Ouverture automatique d'Apple Wallet en cours...</p>
-            <button class="wallet-btn-fallback" onclick="telechargerPass()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
-                Ouvrir ma carte manuellement
-            </button>
+            <p>Appuyez sur le bouton ci-dessous pour l'ajouter à votre Apple Wallet.</p>
+            <a id="wallet-link" href="#" class="wallet-btn">
+                <img src="https://developer.apple.com/wallet/add-to-apple-wallet-badge.svg" alt="Ajouter à Apple Wallet">
+            </a>
         </div>
     </div>
     <script>
@@ -84,8 +82,9 @@
                 if (res.ok) {
                     const data = await res.json(); passToken = data.token;
                     localStorage.setItem('nuvy_token', passToken);
-                    document.getElementById('form-view').style.display = 'none'; document.getElementById('success-view').style.display = 'block';
-                    setTimeout(() => { window.location.href = `/pass/${passToken}`; }, 1000);
+                    document.getElementById('wallet-link').href = `/pass/${passToken}`;
+                    document.getElementById('form-view').style.display = 'none';
+                    document.getElementById('success-view').style.display = 'block';
                 } else { alert("Erreur."); btn.innerText = "CRÉER MA CARTE"; btn.disabled = false; }
             } catch (error) { alert("Erreur réseau."); btn.innerText = "CRÉER MA CARTE"; btn.disabled = false; }
         }
