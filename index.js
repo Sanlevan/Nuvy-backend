@@ -699,9 +699,21 @@ app.get('/tap/:slug', (req, res) => {
 });
 
 app.post('/tap/:slug/notify', async (req, res) => {
-    const { data: clientData } = await supabase.from('clients').select('*').eq('token', req.query.token).single();
-    if (clientData) { io.to(req.params.slug.toLowerCase().trim()).emit('client-detected', clientData); res.json({ success: true }); } 
-    else res.status(404).send();
+    try {
+        const { data: clientData } = await supabase.from('clients').select('*').eq('token', req.query.token).single();
+        if (clientData) { 
+            // 🌟 1. On met à jour l'heure de visite pour remonter le client dans la liste
+            await supabase.from('clients').update({ last_visit: new Date().toISOString() }).eq('id', clientData.id);
+            // 🌟 2. On fait "popper" la carte sur le dashboard commerçant
+            io.to(req.params.slug.toLowerCase().trim()).emit('client-detected', clientData); 
+            res.json({ success: true }); 
+        } else {
+            res.status(404).send();
+        }
+    } catch (e) {
+        console.error("❌ Erreur Tap Notify:", e);
+        res.status(500).send();
+    }
 });
 
 // ==========================================
@@ -744,20 +756,21 @@ app.post('/join/:slug/create', async (req, res) => {
             .select('*')
             .eq('telephone', telephone)
             .eq('boutique_id', b.id)
-            .maybeSingle(); // maybeSingle évite que le code plante s'il ne trouve personne
+            .maybeSingle(); 
 
         if (existingClient) {
             // SCÉNARIO A : LA CLIENTE REVIENT !
-            // On ne crée rien. On lui redonne juste la clé de son ancien compte.
-            // Son téléphone va télécharger l'ancienne carte avec ses 3 points intacts.
+            // 🌟 MAGIE : On met à jour sa visite et on fait sonner le dashboard !
+            await supabase.from('clients').update({ last_visit: new Date().toISOString() }).eq('id', existingClient.id);
+            io.to(req.params.slug.toLowerCase().trim()).emit('client-detected', existingClient);
             return res.json({ token: existingClient.token });
         }
 
         // SCÉNARIO B : NOUVEAU CLIENT
-        // On génère la carte à 0 point comme d'habitude.
         const token = crypto.randomUUID();
         const ua = req.headers['user-agent'] || '';
         const device_type = /iphone|ipad|ipod/i.test(ua) ? 'ios' : /android/i.test(ua) ? 'android' : 'other';
+        
         const { data } = await supabase.from('clients').insert([{
             boutique_id: b.id,
             nom: `${prenom} ${nom}`,
@@ -770,6 +783,8 @@ app.post('/join/:slug/create', async (req, res) => {
             device_type,
         }]).select().single();
         
+        // 🌟 MAGIE : Le nouveau client fait sonner le dashboard immédiatement !
+        io.to(req.params.slug.toLowerCase().trim()).emit('client-detected', data);
         res.json({ token: data.token });
 
     } catch (e) {
