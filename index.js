@@ -62,20 +62,22 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             if (response.ok) {
                 const buffer = Buffer.from(await response.arrayBuffer());
                 
-                // ✂️ MAGIE : On coupe le vide transparent géant autour du logo !
+                // ✂️ 1. On coupe le vide transparent autour du logo original
                 let imgClean = buffer;
                 try { imgClean = await sharp(buffer).trim().toBuffer(); } catch(e) {}
 
-                // --- 1. LE LOGO (SUR LA CARTE, EN HAUT À GAUCHE) ---
+                // --- 2. LE LOGO (SUR LA CARTE) ---
+                // Il a le droit d'être rectangulaire, on le laisse s'adapter parfaitement (inside)
                 await sharp(imgClean).resize(480, 150, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@3x.png'));
                 await sharp(imgClean).resize(320, 100, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo@2x.png'));
                 await sharp(imgClean).resize(160, 50,  { fit: 'inside' }).png().toFile(path.join(tmpDir, 'logo.png'));
                 
-                // --- 2. L'ICÔNE (POUR LES NOTIFICATIONS) ---
-                // 🚨 CORRECTION : "inside" pour empêcher le logo de devenir minuscule !
-                await sharp(imgClean).resize(174, 174, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'icon@3x.png'));
-                await sharp(imgClean).resize(116, 116, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'icon@2x.png'));
-                await sharp(imgClean).resize(58, 58, { fit: 'inside' }).png().toFile(path.join(tmpDir, 'icon.png'));
+                // --- 3. L'ICÔNE (NOTIFICATIONS ET ÉCRAN VERROUILLÉ) ---
+                // 🚨 OBLIGATOIRE : Doit être un carré parfait (contain avec fond transparent)
+                // Et on utilise les VRAIES tailles exigées par Apple (87, 58, 29)
+                await sharp(imgClean).resize(87, 87, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@3x.png'));
+                await sharp(imgClean).resize(58, 58, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon@2x.png'));
+                await sharp(imgClean).resize(29, 29, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toFile(path.join(tmpDir, 'icon.png'));
             }
         } catch (e) {
             console.error("❌ Erreur de traitement d'image :", e);
