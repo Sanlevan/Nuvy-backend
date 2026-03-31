@@ -89,7 +89,7 @@
                 if (res.ok) {
                     const data = await res.json(); 
                     passToken = data.token;
-                    localStorage.setItem('nuvy_token', passToken);
+                    localStorage.setItem('nuvy_token_' + urlSlug, passToken);
                     
                     document.getElementById('form-view').style.display = 'none';
                     document.getElementById('success-view').style.display = 'block';

@@ -780,10 +780,11 @@ app.get('/tap/:slug', (req, res) => {
         </div>
         
         <script>
-            const token = localStorage.getItem('nuvy_token');
             const slug = '${slug}';
             
-            // Le petit "Ding" de succès !
+            // 🚨 CORRECTION : On cherche la boîte SPÉCIFIQUE à cette boutique !
+            const token = localStorage.getItem('nuvy_token_' + slug);
+            
             function playDing() {
                 try {
                     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -801,20 +802,21 @@ app.get('/tap/:slug', (req, res) => {
             }
 
             if (!token) {
+                // Si la personne n'a pas la carte de CETTE boutique, on l'envoie s'inscrire !
                 window.location.href = '/join/' + slug;
             } else {
                 fetch('/tap/' + slug + '/notify?token=' + token, { method: 'POST' })
                 .then(r => {
                     if(r.ok) {
                         playDing();
-                        // Animation vers le succès
                         const box = document.getElementById('ui-box');
                         document.getElementById('loader-view').style.display = 'none';
                         document.getElementById('success-view').style.display = 'block';
                         box.classList.add('success');
                         document.getElementById('wallet-btn').href = '/pass/' + token;
                     } else if (r.status === 404) {
-                        localStorage.removeItem('nuvy_token');
+                        // 🚨 CORRECTION : On supprime la bonne boîte si la carte n'existe plus !
+                        localStorage.removeItem('nuvy_token_' + slug);
                         window.location.href = '/join/' + slug;
                     } else {
                         throw new Error();
