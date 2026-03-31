@@ -482,11 +482,20 @@
             if (res.ok) {
                 const b = await res.json();
                 if (b.adresse) {
+                    // On découpe l'adresse proprement pour remplir les cases
                     const parts = b.adresse.split(',');
-                    if (parts.length > 1) {
-                        document.getElementById('edit-city').value = parts.pop().trim();
-                        document.getElementById('edit-street').value = parts.join(',').trim();
-                    } else { document.getElementById('edit-street').value = b.adresse; document.getElementById('edit-city').value = ""; }
+                    if (parts.length === 3) {
+                        document.getElementById('edit-street').value = parts[0].trim();
+                        const zipCity = parts[1].trim().split(' ');
+                        document.getElementById('edit-zip').value = zipCity[0] || "";
+                        document.getElementById('edit-city').value = zipCity.slice(1).join(' ') || "";
+                        document.getElementById('edit-country').value = parts[2].trim();
+                    } else if (parts.length === 2) {
+                        document.getElementById('edit-street').value = parts[0].trim();
+                        document.getElementById('edit-city').value = parts[1].trim();
+                    } else { 
+                        document.getElementById('edit-street').value = b.adresse; 
+                    }
                 }
                 document.getElementById('edit-phone').value = b.telephone || "";
             }
@@ -496,10 +505,24 @@
     async function saveProfile() {
         const btn = document.getElementById('btn-save-profile');
         btn.disabled = true; btn.innerText = "ENREGISTREMENT...";
-        const body = { adresse: `${document.getElementById('edit-street').value.trim()}, ${document.getElementById('edit-city').value.trim()}`, telephone: document.getElementById('edit-phone').value.trim() };
+        
+        // On récupère toutes les cases
+        const street = document.getElementById('edit-street').value.trim();
+        const zip = document.getElementById('edit-zip').value.trim();
+        const city = document.getElementById('edit-city').value.trim();
+        const country = document.getElementById('edit-country').value.trim();
+        const phone = document.getElementById('edit-phone').value.trim();
+        
+        // On assemble l'adresse parfaite pour l'API GPS (Ex: "12 rue de Paris, 75000 Ville, France")
+        const adresseComplete = `${street}, ${zip} ${city}, ${country}`;
+
         try {
-            const res = await fetch(`/boutiques/${boutiqueId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-            if (res.ok) alert("✅ Profil mis à jour !");
+            const res = await fetch(`/boutiques/${boutiqueId}`, { 
+                method: 'PUT', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ adresse: adresseComplete, telephone: phone }) 
+            });
+            if (res.ok) alert("✅ Profil et Coordonnées GPS mis à jour !");
         } catch (e) { console.error(e); } finally { btn.disabled = false; btn.innerText = "ENREGISTRER LES MODIFICATIONS"; }
     }
 async function changerMotDePasse() {
