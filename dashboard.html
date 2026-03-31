@@ -208,12 +208,22 @@
       <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 lg:p-8">
         <div class="space-y-5">
           <div>
-            <label class="text-sm font-bold text-gray-700">Adresse de la boutique</label>
+            <label class="text-sm font-bold text-gray-700">Numéro et rue</label>
             <input type="text" id="edit-street" placeholder="Ex: 12 avenue des Champs-Élysées" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
           </div>
+          <div class="flex gap-4">
+            <div class="w-1/3">
+              <label class="text-sm font-bold text-gray-700">Code postal</label>
+              <input type="text" id="edit-zip" placeholder="75008" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+            </div>
+            <div class="w-2/3">
+              <label class="text-sm font-bold text-gray-700">Ville</label>
+              <input type="text" id="edit-city" placeholder="Paris" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+            </div>
+          </div>
           <div>
-            <label class="text-sm font-bold text-gray-700">Code postal et ville</label>
-            <input type="text" id="edit-city" placeholder="Ex: 75008 Paris" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+            <label class="text-sm font-bold text-gray-700">Pays</label>
+            <input type="text" id="edit-country" value="France" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
           </div>
           <div>
             <label class="text-sm font-bold text-gray-700">Téléphone public</label>
