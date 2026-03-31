@@ -427,41 +427,37 @@ app.post('/boutiques/:id/clients-manuels', async (req, res) => {
 // --- NOUVEAU : MISE À JOUR DU PROFIL BOUTIQUE ---
 // --- NOUVEAU : MISE À JOUR DU PROFIL BOUTIQUE (AVEC GÉOCODAGE) ---
 // --- MISE À JOUR DU PROFIL BOUTIQUE (AVEC GÉOCODAGE BAVARD) ---
+// --- MISE À JOUR DU PROFIL BOUTIQUE (AVEC DIAGNOSTIC GPS) ---
 app.put('/boutiques/:id', async (req, res) => {
     const { id } = req.params;
     const { adresse, telephone } = req.body;
 
     let latitude = null;
     let longitude = null;
+    let geoDebug = "Non tenté"; // Notre mouchard
 
     try {
         if (adresse && adresse.trim() !== "") {
-            console.log(`🌍 [GÉOCODAGE] Recherche des coordonnées pour : "${adresse}"`);
             try {
                 const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(adresse)}`;
-                
                 const geoRes = await fetch(url, {
-                    headers: { 
-                        // 🚨 CRUCIAL : Remplace par ta vraie adresse email !
-                        'User-Agent': 'NuvyApp/1.0 (ton-email@gmail.com)' 
-                    }
+                    headers: { 'User-Agent': 'NuvyApp/1.0 (contact@nuvy.pro)' }
                 });
                 
                 if (!geoRes.ok) {
-                    console.error(`❌ [GÉOCODAGE] L'API a rejeté la requête. Code erreur : ${geoRes.status}`);
+                    geoDebug = `API Rejet (Code ${geoRes.status})`;
                 } else {
                     const geoData = await geoRes.json();
-                    
                     if (geoData && geoData.length > 0) {
                         latitude = parseFloat(geoData[0].lat);
                         longitude = parseFloat(geoData[0].lon);
-                        console.log(`✅ [GÉOCODAGE] Succès ! Lat: ${latitude}, Lon: ${longitude}`);
+                        geoDebug = "Succès";
                     } else {
-                        console.log(`⚠️ [GÉOCODAGE] L'API n'a rien trouvé. L'adresse est-elle assez précise (ex: inclut le pays) ?`);
+                        geoDebug = "Adresse introuvable par le GPS";
                     }
                 }
             } catch (geoErr) {
-                console.error("❌ [GÉOCODAGE] Crash total de la requête :", geoErr.message);
+                geoDebug = `Erreur réseau: ${geoErr.message}`;
             }
         }
 
@@ -478,11 +474,13 @@ app.put('/boutiques/:id', async (req, res) => {
             .select()
             .single();
 
-        if (error) throw error;
-        res.json(data);
+        // 🚨 Si Supabase refuse d'enregistrer, on renvoie l'erreur !
+        if (error) return res.status(400).json({ error: error.message });
+        
+        // On renvoie un bilan complet au Dashboard
+        res.json({ data, geoDebug, latitude, longitude });
     } catch (e) {
-        console.error("Erreur Profil:", e);
-        res.status(500).json({ error: "Erreur lors de la mise à jour du profil" });
+        res.status(500).json({ error: e.message });
     }
 });
 

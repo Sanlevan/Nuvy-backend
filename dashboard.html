@@ -522,8 +522,25 @@
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({ adresse: adresseComplete, telephone: phone }) 
             });
-            if (res.ok) alert("✅ Profil et Coordonnées GPS mis à jour !");
-        } catch (e) { console.error(e); } finally { btn.disabled = false; btn.innerText = "ENREGISTRER LES MODIFICATIONS"; }
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                if (data.latitude) {
+                    alert(`✅ Parfait ! Coordonnées GPS trouvées et sauvegardées !`);
+                } else {
+                    alert(`⚠️ Profil sauvegardé, mais échec du GPS.\nRaison : ${data.geoDebug}`);
+                }
+            } else {
+                alert(`❌ Erreur Base de données :\n${data.error}\n\n👉 Avez-vous bien créé les colonnes 'latitude' et 'longitude' (en type float8) dans la table boutiques sur Supabase ?`);
+            }
+        } catch (e) { 
+            console.error(e); 
+            alert("Erreur réseau inattendue.");
+        } finally { 
+            btn.disabled = false; 
+            btn.innerText = "ENREGISTRER LES MODIFICATIONS"; 
+        }
     }
 async function changerMotDePasse() {
         const oldP = prompt("Ancien mot de passe :");
