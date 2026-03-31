@@ -107,6 +107,19 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     passJson.description = `Carte de fidélité ${boutique.nom || ""}`;
     passJson.logoText = (boutique.nom && boutique.nom.trim() !== "") ? boutique.nom : "Fidélité";
 
+    // 📍 GÉOLOCALISATION
+    if (boutique.latitude && boutique.longitude) {
+        passJson.locations = [
+            {
+                latitude: parseFloat(boutique.latitude),
+                longitude: parseFloat(boutique.longitude),
+                relevantText: `Votre carte ${boutique.nom || "de fidélité"} est prête à être scannée !`
+            }
+        ];
+        // 🎯 On demande 500 mètres (Apple appliquera 500m, ou son propre maximum s'il est inférieur)
+        passJson.maxDistance = 500; 
+    }
+
     const maxT = boutique.max_tampons || 10;
     const { data: allClients } = await supabase.from('clients').select('id, total_historique').eq('boutique_id', boutique.id);
     let vraiRang = 1;
