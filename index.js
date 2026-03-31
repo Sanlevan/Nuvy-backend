@@ -425,14 +425,47 @@ app.post('/boutiques/:id/clients-manuels', async (req, res) => {
     }
 });
 // --- NOUVEAU : MISE À JOUR DU PROFIL BOUTIQUE ---
+// --- NOUVEAU : MISE À JOUR DU PROFIL BOUTIQUE (AVEC GÉOCODAGE) ---
 app.put('/boutiques/:id', async (req, res) => {
     const { id } = req.params;
     const { adresse, telephone } = req.body;
 
+    let latitude = null;
+    let longitude = null;
+
     try {
+        // 🌍 MAGIE : Transformation automatique de l'adresse en coordonnées GPS
+        if (adresse && adresse.trim() !== "") {
+            try {
+                // On interroge l'API gratuite OpenStreetMap
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(adresse)}`, {
+                    headers: { 'User-Agent': 'NuvyApp/1.0' } // L'API exige qu'on se présente
+                });
+                const geoData = await geoRes.json();
+                
+                // Si l'API a trouvé l'adresse, on extrait la latitude et la longitude
+                if (geoData && geoData.length > 0) {
+                    latitude = parseFloat(geoData[0].lat);
+                    longitude = parseFloat(geoData[0].lon);
+                    console.log(`📍 Coordonnées générées pour ${adresse} : ${latitude}, ${longitude}`);
+                }
+            } catch (geoErr) {
+                console.error("❌ Erreur de géocodage automatique :", geoErr);
+            }
+        }
+
+        // On prépare les données à envoyer à Supabase
+        const updatePayload = { adresse, telephone };
+        
+        // Si on a réussi à choper les coordonnées, on les ajoute à la sauvegarde !
+        if (latitude && longitude) {
+            updatePayload.latitude = latitude;
+            updatePayload.longitude = longitude;
+        }
+
         const { data, error } = await supabase
             .from('boutiques')
-            .update({ adresse, telephone })
+            .update(updatePayload)
             .eq('id', id)
             .select()
             .single();
