@@ -426,6 +426,7 @@ app.post('/boutiques/:id/clients-manuels', async (req, res) => {
 });
 // --- NOUVEAU : MISE À JOUR DU PROFIL BOUTIQUE ---
 // --- NOUVEAU : MISE À JOUR DU PROFIL BOUTIQUE (AVEC GÉOCODAGE) ---
+// --- MISE À JOUR DU PROFIL BOUTIQUE (AVEC GÉOCODAGE BAVARD) ---
 app.put('/boutiques/:id', async (req, res) => {
     const { id } = req.params;
     const { adresse, telephone } = req.body;
@@ -434,30 +435,37 @@ app.put('/boutiques/:id', async (req, res) => {
     let longitude = null;
 
     try {
-        // 🌍 MAGIE : Transformation automatique de l'adresse en coordonnées GPS
         if (adresse && adresse.trim() !== "") {
+            console.log(`🌍 [GÉOCODAGE] Recherche des coordonnées pour : "${adresse}"`);
             try {
-                // On interroge l'API gratuite OpenStreetMap
-                const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(adresse)}`, {
-                    headers: { 'User-Agent': 'NuvyApp/1.0' } // L'API exige qu'on se présente
-                });
-                const geoData = await geoRes.json();
+                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(adresse)}`;
                 
-                // Si l'API a trouvé l'adresse, on extrait la latitude et la longitude
-                if (geoData && geoData.length > 0) {
-                    latitude = parseFloat(geoData[0].lat);
-                    longitude = parseFloat(geoData[0].lon);
-                    console.log(`📍 Coordonnées générées pour ${adresse} : ${latitude}, ${longitude}`);
+                const geoRes = await fetch(url, {
+                    headers: { 
+                        // 🚨 CRUCIAL : Remplace par ta vraie adresse email !
+                        'User-Agent': 'NuvyApp/1.0 (ton-email@gmail.com)' 
+                    }
+                });
+                
+                if (!geoRes.ok) {
+                    console.error(`❌ [GÉOCODAGE] L'API a rejeté la requête. Code erreur : ${geoRes.status}`);
+                } else {
+                    const geoData = await geoRes.json();
+                    
+                    if (geoData && geoData.length > 0) {
+                        latitude = parseFloat(geoData[0].lat);
+                        longitude = parseFloat(geoData[0].lon);
+                        console.log(`✅ [GÉOCODAGE] Succès ! Lat: ${latitude}, Lon: ${longitude}`);
+                    } else {
+                        console.log(`⚠️ [GÉOCODAGE] L'API n'a rien trouvé. L'adresse est-elle assez précise (ex: inclut le pays) ?`);
+                    }
                 }
             } catch (geoErr) {
-                console.error("❌ Erreur de géocodage automatique :", geoErr);
+                console.error("❌ [GÉOCODAGE] Crash total de la requête :", geoErr.message);
             }
         }
 
-        // On prépare les données à envoyer à Supabase
         const updatePayload = { adresse, telephone };
-        
-        // Si on a réussi à choper les coordonnées, on les ajoute à la sauvegarde !
         if (latitude && longitude) {
             updatePayload.latitude = latitude;
             updatePayload.longitude = longitude;
