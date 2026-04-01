@@ -1074,20 +1074,18 @@ app.post('/join/:slug/create', async (req, res) => {
 // --- ROUTE : GÉNÉRER LA CARTE GOOGLE WALLET ---
 app.get('/google-pass/:token', async (req, res) => {
     try {
-        const { token } = req.params;
+        // 1. On cherche le client par son token UUID (comme pour Apple)
+        const { data: client } = await supabase.from('clients').select('*, boutiques(*)').eq('token', req.params.token).single();
         
-        // 1. On décode le token exactemment comme on le fait pour Apple
-        // (⚠️ Assure-toi que cette ligne utilise bien ta clé secrète habituelle)
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'nuvy_secret_key'); 
+        if (!client || !client.boutiques) return res.status(404).send("Carte introuvable");
 
-        // 2. On récupère les infos en base de données
-        const { data: client } = await supabase.from('clients').select('*').eq('id', decoded.clientId).single();
-        const { data: boutique } = await supabase.from('boutiques').select('*').eq('id', decoded.boutiqueId).single();
-
-        if (!client || !boutique) return res.status(404).send("Carte introuvable");
+        // 2. On vérifie que les credentials Google sont disponibles
+        if (!googleCredentials) {
+            return res.status(500).send("Google Wallet non configuré sur ce serveur.");
+        }
 
         // 3. On génère le lien magique
-        const googleLink = generateGoogleWalletLink(client, boutique);
+        const googleLink = generateGoogleWalletLink(client, client.boutiques);
 
         // 4. On redirige le client vers l'application Google Wallet !
         res.redirect(googleLink);
