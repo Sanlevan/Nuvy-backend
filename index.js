@@ -643,7 +643,8 @@ app.get('/admin/boutiques', async (req, res) => {
 });
 
 app.get('/boutiques/:id/clients', verifyAuthOwner, async (req, res) => {
-    const { data } = await supabase.from('clients').select('*').eq('boutique_id', req.params.id).order('last_visit', { ascending: false });
+    const { data, error } = await supabase.from('clients').select('*').eq('boutique_id', req.params.id).order('last_visit', { ascending: false });
+    if (error) return res.status(500).json({ error: "Erreur lors du chargement des clients." });
     res.json(data || []);
 });
 // --- CRÉATION MANUELLE D'UN CLIENT ---
@@ -753,7 +754,8 @@ app.get('/boutiques/:id', verifyAuthOwner, async (req, res) => {
 app.get('/boutiques/:id/passages-du-jour', verifyAuthOwner, async (req, res) => {
     const debut = new Date();
     debut.setHours(0, 0, 0, 0);
-    const { data } = await supabase.from('visites').select('id').eq('boutique_id', req.params.id).gte('created_at', debut.toISOString());
+    const { data, error } = await supabase.from('visites').select('id').eq('boutique_id', req.params.id).gte('created_at', debut.toISOString());
+    if (error) return res.status(500).json({ error: "Erreur lors du comptage des passages." });
     res.json({ count: data?.length || 0 });
 });
 
@@ -1116,9 +1118,12 @@ app.get('/tap/:slug', (req, res) => {
 
 app.post('/tap/:slug/notify', limiterStrict, async (req, res) => {
     try {
-        const { data: clientData } = await supabase.from('clients').select('*').eq('token', req.query.token).single();
+        const { data: clientData, error } = await supabase.from('clients').select('*').eq('token', req.query.token).single();
         
-        if (clientData) { 
+        if (error || !clientData) { 
+            return res.status(404).send();
+        }
+        if (clientData) {
             // 🌟 1. On met à jour l'heure de visite pour remonter le client dans la liste du Dashboard !
             await supabase.from('clients').update({ last_visit: new Date().toISOString() }).eq('id', clientData.id);
             
@@ -1243,25 +1248,28 @@ app.get('/google-pass/:token', async (req, res) => {
 // WEB SERVICES APPLE (ÉCOUTE ET MISES À JOUR)
 // ==========================================
 app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
-    await supabase.from('devices').upsert([{ device_id: req.params.dId, push_token: req.body.pushToken, pass_type_id: req.params.pId, serial_number: req.params.sN }]);
+    const { error } = await supabase.from('devices').upsert([{ device_id: req.params.dId, push_token: req.body.pushToken, pass_type_id: req.params.pId, serial_number: req.params.sN }]);
+    if (error) { console.error("❌ Erreur enregistrement device:", error.message); return res.status(500).send(); }
     res.status(201).send();
 });
 
 app.delete('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
-    await supabase.from('devices').delete().eq('device_id', req.params.dId).eq('serial_number', req.params.sN);
+    const { error } = await supabase.from('devices').delete().eq('device_id', req.params.dId).eq('serial_number', req.params.sN);
+    if (error) { console.error("❌ Erreur suppression device:", error.message); return res.status(500).send(); }
     res.status(200).send();
 });
 
 app.get('/v1/devices/:dId/registrations/:pId', async (req, res) => {
-    const { data } = await supabase.from('devices').select('serial_number').eq('device_id', req.params.dId);
+    const { data, error } = await supabase.from('devices').select('serial_number').eq('device_id', req.params.dId);
+    if (error) { console.error("❌ Erreur lecture devices:", error.message); return res.status(500).send(); }
     if (data && data.length > 0) res.json({ serialNumbers: data.map(d => d.serial_number), lastUpdated: new Date().toISOString() });
     else res.status(204).send();
 });
 
 app.get('/v1/passes/:pId/:sN', async (req, res) => {
     try {
-        const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('serial_number', req.params.sN).single();
-        if(!c) return res.status(404).send();
+        const { data: c, error } = await supabase.from('clients').select('*, boutiques(*)').eq('serial_number', req.params.sN).single();
+        if(error || !c) return res.status(404).send();
         
         const { data: all } = await supabase.from('clients').select('tampons, recompenses').eq('boutique_id', c.boutique_id);
         const maxT = c.boutiques.max_tampons || 10;
