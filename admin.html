@@ -119,7 +119,7 @@
         <div class="flex justify-between items-center">
           <div class="relative w-96">
             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"></i>
-            <input type="text" placeholder="Rechercher une boutique..." class="w-full pl-10 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-nuvy/50 transition-all">
+            <input type="text" oninput="filtrerBoutiques(this.value)" placeholder="Rechercher une boutique..." class="w-full pl-10 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-nuvy/50 transition-all">
           </div>
           <button onclick="openModalCreate()" class="h-11 px-5 bg-nuvy hover:bg-nuvy-dark text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 transition-all active:scale-95">
             <i data-lucide="plus" class="h-4 w-4"></i> Ajouter une boutique
@@ -574,6 +574,15 @@
             btn.innerHTML = 'GÉNÉRER L\'ACCÈS BOUTIQUE';
             btn.disabled = false;
         }
+    }
+    function filtrerBoutiques(query) {
+        const rows = document.querySelectorAll('#fleet-tbody tr');
+        const q = query.toLowerCase().trim();
+        rows.forEach(row => {
+            const nom = row.children[1]?.innerText.toLowerCase() || '';
+            const slug = row.children[2]?.innerText.toLowerCase() || '';
+            row.style.display = (nom.includes(q) || slug.includes(q)) ? '' : 'none';
+        });
     }
     function deconnexion() { window.location.href = '/admin-login'; }
   </script>
