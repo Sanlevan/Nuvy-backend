@@ -169,6 +169,7 @@
               <th class="py-4 px-6 text-xs uppercase tracking-wider font-bold text-gray-500">Total pts</th>
               <th class="py-4 px-6 text-xs uppercase tracking-wider font-bold text-gray-500">Statut carte</th>
               <th class="py-4 px-6 text-xs uppercase tracking-wider font-bold text-gray-500">Cadeaux</th>
+              <th class="py-4 px-6"></th>
             </tr>
           </thead>
           <tbody id="list-body">
@@ -344,6 +345,7 @@
                         <td class="py-3 px-4 font-bold text-gray-500">${c.total_historique || 0} pts totaux</td>
                         <td class="py-3 px-4 font-bold text-nuvy">${c.tampons || 0} / ${storeMax}</td>
                         <td class="py-3 px-4 font-bold text-nuvy-gold">${c.recompenses || 0} 🎁</td>
+                        <td class="py-3 px-4 text-right"><button onclick="supprimerClient(${c.id}, '${c.nom.replace(/'/g, "\\'")}')" class="text-gray-300 hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
                     </tr>`;
                 }).join('');
             }
@@ -515,6 +517,15 @@
         const maxT = localStorage.getItem('nuvy_max_tampons') || 10;
         document.getElementById('c-info').innerText = `${client.total_historique || 0} Pts totaux | Carte : ${client.tampons} / ${maxT} — ${client.recompenses || 0} cadeau(x)`;
         updateUI();
+    }
+
+    async function supprimerClient(clientId, nomClient) {
+        if (!confirm(`Supprimer "${nomClient}" ? Cette action est irréversible.`)) return;
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}/clients/${clientId}`, { method: 'DELETE', headers: AUTH_HEADERS });
+            if (!res.ok) throw new Error("Erreur");
+            loadAnalyticsData();
+        } catch (e) { alert("❌ Erreur lors de la suppression."); }
     }
 
     async function loadAccountData() {

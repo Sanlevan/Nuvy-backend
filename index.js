@@ -523,7 +523,7 @@ app.post('/auth/login', limiterLogin, async (req, res) => {
         res.status(401).json({ error: "Mot de passe incorrect." });
     }
 });
-app.post('/auth/change-password', async (req, res) => {
+app.post('/auth/change-password', verifyAuth, async (req, res) => {
     const { boutiqueId, oldPassword, newPassword } = req.body;
 
     try {
@@ -594,6 +594,31 @@ app.post('/admin/login-as', async (req, res) => {
         token: authToken
     });
 });
+
+// CEO : SUPPRIMER UNE BOUTIQUE
+app.delete('/admin/boutique/:id', async (req, res) => {
+    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
+    
+    try {
+        const boutiqueId = req.params.id;
+        
+        // Supprimer dans l'ordre : devices → visites → clients → boutique
+        const { data: clients } = await supabase.from('clients').select('serial_number').eq('boutique_id', boutiqueId);
+        if (clients && clients.length > 0) {
+            const serials = clients.map(c => c.serial_number).filter(Boolean);
+            if (serials.length > 0) await supabase.from('devices').delete().in('serial_number', serials);
+        }
+        await supabase.from('visites').delete().eq('boutique_id', boutiqueId);
+        await supabase.from('clients').delete().eq('boutique_id', boutiqueId);
+        const { error } = await supabase.from('boutiques').delete().eq('id', boutiqueId);
+        if (error) throw error;
+        
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Erreur lors de la suppression : " + e.message });
+    }
+});
+
 // VOIR TOUTES LES BOUTIQUES (AVEC INTELLIGENCE DES STATUTS)
 app.get('/admin/boutiques', async (req, res) => {
     const ceoKey = req.headers['x-ceo-key'];
@@ -647,6 +672,23 @@ app.get('/boutiques/:id/clients', verifyAuthOwner, async (req, res) => {
     if (error) return res.status(500).json({ error: "Erreur lors du chargement des clients." });
     res.json(data || []);
 });
+
+app.delete('/boutiques/:id/clients/:clientId', verifyAuthOwner, async (req, res) => {
+    try {
+        const { data: client } = await supabase.from('clients').select('serial_number').eq('id', req.params.clientId).eq('boutique_id', req.params.id).single();
+        if (!client) return res.status(404).json({ error: "Client introuvable" });
+        
+        if (client.serial_number) await supabase.from('devices').delete().eq('serial_number', client.serial_number);
+        await supabase.from('visites').delete().eq('client_id', req.params.clientId);
+        const { error } = await supabase.from('clients').delete().eq('id', req.params.clientId);
+        if (error) throw error;
+        
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Erreur lors de la suppression." });
+    }
+});
+
 // --- CRÉATION MANUELLE D'UN CLIENT ---
 app.post('/boutiques/:id/clients-manuels', verifyAuthOwner, async (req, res) => {
     const { nom, telephone } = req.body;

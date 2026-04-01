@@ -261,9 +261,17 @@
           </div>
         </div>
 
-        <!-- Hidden but kept for compatibility -->
-        <span id="total-clients-global" class="hidden">0</span>
-        <div id="secteurs-list" class="hidden"></div>
+        <!-- KPIs supplémentaires -->
+        <div class="grid gap-4 lg:grid-cols-2">
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h3 class="text-base font-semibold text-gray-900 mb-4">Clients Totaux du Réseau<span class="info-tip" data-tip="Nombre total de clients inscrits sur toutes les boutiques Nuvy.">i</span></h3>
+            <p id="total-clients-global" class="text-4xl font-extrabold text-nuvy">0</p>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h3 class="text-base font-semibold text-gray-900 mb-4">Répartition par Secteur<span class="info-tip" data-tip="Nombre de boutiques par catégorie d'activité.">i</span></h3>
+            <div id="secteurs-list" class="space-y-3"></div>
+          </div>
+        </div>
 
       </section>
 
@@ -373,6 +381,9 @@
                           </button>
                           <button onclick="resetPassword(${b.id}, '${b.nom.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 transition-colors border-t border-gray-100">
                             <i data-lucide="key" class="h-4 w-4"></i> Réinitialiser le mot de passe
+                          </button>
+                          <button onclick="supprimerBoutique(${b.id}, '${b.nom.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-700 flex items-center gap-2 transition-colors border-t border-gray-100">
+                            <i data-lucide="trash-2" class="h-4 w-4"></i> Supprimer la boutique
                           </button>
                         </div>
                       </div>
@@ -485,6 +496,28 @@
                             </div>
                         </div>`).join('');
                 }
+            }
+
+            // --- Secteurs ---
+            const secteursEl = document.getElementById('secteurs-list');
+            if (secteursEl && stats.secteurs) {
+                const SECTEUR_LABELS = { default: 'Standard', boulangerie: 'Boulangerie', pizza: 'Pizzeria', onglerie: 'Institut / Onglerie', coiffeur: 'Coiffeur / Barbier', cafe: 'Café / Salon' };
+                const SECTEUR_COLORS = { default: '#2A8C9C', boulangerie: '#8B4513', pizza: '#CD5C5C', onglerie: '#C71585', coiffeur: '#191970', cafe: '#4B3621' };
+                const entries = Object.entries(stats.secteurs).sort((a, b) => b[1] - a[1]);
+                const maxCount = entries[0]?.[1] || 1;
+                secteursEl.innerHTML = entries.map(([key, count]) => `
+                    <div class="flex items-center gap-3">
+                        <div class="h-3 w-3 rounded-full flex-shrink-0" style="background:${SECTEUR_COLORS[key] || '#2A8C9C'}"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">${SECTEUR_LABELS[key] || key}</span>
+                                <span class="text-sm font-bold text-gray-900">${count}</span>
+                            </div>
+                            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full" style="width:${Math.round((count/maxCount)*100)}%; background:${SECTEUR_COLORS[key] || '#2A8C9C'}"></div>
+                            </div>
+                        </div>
+                    </div>`).join('');
             }
 
             lucide.createIcons();
@@ -626,6 +659,24 @@
             alert("❌ Erreur lors de la réinitialisation.");
         }
     }
+
+    async function supprimerBoutique(boutiqueId, nomBoutique) {
+        const confirmation = prompt(`⚠️ ATTENTION : Cette action est irréversible !\n\nTous les clients et données de "${nomBoutique}" seront supprimés.\n\nTapez le nom exact de la boutique pour confirmer :`);
+        if (confirmation !== nomBoutique) { alert("Suppression annulée (le nom ne correspond pas)."); return; }
+        
+        try {
+            const res = await fetch('/admin/boutique/' + boutiqueId, {
+                method: 'DELETE',
+                headers: { 'x-ceo-key': CEO_KEY }
+            });
+            if (!res.ok) throw new Error("Erreur serveur");
+            alert(`✅ "${nomBoutique}" a été supprimée.`);
+            chargerFlotteCommercants();
+        } catch (e) {
+            alert("❌ Erreur lors de la suppression.");
+        }
+    }
+    
     async function gererBoutique(boutiqueId) {
         try {
             const res = await fetch('/admin/login-as', {
