@@ -313,7 +313,7 @@ function verifyAuth(req, res, next) {
 // Variante : vérifie que le boutiqueId dans l'URL correspond au token
 function verifyAuthOwner(req, res, next) {
     verifyAuth(req, res, () => {
-        if (req.auth.boutiqueId !== req.params.id) {
+        if (String(req.auth.boutiqueId) !== String(req.params.id)) {
             return res.status(403).json({ error: "Accès interdit à cette boutique." });
         }
         next();
