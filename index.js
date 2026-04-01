@@ -502,6 +502,28 @@ app.post('/admin/force-reset-password', async (req, res) => {
         res.status(500).json({ message: "Erreur lors de la réinitialisation." });
     }
 });
+// CEO : SE CONNECTER AU DASHBOARD D'UNE BOUTIQUE
+app.post('/admin/login-as', async (req, res) => {
+    const { boutiqueId, ceoKey } = req.body;
+    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
+    
+    const { data: boutique, error } = await supabase.from('boutiques').select('id, slug, nom, max_tampons').eq('id', boutiqueId).single();
+    if (error || !boutique) return res.status(404).json({ error: "Boutique introuvable" });
+    
+    const authToken = jwt.sign(
+        { boutiqueId: boutique.id, slug: boutique.slug, nom: boutique.nom },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+    );
+    
+    res.json({
+        boutiqueId: boutique.id,
+        slug: boutique.slug,
+        nom: boutique.nom,
+        maxTampons: boutique.max_tampons,
+        token: authToken
+    });
+});
 // VOIR TOUTES LES BOUTIQUES (AVEC INTELLIGENCE DES STATUTS)
 app.get('/admin/boutiques', async (req, res) => {
     const ceoKey = req.headers['x-ceo-key'];

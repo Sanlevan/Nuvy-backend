@@ -363,9 +363,19 @@
                     <td class="py-4 px-6 text-gray-400 font-mono text-xs">@${b.slug || b.username}</td>
                     <td class="py-4 px-6 text-right text-sm text-gray-500">${dateCreation}</td>
                     <td class="py-4 px-6 text-right">
-                      <button onclick="window.open('/dashboard', '_blank')" class="bg-white border border-gray-200 text-nuvy hover:bg-nuvy hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ml-auto">
-                        <i data-lucide="external-link" class="h-3 w-3"></i> Gérer
-                      </button>
+                      <div class="relative inline-block ml-auto">
+                        <button onclick="toggleMenu(${b.id})" class="bg-white border border-gray-200 text-nuvy hover:bg-nuvy hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+                          <i data-lucide="settings" class="h-3 w-3"></i> Gérer <i data-lucide="chevron-down" class="h-3 w-3"></i>
+                        </button>
+                        <div id="menu-${b.id}" class="hidden absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-56 overflow-hidden">
+                          <button onclick="gererBoutique(${b.id})" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-nuvy/10 hover:text-nuvy flex items-center gap-2 transition-colors">
+                            <i data-lucide="layout-dashboard" class="h-4 w-4"></i> Accéder au dashboard
+                          </button>
+                          <button onclick="resetPassword(${b.id}, '${b.nom.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 transition-colors border-t border-gray-100">
+                            <i data-lucide="key" class="h-4 w-4"></i> Réinitialiser le mot de passe
+                          </button>
+                        </div>
+                      </div>
                     </td>`;
                 tbody.appendChild(tr);
             });
@@ -576,6 +586,68 @@
             // On remet le bouton à son état normal
             btn.innerHTML = 'GÉNÉRER L\'ACCÈS BOUTIQUE';
             btn.disabled = false;
+        }
+    }
+    let openMenuId = null;
+    function toggleMenu(id) {
+        // Ferme l'ancien menu si ouvert
+        if (openMenuId && openMenuId !== id) {
+            document.getElementById('menu-' + openMenuId)?.classList.add('hidden');
+        }
+        const menu = document.getElementById('menu-' + id);
+        menu.classList.toggle('hidden');
+        openMenuId = menu.classList.contains('hidden') ? null : id;
+        lucide.createIcons();
+    }
+    // Fermer le menu si on clique ailleurs
+    document.addEventListener('click', (e) => {
+        if (openMenuId && !e.target.closest('.relative')) {
+            document.getElementById('menu-' + openMenuId)?.classList.add('hidden');
+            openMenuId = null;
+        }
+    });
+
+    async function resetPassword(boutiqueId, nomBoutique) {
+        const newPass = prompt(`Nouveau mot de passe pour "${nomBoutique}" :`);
+        if (!newPass) return;
+        if (newPass.length < 4) { alert("Le mot de passe doit faire au moins 4 caractères."); return; }
+        
+        try {
+            const res = await fetch('/admin/force-reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ boutiqueId, newPassword: newPass, ceoKey: CEO_KEY })
+            });
+            if (!res.ok) throw new Error("Erreur serveur");
+            alert(`✅ Mot de passe de "${nomBoutique}" réinitialisé avec succès !\n\nNouveau mot de passe : ${newPass}`);
+            // Ferme le menu
+            if (openMenuId) { document.getElementById('menu-' + openMenuId)?.classList.add('hidden'); openMenuId = null; }
+        } catch (e) {
+            alert("❌ Erreur lors de la réinitialisation.");
+        }
+    }
+    async function gererBoutique(boutiqueId) {
+        try {
+            const res = await fetch('/admin/login-as', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ boutiqueId, ceoKey: CEO_KEY })
+            });
+            if (!res.ok) throw new Error("Erreur");
+            const data = await res.json();
+            
+            // On ouvre le dashboard dans un nouvel onglet avec les bonnes données
+            const newTab = window.open('/dashboard', '_blank');
+            newTab.addEventListener('load', () => {
+                newTab.localStorage.setItem('nuvy_boutique_id', data.boutiqueId);
+                newTab.localStorage.setItem('nuvy_boutique_slug', data.slug);
+                newTab.localStorage.setItem('nuvy_boutique_nom', data.nom);
+                newTab.localStorage.setItem('nuvy_max_tampons', data.maxTampons);
+                newTab.localStorage.setItem('nuvy_jwt', data.token);
+                newTab.location.reload();
+            });
+        } catch (e) {
+            alert("Impossible d'accéder à cette boutique.");
         }
     }
     function filtrerBoutiques(query) {
