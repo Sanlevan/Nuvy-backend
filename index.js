@@ -216,11 +216,52 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
 
 // 🤖 GÉNÉRATEUR DE CARTE GOOGLE WALLET
 function generateGoogleWalletLink(client, boutique) {
-    // 1. On crée des identifiants uniques pour Google
-    const classId = `${GOOGLE_ISSUER_ID}.${boutique.slug}`; // Le "moule" de la boutique
-    const objectId = `${GOOGLE_ISSUER_ID}.${client.id}`;    // La carte de ce client précis
+    const classId = `${GOOGLE_ISSUER_ID}.${boutique.slug}`;
+    const objectId = `${GOOGLE_ISSUER_ID}.${client.id}`;
+    const maxT = boutique.max_tampons || 10;
+    const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
 
-    // 2. On prépare les données (Le Fat JWT)
+    // Couleurs par catégorie (comme Apple)
+    const GOOGLE_COLORS = {
+        default:     "#2A8C9C",
+        boulangerie: "#8B4513",
+        pizza:       "#CD5C5C",
+        onglerie:    "#C71585",
+        coiffeur:    "#191970",
+        cafe:        "#4B3621"
+    };
+    const bgColor = GOOGLE_COLORS[boutique.categorie] || GOOGLE_COLORS.default;
+
+    // Barre de fidélité avec emojis (comme Apple)
+    const symbolePlein = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].full : "⭐";
+    const symboleVide = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].empty : "⚪";
+    let fideliteTexte = "";
+    for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
+
+    // Messages personnalisés
+    const messages = [];
+    messages.push({
+        header: `Bonjour ${prenom} ! 👋`,
+        body: fideliteTexte,
+        id: "fidelite"
+    });
+    if ((client.recompenses || 0) > 0) {
+        messages.push({
+            header: "Cadeaux disponibles 🎁",
+            body: `${client.recompenses} cadeau${client.recompenses > 1 ? 'x' : ''} à récupérer !`,
+            id: "cadeaux"
+        });
+    }
+
+    // Infos de contact en bas de carte
+    const infoModule = [];
+    if (boutique.adresse) {
+        infoModule.push({ header: "Adresse", body: boutique.adresse, id: "adresse" });
+    }
+    if (boutique.telephone) {
+        infoModule.push({ header: "Contact", body: boutique.telephone, id: "telephone" });
+    }
+
     const payload = {
         iss: googleCredentials.client_email,
         aud: 'google',
@@ -232,10 +273,17 @@ function generateGoogleWalletLink(client, boutique) {
                 issuerName: "Nuvy",
                 programName: boutique.nom || "Fidélité",
                 programLogo: boutique.logo_url ? { sourceUri: { uri: boutique.logo_url } } : undefined,
-                reviewStatus: "UNDER_REVIEW", // Obligatoire tant que Google n'a pas validé la publication finale
-                hexBackgroundColor: "#ffffff",
-                // 📍 On remet la géolocalisation pour Android aussi !
-                locations: boutique.latitude && boutique.longitude ? [{ latitude: parseFloat(boutique.latitude), longitude: parseFloat(boutique.longitude) }] : []
+                reviewStatus: "UNDER_REVIEW",
+                hexBackgroundColor: bgColor,
+                localizedIssuerName: { defaultValue: { language: "fr", value: boutique.nom || "Nuvy" } },
+                locations: boutique.latitude && boutique.longitude ? [{ latitude: parseFloat(boutique.latitude), longitude: parseFloat(boutique.longitude) }] : [],
+                linksModuleData: {
+                    uris: [{
+                        uri: `https://nuvy.pro/join/${boutique.slug}`,
+                        description: "Carte de fidélité",
+                        id: "link-fidelite"
+                    }]
+                }
             }],
             loyaltyObjects: [{
                 id: objectId,
@@ -245,31 +293,54 @@ function generateGoogleWalletLink(client, boutique) {
                 accountName: client.nom,
                 barcode: {
                     type: "QR_CODE",
-                    value: `https://nuvy.pro/tap/${boutique.slug}?client=${client.id}` // Le QR code de secours
+                    value: `https://nuvy.pro/tap/${boutique.slug}?client=${client.id}`
                 },
                 loyaltyPoints: {
                     label: "Tampons",
-                    balance: { int: client.tampons || 0 }
-                }
+                    balance: { string: `${client.tampons || 0} / ${maxT}` }
+                },
+                textModulesData: [...messages, ...infoModule]
             }]
         }
     };
 
-    // 3. On signe cryptographiquement avec ta clé privée Google
     const token = jwt.sign(payload, googleCredentials.private_key, { algorithm: 'RS256' });
-    
-    // 4. On renvoie le lien magique d'ajout !
     return `https://pay.google.com/gp/v/save/${token}`;
 }
 
 // 🔄 MISE À JOUR EN TEMPS RÉEL (GOOGLE WALLET REST API)
 async function updateGoogleWalletPass(client) {
-    if (!googleCredentials) return; // Si pas de clé, on ignore
+    if (!googleCredentials) return;
     
     try {
         const objectId = `${GOOGLE_ISSUER_ID}.${client.id}`;
         
-        // 1. On crée un laissez-passer temporaire pour parler à l'API Google
+        // 1. Récupérer les infos boutique pour les emojis
+        const { data: boutique } = await supabase.from('boutiques').select('max_tampons, categorie').eq('id', client.boutique_id).single();
+        const maxT = boutique?.max_tampons || 10;
+        const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
+        
+        // Barre de fidélité
+        const symbolePlein = SYMBOLS[boutique?.categorie] ? SYMBOLS[boutique.categorie].full : "⭐";
+        const symboleVide = SYMBOLS[boutique?.categorie] ? SYMBOLS[boutique.categorie].empty : "⚪";
+        let fideliteTexte = "";
+        for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
+
+        // Messages mis à jour
+        const messages = [{
+            header: `Bonjour ${prenom} ! 👋`,
+            body: fideliteTexte,
+            id: "fidelite"
+        }];
+        if ((client.recompenses || 0) > 0) {
+            messages.push({
+                header: "Cadeaux disponibles 🎁",
+                body: `${client.recompenses} cadeau${client.recompenses > 1 ? 'x' : ''} à récupérer !`,
+                id: "cadeaux"
+            });
+        }
+
+        // 2. Auth Google
         const authClaim = {
             iss: googleCredentials.client_email,
             scope: "https://www.googleapis.com/auth/wallet_object.issuer",
@@ -278,8 +349,6 @@ async function updateGoogleWalletPass(client) {
             iat: Math.floor(Date.now() / 1000)
         };
         const authToken = jwt.sign(authClaim, googleCredentials.private_key, { algorithm: 'RS256' });
-
-        // 2. On demande la clé d'accès
         const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -287,7 +356,7 @@ async function updateGoogleWalletPass(client) {
         });
         const { access_token } = await tokenRes.json();
 
-        // 3. On envoie le nouveau solde de points à Google !
+        // 3. Mise à jour complète
         await fetch(`https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${objectId}`, {
             method: 'PATCH',
             headers: { 
@@ -295,7 +364,8 @@ async function updateGoogleWalletPass(client) {
                 'Content-Type': 'application/json' 
             },
             body: JSON.stringify({
-                loyaltyPoints: { label: "Tampons", balance: { int: client.tampons || 0 } }
+                loyaltyPoints: { label: "Tampons", balance: { string: `${client.tampons || 0} / ${maxT}` } },
+                textModulesData: messages
             })
         });
         
