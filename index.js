@@ -31,8 +31,21 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
+const rateLimit = require('express-rate-limit');
 app.use(express.json());
 app.use(express.static('public'));
+
+// 🛡️ RATE LIMITERS
+const limiterStrict = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30, // 30 requêtes max par IP
+    message: { error: "Trop de requêtes. Réessayez dans quelques minutes." }
+});
+const limiterLogin = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10, // 10 tentatives de login max
+    message: { error: "Trop de tentatives. Réessayez dans 15 minutes." }
+});
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_KEY || '';
@@ -407,7 +420,7 @@ app.post('/admin/reset-password', async (req, res) => {
         res.status(500).json({ error: "Erreur de mise à jour" });
     }
 });
-app.post('/auth/login', async (req, res) => {
+app.post('/auth/login', limiterLogin, async (req, res) => {
     const { user, pass } = req.body;
     
     // 1. On cherche la boutique UNIQUEMENT avec le nom d'utilisateur (on récupère le hash)
@@ -991,7 +1004,7 @@ app.get('/tap/:slug', (req, res) => {
     res.send(html);
 });
 
-app.post('/tap/:slug/notify', async (req, res) => {
+app.post('/tap/:slug/notify', limiterStrict, async (req, res) => {
     try {
         const { data: clientData } = await supabase.from('clients').select('*').eq('token', req.query.token).single();
         
@@ -1040,7 +1053,7 @@ app.get('/pass/:token', async (req, res) => {
     }
 });
 
-app.post('/join/:slug/create', async (req, res) => {
+app.post('/join/:slug/create', limiterStrict, async (req, res) => {
     try {
         const prenom = cleanString(req.body.prenom, 50);
         const nom = cleanString(req.body.nom, 50);
