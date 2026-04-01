@@ -2,12 +2,17 @@ require('dotenv').config();
 console.log("=== NUVY MASTER ENGINE V1.0 (PRODUCTION) - 2026 ===");
 
 const jwt = require('jsonwebtoken');
-// 🚨 CORRECTION : On lit la clé depuis le coffre-fort de Railway !
-let googleCredentials;
-if (process.env.GOOGLE_CREDENTIALS) {
-    googleCredentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-} else {
-    console.error("⚠️ ATTENTION : La clé Google n'est pas configurée dans les variables d'environnement !");
+// 🛡️ LECTURE SÉCURISÉE DE LA CLÉ GOOGLE (Anti-Crash)
+let googleCredentials = null;
+try {
+    if (process.env.GOOGLE_CREDENTIALS) {
+        googleCredentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+        console.log("✅ [SYSTÈME] Clé Google chargée avec succès !");
+    } else {
+        console.log("⚠️ [SYSTÈME] Aucune clé Google trouvée dans les variables Railway.");
+    }
+} catch (erreur) {
+    console.error("❌ [ERREUR FATALE] Le texte collé dans GOOGLE_CREDENTIALS est mal formaté.", erreur.message);
 }
 const GOOGLE_ISSUER_ID = '3388000000023094987';
 const express = require('express');
@@ -801,14 +806,19 @@ app.post('/clients/:id/tampon', async (req, res) => {
         }
 
     const { data: updatedClient } = await supabase.from('clients').update({
-        tampons: finalTampons,
-        recompenses: finalRecompenses,
-        total_historique: totalHistorique, // 👈 3. On sauvegarde la mémoire en base
-        last_visit: new Date().toISOString()
-    }).eq('id', req.params.id).select().single();
+            tampons: finalTampons,
+            recompenses: finalRecompenses,
+            total_historique: totalHistorique, // 👈 3. On sauvegarde la mémoire en base
+            last_visit: new Date().toISOString()
+        }).eq('id', req.params.id).select().single();
         
         if (pointsAjoutes > 0) await supabase.from('visites').insert([{ client_id: client.id, boutique_id: client.boutique_id, points_ajoutes: pointsAjoutes }]);
 
+        // 🌟 NOUVEAU : MISE À JOUR GOOGLE WALLET EN ARRIÈRE-PLAN
+        // On envoie le client fraîchement mis à jour (updatedClient) à l'API Google
+        updateGoogleWalletPass(updatedClient);
+
+        // --- NOTIFICATION APPLE WALLET ---
         const { data: devices } = await supabase.from('devices').select('push_token').eq('serial_number', client.serial_number);
         if (devices && devices.length > 0) {
             const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
