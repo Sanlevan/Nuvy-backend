@@ -291,7 +291,22 @@ async function updateGoogleWalletPass(client) {
         console.error("⚠️ [GOOGLE WALLET] Erreur de synchronisation:", e.message);
     }
 }
-
+// ==========================================
+// 🛡️ UTILITAIRES DE VALIDATION
+// ==========================================
+function cleanString(str, maxLength = 100) {
+    if (typeof str !== 'string') return '';
+    return str.trim().slice(0, maxLength);
+}
+function isValidPhone(tel) {
+    if (typeof tel !== 'string') return false;
+    const clean = tel.replace(/[^\d+]/g, '');
+    return /^(\+?\d{8,15}|0[1-9]\d{8})$/.test(clean);
+}
+function isValidInteger(val) {
+    const n = parseInt(val);
+    return !isNaN(n) && n >= -100 && n <= 100;
+}
 // ==========================================
 // 🛡️ MIDDLEWARE D'AUTHENTIFICATION JWT
 // ==========================================
@@ -811,6 +826,7 @@ app.get('/admin/radar', async (req, res) => {
 // ==========================================
 app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
     try {
+        if (!isValidInteger(req.body.nb)) return res.status(400).json({ error: "Nombre de points invalide." });
         const pointsAjoutes = parseInt(req.body.nb);
         
         // On récupère le client ET les infos de sa boutique associée
@@ -1026,7 +1042,11 @@ app.get('/pass/:token', async (req, res) => {
 
 app.post('/join/:slug/create', async (req, res) => {
     try {
-        const { prenom, nom, telephone } = req.body;
+        const prenom = cleanString(req.body.prenom, 50);
+        const nom = cleanString(req.body.nom, 50);
+        const telephone = cleanString(req.body.telephone, 20);
+        if (!prenom || !nom || !telephone) return res.status(400).json({ error: "Tous les champs sont obligatoires." });
+        if (!isValidPhone(telephone)) return res.status(400).json({ error: "Numéro de téléphone invalide." });
         const { data: b } = await supabase.from('boutiques').select('id').eq('slug', req.params.slug).single();
 
         // 1. LE DÉTECTEUR : Est-ce que ce numéro existe déjà dans CETTE pizzeria ?
