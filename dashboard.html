@@ -36,8 +36,8 @@
     .view.active { display: block !important; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .info-tip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #E5E7EB; color: #6B7280; border-radius: 50%; font-size: 10px; font-weight: 700; cursor: help; margin-left: 6px; }
-    .info-tip:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1F2937; color: white; font-size: 12px; font-weight: 500; padding: 8px 12px; border-radius: 8px; white-space: normal; width: 220px; z-index: 999; line-height: 1.4; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .info-tip:hover::before { content: ''; position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #1F2937; z-index: 999; }
+    .info-tip:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); right: -10px; background: #1F2937; color: white; font-size: 12px; font-weight: 500; padding: 8px 12px; border-radius: 8px; white-space: normal; width: 220px; z-index: 9999; line-height: 1.4; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .info-tip:hover::before { content: ''; position: absolute; bottom: calc(100% + 2px); right: 2px; border: 6px solid transparent; border-top-color: #1F2937; z-index: 9999; }
   </style>
 </head>
 <body class="font-sans antialiased text-gray-900 min-h-screen">
@@ -358,13 +358,13 @@
             const ctxPeak = document.getElementById('peakChart');
             if (ctxPeak) {
                 if (chartPeak) chartPeak.destroy();
-                chartPeak = new Chart(ctxPeak.getContext('2d'), { type: 'line', data: { labels: Array.from({length: 24}, (_, i) => i + "h"), datasets: [{ label: 'Passages/jour', data: stats.peakHours, borderColor: '#2A8C9C', backgroundColor: 'rgba(42, 140, 156, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+                chartPeak = new Chart(ctxPeak.getContext('2d'), { type: 'line', data: { labels: Array.from({length: 24}, (_, i) => i + "h"), datasets: [{ label: 'Passages/jour', data: stats.peakHours, borderColor: '#2A8C9C', backgroundColor: 'rgba(42, 140, 156, 0.05)', fill: true, tension: 0.4, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : '' } } } } });
             }
 
             const ctxDistri = document.getElementById('distriChart');
             if (ctxDistri) {
                 if (chartDistri) chartDistri.destroy();
-                chartDistri = new Chart(ctxDistri.getContext('2d'), { type: 'bar', data: { labels: stats.distribution.map((_, i) => i + " T"), datasets: [{ data: stats.distribution, backgroundColor: '#FF4B2B', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+                chartDistri = new Chart(ctxDistri.getContext('2d'), { type: 'bar', data: { labels: stats.distribution.map((_, i) => i + " T"), datasets: [{ data: stats.distribution, backgroundColor: '#2A8C9C', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : '' } } } } });
             }
         } catch (e) { console.error("Erreur Stats:", e); }
     }

@@ -29,8 +29,8 @@
     body { background-color: #F9FAFB; }
     .view { display: none; animation: fadeIn 0.4s ease; }
     .info-tip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #E5E7EB; color: #6B7280; border-radius: 50%; font-size: 10px; font-weight: 700; cursor: help; margin-left: 6px; }
-    .info-tip:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1F2937; color: white; font-size: 12px; font-weight: 500; padding: 8px 12px; border-radius: 8px; white-space: normal; width: 240px; z-index: 999; line-height: 1.4; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .info-tip:hover::before { content: ''; position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #1F2937; z-index: 999; }
+    .info-tip:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); right: -10px; background: #1F2937; color: white; font-size: 12px; font-weight: 500; padding: 8px 12px; border-radius: 8px; white-space: normal; width: 240px; z-index: 9999; line-height: 1.4; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .info-tip:hover::before { content: ''; position: absolute; bottom: calc(100% + 2px); right: 2px; border: 6px solid transparent; border-top-color: #1F2937; z-index: 9999; }
     .view.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
