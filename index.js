@@ -619,6 +619,37 @@ app.delete('/admin/boutique/:id', async (req, res) => {
     }
 });
 
+// CEO : EXPORT CSV DE TOUTES LES DONNÉES
+app.get('/admin/export-csv', async (req, res) => {
+    if (req.query.key !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
+    
+    try {
+        const { data: boutiques } = await supabase.from('boutiques').select('id, nom, slug, categorie, created_at');
+        const { data: clients } = await supabase.from('clients').select('id, nom, telephone, tampons, recompenses, total_historique, boutique_id, device_type, created_at');
+        
+        // Créer un index boutique
+        const boutiqueMap = {};
+        boutiques?.forEach(b => { boutiqueMap[b.id] = b.nom; });
+        
+        // Header CSV
+        let csv = 'Boutique,Nom Client,Téléphone,Tampons,Récompenses,Points Totaux,Appareil,Inscrit le\n';
+        
+        clients?.forEach(c => {
+            const boutNom = (boutiqueMap[c.boutique_id] || 'Inconnue').replace(/,/g, ' ');
+            const nom = (c.nom || '').replace(/,/g, ' ');
+            const tel = (c.telephone || '').replace(/,/g, ' ');
+            const date = new Date(c.created_at).toLocaleDateString('fr-FR');
+            csv += `${boutNom},${nom},${tel},${c.tampons || 0},${c.recompenses || 0},${c.total_historique || 0},${c.device_type || 'inconnu'},${date}\n`;
+        });
+        
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename=nuvy-export-' + new Date().toISOString().split('T')[0] + '.csv');
+        res.send('\uFEFF' + csv); // BOM pour Excel
+    } catch (e) {
+        res.status(500).send("Erreur export : " + e.message);
+    }
+});
+
 // VOIR TOUTES LES BOUTIQUES (AVEC INTELLIGENCE DES STATUTS)
 app.get('/admin/boutiques', async (req, res) => {
     const ceoKey = req.headers['x-ceo-key'];

@@ -385,8 +385,12 @@
         try {
             const res = await fetch(`/clients/${currentClient.id}/tampon`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS }, body: JSON.stringify({ nb: pointsAjoutes }) });
             if (res.ok) {
+                const updatedClient = await res.json();
+                currentClient = updatedClient;
+                cachedClients = null;
                 addActivity(currentClient.nom, `+${pointsToAdd} points`, '#2A8C9C');
-                resetLive(); rafraichirCompteurJournalier(); loadAnalyticsData();
+                rafraichirAffichageClient();
+                rafraichirCompteurJournalier(); loadAnalyticsData();
             }
         } catch (e) { console.error(e); } finally { btn.disabled = false; btn.innerText = "OFFRIR CADEAU 🎁"; updateUI(); }
     }
@@ -415,9 +419,12 @@
                 body: JSON.stringify({ nb: -nbCadeaux }) 
             });
             if (res.ok) {
+                const updatedClient = await res.json();
+                currentClient = updatedClient;
+                cachedClients = null;
                 const s = nbCadeaux > 1 ? "s" : "";
                 addActivity(currentClient.nom, `${nbCadeaux} Cadeau${s} validé${s} 🎁`, '#D4AF37');
-                resetLive(); 
+                rafraichirAffichageClient();
                 rafraichirCompteurJournalier(); 
                 loadAnalyticsData();
             }
@@ -476,6 +483,15 @@
         } catch (e) { console.error("Erreur chargement activités:", e); }
     }
 
+    function rafraichirAffichageClient() {
+        if (!currentClient) return;
+        const maxT = localStorage.getItem('nuvy_max_tampons') || 10;
+        document.getElementById('c-name').innerText = currentClient.nom;
+        document.getElementById('c-info').innerText = `${currentClient.total_historique || 0} Pts totaux | Carte : ${currentClient.tampons || 0} / ${maxT} — ${currentClient.recompenses || 0} cadeau(x)`;
+        pointsToAdd = 1;
+        updateUI();
+    }
+
     function resetLive() { document.getElementById('client-card').style.display = 'none'; document.getElementById('no-client').style.display = 'flex'; currentClient = null; }
     
     async function rafraichirCompteurJournalier() {
@@ -493,20 +509,34 @@
         if (n && !isNaN(n)) { dailyGoal = parseInt(n); localStorage.setItem('nuvy_daily_goal', dailyGoal); document.getElementById('goal-val').innerText = dailyGoal; rafraichirCompteurJournalier(); }
     }
 
+    let cachedClients = null;
+    let cacheTimestamp = 0;
+    
+    async function getClientsCache() {
+        // Rafraîchir le cache toutes les 30 secondes max
+        if (cachedClients && (Date.now() - cacheTimestamp < 30000)) return cachedClients;
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}/clients`, { headers: AUTH_HEADERS });
+            cachedClients = await res.json();
+            cacheTimestamp = Date.now();
+            return cachedClients;
+        } catch (e) { console.error(e); return cachedClients || []; }
+    }
+    
     async function chercherClient(query) {
         const resultsBox = document.getElementById('search-results');
         if (query.length < 2) { resultsBox.style.display = 'none'; return; }
-        try {
-            const res = await fetch(`/boutiques/${boutiqueId}/clients`, { headers: AUTH_HEADERS });
-            const clients = await res.json();
-            const matches = clients.filter(c => c.nom.toLowerCase().includes(query.toLowerCase()) || c.telephone.includes(query)).slice(0, 5);
-            if (matches.length > 0) {
-                resultsBox.style.display = 'block';
-                resultsBox.innerHTML = matches.map(c => {
-                    return `<div onclick='selectionnerClientManuel(${JSON.stringify(c)})' class="p-4 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"><div><b class="text-gray-900">${c.nom}</b><br><span class="text-xs text-gray-500">${c.telephone}</span></div><div class="font-bold text-nuvy">${c.total_historique || 0} pts totaux</div></div>`;
-                }).join('');
-            } else { resultsBox.style.display = 'block'; resultsBox.innerHTML = '<div class="p-4 text-center text-gray-500">Aucun client trouvé 😕</div>'; }
-        } catch (e) { console.error(e); }
+        
+        const clients = await getClientsCache();
+        const q = query.toLowerCase();
+        const matches = clients.filter(c => c.nom.toLowerCase().includes(q) || c.telephone.includes(query)).slice(0, 5);
+        
+        if (matches.length > 0) {
+            resultsBox.style.display = 'block';
+            resultsBox.innerHTML = matches.map(c => {
+                return `<div onclick='selectionnerClientManuel(${JSON.stringify(c)})' class="p-4 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"><div><b class="text-gray-900">${c.nom}</b><br><span class="text-xs text-gray-500">${c.telephone}</span></div><div class="font-bold text-nuvy">${c.total_historique || 0} pts totaux</div></div>`;
+            }).join('');
+        } else { resultsBox.style.display = 'block'; resultsBox.innerHTML = '<div class="p-4 text-center text-gray-500">Aucun client trouvé 😕</div>'; }
     }
 
     function selectionnerClientManuel(client) {
@@ -524,6 +554,7 @@
         try {
             const res = await fetch(`/boutiques/${boutiqueId}/clients/${clientId}`, { method: 'DELETE', headers: AUTH_HEADERS });
             if (!res.ok) throw new Error("Erreur");
+            cachedClients = null;
             loadAnalyticsData();
         } catch (e) { alert("❌ Erreur lors de la suppression."); }
     }

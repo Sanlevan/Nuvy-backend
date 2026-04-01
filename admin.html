@@ -84,9 +84,14 @@
     <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-8 shadow-sm">
       <h1 id="page-title" class="text-lg font-bold text-gray-900">Vue d'ensemble</h1>
       <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 text-sm text-gray-500">
-          <i data-lucide="clock" class="h-4 w-4"></i>
-          <span>Dernière mise à jour : <span class="font-bold text-gray-900">À l'instant</span></span>
+        <div class="flex items-center gap-4">
+          <button onclick="exportCSV()" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all">
+            <i data-lucide="download" class="h-4 w-4"></i> Export CSV
+          </button>
+          <div class="flex items-center gap-2 text-sm text-gray-500">
+            <i data-lucide="clock" class="h-4 w-4"></i>
+            <span>Dernière mise à jour : <span class="font-bold text-gray-900">À l'instant</span></span>
+          </div>
         </div>
       </div>
     </header>
@@ -709,6 +714,9 @@
             const slug = row.children[2]?.innerText.toLowerCase() || '';
             row.style.display = (nom.includes(q) || slug.includes(q)) ? '' : 'none';
         });
+    }
+    function exportCSV() {
+        window.location.href = '/admin/export-csv?key=' + encodeURIComponent(CEO_KEY);
     }
     function deconnexion() { window.location.href = '/admin-login'; }
   </script>
