@@ -2,8 +2,14 @@ require('dotenv').config();
 console.log("=== NUVY MASTER ENGINE V1.0 (PRODUCTION) - 2026 ===");
 
 const jwt = require('jsonwebtoken');
-const googleCredentials = require('./google-credentials.json'); // Ta clé secrète Google
-const GOOGLE_ISSUER_ID = '3388000000023094987'; // Ton identifiant Nuvy
+// 🚨 CORRECTION : On lit la clé depuis le coffre-fort de Railway !
+let googleCredentials;
+if (process.env.GOOGLE_CREDENTIALS) {
+    googleCredentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+} else {
+    console.error("⚠️ ATTENTION : La clé Google n'est pas configurée dans les variables d'environnement !");
+}
+const GOOGLE_ISSUER_ID = '3388000000023094987';
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { PKPass } = require('passkit-generator');
