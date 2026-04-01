@@ -27,7 +27,7 @@
         function loginCEO() {
             const pass = document.getElementById('ceo-pass').value;
             // On redirige simplement avec la clé en paramètre (cachée par le navigateur après coup)
-            window.location.href = `/nuvy-ceo-portal?key=` + pass;
+            window.location.href = `/nuvy-ceo-portal?key=` + encodeURIComponent(pass);
         }
         // Permet de valider avec la touche "Entrée"
         document.getElementById('ceo-pass').addEventListener('keypress', (e) => {
