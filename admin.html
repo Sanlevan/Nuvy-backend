@@ -28,6 +28,9 @@
   <style>
     body { background-color: #F9FAFB; }
     .view { display: none; animation: fadeIn 0.4s ease; }
+    .info-tip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #E5E7EB; color: #6B7280; border-radius: 50%; font-size: 10px; font-weight: 700; cursor: help; margin-left: 6px; }
+    .info-tip:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1F2937; color: white; font-size: 12px; font-weight: 500; padding: 8px 12px; border-radius: 8px; white-space: normal; width: 240px; z-index: 999; line-height: 1.4; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .info-tip:hover::before { content: ''; position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #1F2937; z-index: 999; }
     .view.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
@@ -93,17 +96,17 @@
       <section id="overview" class="view active max-w-6xl mx-auto space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Boutiques Actives</h3><i data-lucide="store" class="h-4 w-4"></i></div>
+            <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Boutiques Actives<span class="info-tip" data-tip="Nombre de boutiques ayant enregistré au moins 1 scan dans les 7 derniers jours.">i</span></h3><i data-lucide="store" class="h-4 w-4"></i></div>
             <div class="flex items-baseline gap-1"><span id="overview-kpi-actives" class="text-3xl font-extrabold text-nuvy">...</span></div>
           </div>
 
           <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Scans Aujourd'hui</h3><i data-lucide="scan" class="h-4 w-4"></i></div>
+            <div class="flex items-center justify-between pb-2 text-gray-500"><h3 class="text-sm font-bold uppercase tracking-wider">Scans Aujourd'hui<span class="info-tip" data-tip="Total des passages clients enregistrés depuis minuit (toutes boutiques confondues).">i</span></h3><i data-lucide="scan" class="h-4 w-4"></i></div>
             <div id="kpi-scans-today" class="text-3xl font-extrabold text-gray-900">...</div>
           </div>
 
           <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col items-center justify-center">
-             <div class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 text-center w-full flex justify-between">Health Score <i data-lucide="activity" class="h-4 w-4"></i></div>
+             <div class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 text-center w-full flex justify-between">Health Score<span class="info-tip" data-tip="Pourcentage de boutiques actives sur 7 jours par rapport au total. 100% = toutes les boutiques ont scanné cette semaine.">i</span> <i data-lucide="activity" class="h-4 w-4"></i></div>
              <div id="kpi-health" class="text-3xl font-extrabold text-green-600">...</div>
              <p class="text-xs text-gray-400 mt-1">boutiques actives / 7j</p>
           </div>
@@ -158,13 +161,13 @@
       <section id="radar" class="view max-w-6xl mx-auto">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="trending-down" class="text-red-500"></i><h3 class="font-bold">Risque de Churn</h3></div>
+                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="trending-down" class="text-red-500"></i><h3 class="font-bold">Risque de Churn<span class="info-tip" data-tip="Boutiques ayant scanné dans les 30 derniers jours MAIS plus aucun scan depuis 7 jours. Signe qu'elles décrochent.">i</span></h3></div>
                 <div id="radar-churn" class="p-4 space-y-3">
                     <p class="text-sm text-gray-400 text-center py-4">Chargement...</p>
                 </div>
             </div>
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="zap" class="text-amber-500"></i><h3 class="font-bold">Boutiques les plus actives (7j)</h3></div>
+                <div class="p-5 border-b flex items-center gap-3"><i data-lucide="zap" class="text-amber-500"></i><h3 class="font-bold">Boutiques les plus actives (7j)<span class="info-tip" data-tip="Top 5 des boutiques classées par nombre de scans cette semaine.">i</span></h3></div>
                 <div id="radar-top" class="p-4 space-y-3">
                     <p class="text-sm text-gray-400 text-center py-4">Chargement...</p>
                 </div>
@@ -195,7 +198,7 @@
                 <i data-lucide="database" class="h-5 w-5 text-nuvy"></i>
               </div>
               <div>
-                <p class="text-sm text-gray-500">Scans Totaux (30j)</p>
+                <p class="text-sm text-gray-500">Scans Totaux (30j)<span class="info-tip" data-tip="Nombre total de passages clients enregistrés sur les 30 derniers jours, toutes boutiques confondues.">i</span></p>
                 <p id="dc-scans30j" class="text-2xl font-bold text-gray-900">...</p>
               </div>
             </div>
@@ -206,7 +209,7 @@
                 <i data-lucide="users" class="h-5 w-5 text-green-600"></i>
               </div>
               <div>
-                <p class="text-sm text-gray-500">Utilisateurs Uniques</p>
+                <p class="text-sm text-gray-500">Utilisateurs Uniques<span class="info-tip" data-tip="Nombre de clients différents ayant scanné au moins une fois en 30 jours. Un client qui scanne 5 fois compte pour 1.">i</span></p>
                 <p id="dc-unique" class="text-2xl font-bold text-gray-900">...</p>
               </div>
             </div>
@@ -217,7 +220,7 @@
                 <i data-lucide="smartphone" class="h-5 w-5 text-amber-500"></i>
               </div>
               <div>
-                <p class="text-sm text-gray-500">Cartes Apple Wallet</p>
+                <p class="text-sm text-gray-500">Cartes Apple Wallet<span class="info-tip" data-tip="Nombre de cartes de fidélité installées sur des iPhones (appareils enregistrés pour les notifications push).">i</span></p>
                 <p id="dc-wallet" class="text-2xl font-bold text-gray-900">...</p>
               </div>
             </div>
@@ -228,7 +231,7 @@
                 <i data-lucide="trending-up" class="h-5 w-5 text-nuvy"></i>
               </div>
               <div>
-                <p class="text-sm text-gray-500">Taux de Rétention</p>
+                <p class="text-sm text-gray-500">Taux de Rétention<span class="info-tip" data-tip="Pourcentage de clients venus 2 fois ou plus sur 30 jours. Un taux élevé = les clients reviennent régulièrement.">i</span></p>
                 <p id="dc-retention" class="text-2xl font-bold text-gray-900">...</p>
               </div>
             </div>

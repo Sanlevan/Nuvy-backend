@@ -35,6 +35,9 @@
     .view { display: none !important; animation: fadeIn 0.4s ease; }
     .view.active { display: block !important; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .info-tip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #E5E7EB; color: #6B7280; border-radius: 50%; font-size: 10px; font-weight: 700; cursor: help; margin-left: 6px; }
+    .info-tip:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1F2937; color: white; font-size: 12px; font-weight: 500; padding: 8px 12px; border-radius: 8px; white-space: normal; width: 220px; z-index: 999; line-height: 1.4; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .info-tip:hover::before { content: ''; position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #1F2937; z-index: 999; }
   </style>
 </head>
 <body class="font-sans antialiased text-gray-900 min-h-screen">
@@ -179,15 +182,15 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
-            <p class="text-sm font-semibold text-gray-500">Clients inscrits</p>
+            <p class="text-sm font-semibold text-gray-500">Clients inscrits<span class="info-tip" data-tip="Nombre total de clients enregistrés dans votre boutique.">i</span></p>
             <p id="s-tot" class="text-3xl font-extrabold text-gray-900 mt-2">0</p>
         </div>
         <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
-            <p class="text-sm font-semibold text-gray-500">Fréquence moy. (Jours)</p>
+            <p class="text-sm font-semibold text-gray-500">Fréquence moy. (Jours)<span class="info-tip" data-tip="Nombre moyen de jours entre deux visites successives. Plus c'est bas, plus vos clients reviennent souvent.">i</span></p>
             <p id="freq-value" class="text-3xl font-extrabold text-nuvy mt-2">--</p>
         </div>
         <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
-            <p class="text-sm font-semibold text-gray-500">Récompenses prêtes</p>
+            <p class="text-sm font-semibold text-gray-500">Récompenses prêtes<span class="info-tip" data-tip="Total des cadeaux disponibles chez tous vos clients (cartes remplies non encore réclamées).">i</span></p>
             <p id="s-gft" class="text-3xl font-extrabold text-nuvy-gold mt-2">0</p>
         </div>
       </div>
