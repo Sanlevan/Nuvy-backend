@@ -307,7 +307,7 @@
         document.getElementById('client-card').style.display = 'block';
         document.getElementById('c-name').innerText = client.nom;
         const maxT = localStorage.getItem('nuvy_max_tampons') || 10;
-        document.getElementById('c-info').innerText = `${client.tampons} / ${maxT} tampons — ${client.recompenses || 0} cadeau(x)`;
+        document.getElementById('c-info').innerText = `${client.total_historique || 0} Pts totaux | Carte : ${client.tampons} / ${maxT} — ${client.recompenses || 0} cadeau(x)`;
         updateUI();
     });
 
@@ -335,7 +335,7 @@
                     return `<tr class="border-b hover:bg-gray-50">
                         <td class="py-3 px-4 text-lg font-bold text-gray-400">${badge}</td>
                         <td class="py-3 px-4 font-bold">${c.nom}</td>
-                        <td class="py-3 px-4 font-bold text-gray-500">${c.total_historique || 0}</td>
+                        <td class="py-3 px-4 font-bold text-gray-500">${c.total_historique || 0} pts totaux</td>
                         <td class="py-3 px-4 font-bold text-nuvy">${c.tampons || 0} / ${storeMax}</td>
                         <td class="py-3 px-4 font-bold text-nuvy-gold">${c.recompenses || 0} 🎁</td>
                     </tr>`;
@@ -461,7 +461,9 @@
             const matches = clients.filter(c => c.nom.toLowerCase().includes(query.toLowerCase()) || c.telephone.includes(query)).slice(0, 5);
             if (matches.length > 0) {
                 resultsBox.style.display = 'block';
-                resultsBox.innerHTML = matches.map(c => `<div onclick='selectionnerClientManuel(${JSON.stringify(c)})' class="p-4 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"><div><b class="text-gray-900">${c.nom}</b><br><span class="text-xs text-gray-500">${c.telephone}</span></div><div class="font-bold text-nuvy">${c.tampons} pts</div></div>`).join('');
+                resultsBox.innerHTML = matches.map(c => {
+                    return `<div onclick='selectionnerClientManuel(${JSON.stringify(c)})' class="p-4 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"><div><b class="text-gray-900">${c.nom}</b><br><span class="text-xs text-gray-500">${c.telephone}</span></div><div class="font-bold text-nuvy">${c.total_historique || 0} pts totaux</div></div>`;
+                }).join('');
             } else { resultsBox.style.display = 'block'; resultsBox.innerHTML = '<div class="p-4 text-center text-gray-500">Aucun client trouvé 😕</div>'; }
         } catch (e) { console.error(e); }
     }
@@ -472,7 +474,7 @@
         document.getElementById('no-client').style.display = 'none'; document.getElementById('client-card').style.display = 'block';
         document.getElementById('c-name').innerText = client.nom;
         const maxT = localStorage.getItem('nuvy_max_tampons') || 10;
-        document.getElementById('c-info').innerText = `${client.tampons} / ${maxT} tampons — ${client.recompenses || 0} cadeau(x)`;
+        document.getElementById('c-info').innerText = `${client.total_historique || 0} Pts totaux | Carte : ${client.tampons} / ${maxT} — ${client.recompenses || 0} cadeau(x)`;
         updateUI();
     }
 
