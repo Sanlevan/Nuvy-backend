@@ -244,6 +244,49 @@ function generateGoogleWalletLink(client, boutique) {
     return `https://pay.google.com/gp/v/save/${token}`;
 }
 
+// 🔄 MISE À JOUR EN TEMPS RÉEL (GOOGLE WALLET REST API)
+async function updateGoogleWalletPass(client) {
+    if (!googleCredentials) return; // Si pas de clé, on ignore
+    
+    try {
+        const objectId = `${GOOGLE_ISSUER_ID}.${client.id}`;
+        
+        // 1. On crée un laissez-passer temporaire pour parler à l'API Google
+        const authClaim = {
+            iss: googleCredentials.client_email,
+            scope: "https://www.googleapis.com/auth/wallet_object.issuer",
+            aud: "https://oauth2.googleapis.com/token",
+            exp: Math.floor(Date.now() / 1000) + 3600,
+            iat: Math.floor(Date.now() / 1000)
+        };
+        const authToken = jwt.sign(authClaim, googleCredentials.private_key, { algorithm: 'RS256' });
+
+        // 2. On demande la clé d'accès
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: authToken })
+        });
+        const { access_token } = await tokenRes.json();
+
+        // 3. On envoie le nouveau solde de points à Google !
+        await fetch(`https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${objectId}`, {
+            method: 'PATCH',
+            headers: { 
+                'Authorization': `Bearer ${access_token}`, 
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({
+                loyaltyPoints: { label: "Tampons", balance: { int: client.tampons || 0 } }
+            })
+        });
+        
+        console.log(`✅ [GOOGLE WALLET] Carte mise à jour pour ${client.nom} (${client.tampons} pts)`);
+    } catch (e) {
+        console.error("⚠️ [GOOGLE WALLET] Erreur de synchronisation:", e.message);
+    }
+}
+
 // ==========================================
 // ROUTES : AFFICHAGE DES PAGES HTML
 // ==========================================
@@ -980,6 +1023,33 @@ app.post('/join/:slug/create', async (req, res) => {
 
     } catch (e) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+// --- ROUTE : GÉNÉRER LA CARTE GOOGLE WALLET ---
+app.get('/google-pass/:token', async (req, res) => {
+    try {
+        const { token } = req.params;
+        
+        // 1. On décode le token exactemment comme on le fait pour Apple
+        // (⚠️ Assure-toi que cette ligne utilise bien ta clé secrète habituelle)
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'nuvy_secret_key'); 
+
+        // 2. On récupère les infos en base de données
+        const { data: client } = await supabase.from('clients').select('*').eq('id', decoded.clientId).single();
+        const { data: boutique } = await supabase.from('boutiques').select('*').eq('id', decoded.boutiqueId).single();
+
+        if (!client || !boutique) return res.status(404).send("Carte introuvable");
+
+        // 3. On génère le lien magique
+        const googleLink = generateGoogleWalletLink(client, boutique);
+
+        // 4. On redirige le client vers l'application Google Wallet !
+        res.redirect(googleLink);
+        
+    } catch (e) {
+        console.error("❌ Erreur Google Wallet :", e.message);
+        res.status(500).send("Erreur lors de la génération de la carte Android.");
     }
 });
 
