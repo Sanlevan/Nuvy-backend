@@ -687,6 +687,24 @@ app.get('/boutiques/:id/passages-du-jour', verifyAuthOwner, async (req, res) => 
     res.json({ count: data?.length || 0 });
 });
 
+app.get('/boutiques/:id/activites-du-jour', verifyAuthOwner, async (req, res) => {
+    try {
+        const debut = new Date();
+        debut.setHours(0, 0, 0, 0);
+        const { data, error } = await supabase
+            .from('visites')
+            .select('created_at, points_ajoutes, clients(nom)')
+            .eq('boutique_id', req.params.id)
+            .gte('created_at', debut.toISOString())
+            .order('created_at', { ascending: false })
+            .limit(50);
+        if (error) throw error;
+        res.json(data || []);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.get('/boutiques/:id/stats', verifyAuthOwner, async (req, res) => {
     try {
         const [{ data: visites }, { data: clients }] = await Promise.all([
@@ -898,7 +916,7 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
             last_visit: new Date().toISOString()
         }).eq('id', req.params.id).select().single();
         
-        if (pointsAjoutes > 0) await supabase.from('visites').insert([{ client_id: client.id, boutique_id: client.boutique_id, points_ajoutes: pointsAjoutes }]);
+        await supabase.from('visites').insert([{ client_id: client.id, boutique_id: client.boutique_id, points_ajoutes: pointsAjoutes }]);
 
         // 🌟 NOUVEAU : MISE À JOUR GOOGLE WALLET EN ARRIÈRE-PLAN
         // On envoie le client fraîchement mis à jour (updatedClient) à l'API Google

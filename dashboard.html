@@ -273,6 +273,7 @@
         if (goalElem) goalElem.innerText = dailyGoal;
         rafraichirCompteurJournalier();
         loadAnalyticsData();
+        chargerActivitesDuJour();
     });
 
     let audioCtx;
@@ -438,6 +439,39 @@
         item.style.borderColor = couleur;
         item.innerHTML = `<div class="flex items-center gap-3"><div class="font-bold text-gray-900">${nom}</div><span class="text-xs font-bold px-2 py-1 rounded-full text-white" style="background:${couleur}">${action}</span></div><div class="text-sm text-gray-500">${heure}</div>`;
         feed.prepend(item);
+    }
+
+    async function chargerActivitesDuJour() {
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}/activites-du-jour`, { headers: AUTH_HEADERS });
+            if (!res.ok) return;
+            const activites = await res.json();
+            if (activites.length === 0) return;
+            
+            const feed = document.getElementById('activity-feed');
+            const empty = document.getElementById('empty-feed');
+            if (empty) empty.style.display = 'none';
+            
+            activites.reverse().forEach(a => {
+                const nom = a.clients?.nom || 'Client';
+                const pts = a.points_ajoutes;
+                let action, couleur;
+                if (pts > 0) {
+                    action = `+${pts} point${pts > 1 ? 's' : ''}`;
+                    couleur = '#2A8C9C';
+                } else {
+                    const nb = Math.abs(pts);
+                    action = `${nb} Cadeau${nb > 1 ? 'x' : ''} validé${nb > 1 ? 's' : ''} 🎁`;
+                    couleur = '#D4AF37';
+                }
+                const heure = new Date(a.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-3 rounded-xl bg-gray-50 mb-2 border-l-4';
+                item.style.borderColor = couleur;
+                item.innerHTML = `<div class="flex items-center gap-3"><div class="font-bold text-gray-900">${nom}</div><span class="text-xs font-bold px-2 py-1 rounded-full text-white" style="background:${couleur}">${action}</span></div><div class="text-sm text-gray-500">${heure}</div>`;
+                feed.prepend(item);
+            });
+        } catch (e) { console.error("Erreur chargement activités:", e); }
     }
 
     function resetLive() { document.getElementById('client-card').style.display = 'none'; document.getElementById('no-client').style.display = 'flex'; currentClient = null; }
