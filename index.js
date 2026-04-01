@@ -293,6 +293,34 @@ async function updateGoogleWalletPass(client) {
 }
 
 // ==========================================
+// 🛡️ MIDDLEWARE D'AUTHENTIFICATION JWT
+// ==========================================
+function verifyAuth(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: "Non authentifié. Token manquant." });
+    }
+    try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.auth = decoded; // { boutiqueId, slug, nom }
+        next();
+    } catch (e) {
+        return res.status(401).json({ error: "Session expirée. Reconnectez-vous." });
+    }
+}
+
+// Variante : vérifie que le boutiqueId dans l'URL correspond au token
+function verifyAuthOwner(req, res, next) {
+    verifyAuth(req, res, () => {
+        if (req.auth.boutiqueId !== req.params.id) {
+            return res.status(403).json({ error: "Accès interdit à cette boutique." });
+        }
+        next();
+    });
+}
+
+// ==========================================
 // ROUTES : AFFICHAGE DES PAGES HTML
 // ==========================================
 app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'login.html')));
@@ -302,7 +330,8 @@ app.get('/join/:slug', (req, res) => res.sendFile(path.resolve(__dirname, 'join.
 // ==========================================
 // 🔐 SÉCURITÉ CEO (SOURCE DE VÉRITÉ UNIQUE)
 // ==========================================
-const MASTER_CEO_KEY = "natrisT05"; 
+const MASTER_CEO_KEY = process.env.CEO_KEY || "natrisT05";
+const JWT_SECRET = process.env.JWT_SECRET || "nuvy_jwt_secret_temporaire_2026";
 
 // 1. Route pour la page de Login
 app.get('/admin-login', (req, res) => {
@@ -380,11 +409,17 @@ app.post('/auth/login', async (req, res) => {
     const match = await bcrypt.compare(pass, boutique.password);
 
     if (match) {
+        const authToken = jwt.sign(
+            { boutiqueId: boutique.id, slug: boutique.slug, nom: boutique.nom },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
         res.json({ 
             boutiqueId: boutique.id, 
             slug: boutique.slug, 
             nom: boutique.nom, 
-            maxTampons: boutique.max_tampons 
+            maxTampons: boutique.max_tampons,
+            token: authToken
         });
     } else {
         res.status(401).json({ error: "Mot de passe incorrect." });
@@ -487,12 +522,12 @@ app.get('/admin/boutiques', async (req, res) => {
     }
 });
 
-app.get('/boutiques/:id/clients', async (req, res) => {
+app.get('/boutiques/:id/clients', verifyAuthOwner, async (req, res) => {
     const { data } = await supabase.from('clients').select('*').eq('boutique_id', req.params.id).order('last_visit', { ascending: false });
     res.json(data || []);
 });
 // --- CRÉATION MANUELLE D'UN CLIENT ---
-app.post('/boutiques/:id/clients-manuels', async (req, res) => {
+app.post('/boutiques/:id/clients-manuels', verifyAuthOwner, async (req, res) => {
     const { nom, telephone } = req.body;
     const boutique_id = req.params.id;
 
@@ -533,7 +568,7 @@ app.post('/boutiques/:id/clients-manuels', async (req, res) => {
 // --- NOUVEAU : MISE À JOUR DU PROFIL BOUTIQUE (AVEC GÉOCODAGE) ---
 // --- MISE À JOUR DU PROFIL BOUTIQUE (AVEC GÉOCODAGE BAVARD) ---
 // --- MISE À JOUR DU PROFIL BOUTIQUE (AVEC DIAGNOSTIC GPS) ---
-app.put('/boutiques/:id', async (req, res) => {
+app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
     const { id } = req.params;
     const { adresse, telephone } = req.body;
 
@@ -589,20 +624,20 @@ app.put('/boutiques/:id', async (req, res) => {
     }
 });
 
-app.get('/boutiques/:id', async (req, res) => {
+app.get('/boutiques/:id', verifyAuthOwner, async (req, res) => {
     const { data, error } = await supabase.from('boutiques').select('*').eq('id', req.params.id).single();
     if (error) return res.status(404).json({ error: 'Boutique introuvable' });
     res.json(data);
 });
 
-app.get('/boutiques/:id/passages-du-jour', async (req, res) => {
+app.get('/boutiques/:id/passages-du-jour', verifyAuthOwner, async (req, res) => {
     const debut = new Date();
     debut.setHours(0, 0, 0, 0);
     const { data } = await supabase.from('visites').select('id').eq('boutique_id', req.params.id).gte('created_at', debut.toISOString());
     res.json({ count: data?.length || 0 });
 });
 
-app.get('/boutiques/:id/stats', async (req, res) => {
+app.get('/boutiques/:id/stats', verifyAuthOwner, async (req, res) => {
     try {
         const [{ data: visites }, { data: clients }] = await Promise.all([
             supabase.from('visites').select('created_at').eq('boutique_id', req.params.id),
@@ -774,7 +809,7 @@ app.get('/admin/radar', async (req, res) => {
 // ==========================================
 // MOTEUR FIDÉLITÉ : TAMPONS & PUSH APNS
 // ==========================================
-app.post('/clients/:id/tampon', async (req, res) => {
+app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
     try {
         const pointsAjoutes = parseInt(req.body.nb);
         

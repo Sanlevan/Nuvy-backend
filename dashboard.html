@@ -253,7 +253,9 @@
     const boutiqueSlug = localStorage.getItem('nuvy_boutique_slug');
     const statusBox = document.getElementById('conn-status');
     
-    if (!boutiqueId) window.location.href = '/';
+    const authToken = localStorage.getItem('nuvy_jwt');
+    if (!boutiqueId || !authToken) { localStorage.clear(); window.location.href = '/'; }
+    const AUTH_HEADERS = { 'Authorization': 'Bearer ' + authToken };
 
     let currentClient = null;
     let dailyGoal = localStorage.getItem('nuvy_daily_goal') || 20;
@@ -323,7 +325,7 @@
 
     async function loadAnalyticsData() {
         try {
-            const resClients = await fetch(`/boutiques/${boutiqueId}/clients`);
+            const resClients = await fetch(`/boutiques/${boutiqueId}/clients`, { headers: AUTH_HEADERS });
             const clientsData = await resClients.json();
             const storeMax = localStorage.getItem('nuvy_max_tampons') || 10;
             
@@ -345,7 +347,7 @@
             document.getElementById('s-tot').innerText = clientsData.length;
             document.getElementById('s-gft').innerText = clientsData.reduce((acc, c) => acc + (c.recompenses || 0), 0);
 
-            const resStats = await fetch(`/boutiques/${boutiqueId}/stats`);
+            const resStats = await fetch(`/boutiques/${boutiqueId}/stats`, { headers: AUTH_HEADERS });
             const stats = await resStats.json();
             document.getElementById('freq-value').innerText = stats.avgFrequency;
 
@@ -375,7 +377,7 @@
         const btn = document.getElementById('btn-validate');
         btn.disabled = true; btn.innerText = "VALIDATION...";
         try {
-            const res = await fetch(`/clients/${currentClient.id}/tampon`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nb: pointsToAdd }) });
+            const res = await fetch(`/clients/${currentClient.id}/tampon`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS }, body: JSON.stringify({ nb: pointsAjoutes }) });
             if (res.ok) {
                 addActivity(currentClient.nom, `+${pointsToAdd} points`, '#2A8C9C');
                 resetLive(); rafraichirCompteurJournalier(); loadAnalyticsData();
@@ -403,7 +405,7 @@
         try {
             const res = await fetch(`/clients/${currentClient.id}/tampon`, { 
                 method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
+                headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS }, 
                 body: JSON.stringify({ nb: -nbCadeaux }) 
             });
             if (res.ok) {
@@ -439,7 +441,7 @@
     
     async function rafraichirCompteurJournalier() {
         try {
-            const res = await fetch(`/boutiques/${boutiqueId}/passages-du-jour`);
+            const res = await fetch(`/boutiques/${boutiqueId}/passages-du-jour`, { headers: AUTH_HEADERS });
             const data = await res.json();
             todayPassages = data.count;
             document.getElementById('today-count').innerText = todayPassages;
@@ -456,7 +458,7 @@
         const resultsBox = document.getElementById('search-results');
         if (query.length < 2) { resultsBox.style.display = 'none'; return; }
         try {
-            const res = await fetch(`/boutiques/${boutiqueId}/clients`);
+            const res = await fetch(`/boutiques/${boutiqueId}/clients`, { headers: AUTH_HEADERS });
             const clients = await res.json();
             const matches = clients.filter(c => c.nom.toLowerCase().includes(query.toLowerCase()) || c.telephone.includes(query)).slice(0, 5);
             if (matches.length > 0) {
@@ -480,7 +482,7 @@
 
     async function loadAccountData() {
         try {
-            const res = await fetch(`/boutiques/${boutiqueId}`);
+            const res = await fetch(`/boutiques/${boutiqueId}`, { headers: AUTH_HEADERS });
             if (res.ok) {
                 const b = await res.json();
                 if (b.adresse) {
@@ -521,7 +523,7 @@
         try {
             const res = await fetch(`/boutiques/${boutiqueId}`, { 
                 method: 'PUT', 
-                headers: { 'Content-Type': 'application/json' }, 
+                headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
                 body: JSON.stringify({ adresse: adresseComplete, telephone: phone }) 
             });
             
@@ -553,7 +555,7 @@ async function changerMotDePasse() {
         try {
             const res = await fetch('/auth/change-password', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
                 body: JSON.stringify({ boutiqueId: boutiqueId, oldPassword: oldP, newPassword: newP })
             });
 

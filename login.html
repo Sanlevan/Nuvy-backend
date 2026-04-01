@@ -36,7 +36,7 @@
                 const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: user, pass: pass }) });
                 if (res.ok) {
                     const data = await res.json();
-                    localStorage.setItem('nuvy_boutique_id', data.boutiqueId); localStorage.setItem('nuvy_boutique_slug', data.slug); localStorage.setItem('nuvy_boutique_nom', data.nom); localStorage.setItem('nuvy_max_tampons', data.maxTampons);
+                    localStorage.setItem('nuvy_boutique_id', data.boutiqueId); localStorage.setItem('nuvy_boutique_slug', data.slug); localStorage.setItem('nuvy_boutique_nom', data.nom); localStorage.setItem('nuvy_max_tampons', data.maxTampons); localStorage.setItem('nuvy_jwt', data.token);
                     window.location.href = '/dashboard';
                 } else { errorDiv.innerText = "Identifiants incorrects."; errorDiv.style.display = 'block'; btn.innerText = "SE CONNECTER"; btn.disabled = false; }
             } catch (error) { errorDiv.innerText = "Erreur de connexion."; errorDiv.style.display = 'block'; btn.innerText = "SE CONNECTER"; btn.disabled = false; }
