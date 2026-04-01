@@ -38,8 +38,14 @@
         <div id="success-view">
             <h1 style="color: #2A8C9C;">Carte prête !</h1>
             <p>Votre carte s'ouvre automatiquement...</p>
-            <button onclick="telechargerPass()" style="background: #000; color: white; padding: 18px 25px; border-radius: 18px; border: none; font-weight: 800; font-size: 16px; margin-top: 10px; cursor: pointer; width: 100%;">
+            
+            <button id="btn-apple" onclick="telechargerApple()" style="display: none; background: #000; color: white; padding: 18px 25px; border-radius: 18px; border: none; font-weight: 800; font-size: 16px; margin-top: 10px; cursor: pointer; width: 100%;">
                 OUVRIR MA CARTE 
+            </button>
+
+            <button id="btn-google" onclick="telechargerGoogle()" style="display: none; background: #1f1f1f; color: white; padding: 18px 25px; border-radius: 18px; border: none; font-weight: 800; font-size: 16px; margin-top: 10px; cursor: pointer; width: 100%; align-items: center; justify-content: center; gap: 10px;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Wallet_2022.svg" alt="Google Wallet" style="height: 20px;">
+                OUVRIR SUR GOOGLE WALLET
             </button>
         </div>
     </div>
@@ -94,10 +100,18 @@
                     document.getElementById('form-view').style.display = 'none';
                     document.getElementById('success-view').style.display = 'block';
 
-                    // Ouverture automatique instantanée !
-                    setTimeout(() => {
-                        window.location.href = `/pass/${passToken}`;
-                    }, 400);
+                    // 🕵️ Détection du téléphone (iOS ou Android)
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                    
+                    if (isIOS) {
+                        // Affichage Apple et redirection Apple
+                        document.getElementById('btn-apple').style.display = 'block';
+                        setTimeout(() => { window.location.href = `/pass/${passToken}`; }, 400);
+                    } else {
+                        // Affichage Google et redirection Google
+                        document.getElementById('btn-google').style.display = 'flex'; 
+                        setTimeout(() => { window.location.href = `/google-pass/${passToken}`; }, 400);
+                    }
 
                 } else {
                     alert("Erreur."); 
@@ -110,7 +124,8 @@
                 btn.disabled = false; 
             }
         }
-        function telechargerPass() { if (passToken) window.location.href = `/pass/${passToken}`; }
+        function telechargerApple() { if (passToken) window.location.href = `/pass/${passToken}`; }
+        function telechargerGoogle() { if (passToken) window.location.href = `/google-pass/${passToken}`; }
     </script>
 </body>
 </html>

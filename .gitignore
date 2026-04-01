@@ -17,4 +17,4 @@ build
 *.p12
 *.csr
 
-.vscode/
+.vscode/google-credentials.json

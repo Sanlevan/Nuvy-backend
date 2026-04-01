@@ -1,6 +1,9 @@
 require('dotenv').config();
 console.log("=== NUVY MASTER ENGINE V1.0 (PRODUCTION) - 2026 ===");
 
+const jwt = require('jsonwebtoken');
+const googleCredentials = require('./google-credentials.json'); // Ta clé secrète Google
+const GOOGLE_ISSUER_ID = '3388000000023094987'; // Ton identifiant Nuvy
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { PKPass } = require('passkit-generator');
@@ -185,6 +188,54 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     const buf = pass.getAsBuffer();
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}
     return buf;
+}
+
+// 🤖 GÉNÉRATEUR DE CARTE GOOGLE WALLET
+function generateGoogleWalletLink(client, boutique) {
+    // 1. On crée des identifiants uniques pour Google
+    const classId = `${GOOGLE_ISSUER_ID}.${boutique.slug}`; // Le "moule" de la boutique
+    const objectId = `${GOOGLE_ISSUER_ID}.${client.id}`;    // La carte de ce client précis
+
+    // 2. On prépare les données (Le Fat JWT)
+    const payload = {
+        iss: googleCredentials.client_email,
+        aud: 'google',
+        typ: 'savetowallet',
+        origins: [],
+        payload: {
+            loyaltyClasses: [{
+                id: classId,
+                issuerName: "Nuvy",
+                programName: boutique.nom || "Fidélité",
+                programLogo: boutique.logo_url ? { sourceUri: { uri: boutique.logo_url } } : undefined,
+                reviewStatus: "UNDER_REVIEW", // Obligatoire tant que Google n'a pas validé la publication finale
+                hexBackgroundColor: "#ffffff",
+                // 📍 On remet la géolocalisation pour Android aussi !
+                locations: boutique.latitude && boutique.longitude ? [{ latitude: parseFloat(boutique.latitude), longitude: parseFloat(boutique.longitude) }] : []
+            }],
+            loyaltyObjects: [{
+                id: objectId,
+                classId: classId,
+                state: "ACTIVE",
+                accountId: client.id.toString(),
+                accountName: client.nom,
+                barcode: {
+                    type: "QR_CODE",
+                    value: `https://nuvy.pro/tap/${boutique.slug}?client=${client.id}` // Le QR code de secours
+                },
+                loyaltyPoints: {
+                    label: "Tampons",
+                    balance: { int: client.tampons || 0 }
+                }
+            }]
+        }
+    };
+
+    // 3. On signe cryptographiquement avec ta clé privée Google
+    const token = jwt.sign(payload, googleCredentials.private_key, { algorithm: 'RS256' });
+    
+    // 4. On renvoie le lien magique d'ajout !
+    return `https://pay.google.com/gp/v/save/${token}`;
 }
 
 // ==========================================
