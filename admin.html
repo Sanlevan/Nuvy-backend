@@ -148,7 +148,7 @@
           </div>
         </div>
 
-        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
           <table class="w-full text-left">
             <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-bold uppercase tracking-wider">
               <tr><th class="py-4 px-6">Statut</th><th class="py-4 px-6">Boutique</th><th class="py-4 px-6">Identifiant</th><th class="py-4 px-6 text-right">Inscrit le</th><th class="py-4 px-6 text-right">Actions</th></tr>
@@ -367,7 +367,7 @@
                         <button onclick="toggleMenu(${b.id})" class="bg-white border border-gray-200 text-nuvy hover:bg-nuvy hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
                           <i data-lucide="settings" class="h-3 w-3"></i> Gérer <i data-lucide="chevron-down" class="h-3 w-3"></i>
                         </button>
-                        <div id="menu-${b.id}" class="hidden absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-56 overflow-hidden">
+                        <div id="menu-${b.id}" class="hidden absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-56 overflow-hidden" style="z-index:9999">
                           <button onclick="gererBoutique(${b.id})" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-nuvy/10 hover:text-nuvy flex items-center gap-2 transition-colors">
                             <i data-lucide="layout-dashboard" class="h-4 w-4"></i> Accéder au dashboard
                           </button>
