@@ -1469,44 +1469,63 @@ app.get('/google-pass/:token', async (req, res) => {
 // WEB SERVICES APPLE (ÉCOUTE ET MISES À JOUR)
 // ==========================================
 app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
-    const { error } = await supabase.from('devices').upsert([{ device_id: req.params.dId, push_token: req.body.pushToken, pass_type_id: req.params.pId, serial_number: req.params.sN }]);
-    if (error) { console.error("❌ Erreur enregistrement device:", error.message); return res.status(500).send(); }
+    console.log(`📲 [APPLE HANDSHAKE] L'iPhone essaie de s'enregistrer !`);
+    const { error } = await supabase.from('devices').upsert([{ 
+        device_id: req.params.dId, 
+        push_token: req.body.pushToken, 
+        pass_type_id: req.params.pId, 
+        serial_number: req.params.sN 
+    }]);
+    
+    if (error) { 
+        console.error("❌ [APPLE HANDSHAKE] Erreur Supabase (table devices) :", error.message); 
+        return res.status(500).send(); 
+    }
+    
+    console.log(`✅ [APPLE HANDSHAKE] iPhone enregistré avec succès dans la base !`);
     res.status(201).send();
 });
 
 app.delete('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
-    const { error } = await supabase.from('devices').delete().eq('device_id', req.params.dId).eq('serial_number', req.params.sN);
-    if (error) { console.error("❌ Erreur suppression device:", error.message); return res.status(500).send(); }
+    await supabase.from('devices').delete().eq('device_id', req.params.dId).eq('serial_number', req.params.sN);
+    console.log(`🗑️ [APPLE] iPhone désinscrit.`);
     res.status(200).send();
 });
 
 app.get('/v1/devices/:dId/registrations/:pId', async (req, res) => {
-    const { data, error } = await supabase.from('devices').select('serial_number').eq('device_id', req.params.dId);
-    if (error) { console.error("❌ Erreur lecture devices:", error.message); return res.status(500).send(); }
+    const { data } = await supabase.from('devices').select('serial_number').eq('device_id', req.params.dId);
     if (data && data.length > 0) res.json({ serialNumbers: data.map(d => d.serial_number), lastUpdated: new Date().toISOString() });
     else res.status(204).send();
 });
 
 app.get('/v1/passes/:pId/:sN', async (req, res) => {
     try {
-        const { data: c, error } = await supabase.from('clients').select('*, boutiques(*)').eq('serial_number', req.params.sN).single();
-        if(error || !c) return res.status(404).send();
+        console.log(`🔄 [APPLE UPDATE] L'iPhone demande la mise à jour de la carte...`);
+        const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('serial_number', req.params.sN).single();
+        if(!c) return res.status(404).send();
         
         const { data: all } = await supabase.from('clients').select('tampons, recompenses').eq('boutique_id', c.boutique_id);
         const maxT = c.boutiques.max_tampons || 10;
         const score = (c.recompenses * maxT) + c.tampons;
         let rank = 1; all.forEach(o => { if(((o.recompenses||0)*10 + (o.tampons||0)) > score) rank++; });
         
-        // La bonne fonction avec l'URL pour les mises à jour Apple
         const buf = await generatePassBuffer(c, c.boutiques, rank, req.get('host'));
         
         res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
-        res.setHeader('Last-Modified', new Date().toUTCString()); // Force l'iPhone à se mettre à jour
+        res.setHeader('Last-Modified', new Date().toUTCString()); 
         res.status(200).send(buf);
-    } catch (e) { res.status(500).send(); }
+        console.log(`✅ [APPLE UPDATE] Nouvelle carte envoyée à l'iPhone !`);
+    } catch (e) { 
+        console.error("❌ [APPLE UPDATE] Crash :", e.message);
+        res.status(500).send(); 
+    }
 });
 
-app.post('/v1/log', (req, res) => res.status(200).send());
+// 🚨 LE BOUCLIER LE PLUS IMPORTANT : Apple envoie ses messages d'erreur ici !
+app.post('/v1/log', (req, res) => {
+    console.error("🍎 [APPLE SE PLAINT] L'iPhone a rencontré une erreur :", JSON.stringify(req.body));
+    res.status(200).send();
+});
 
 // ==========================================
 // SOCKET.IO (TEMPS RÉEL DASHBOARD)
