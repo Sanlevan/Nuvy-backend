@@ -1193,29 +1193,23 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
 
         // --- NOTIFICATION APPLE WALLET (AVEC MOUCHARD) ---
         const { data: devices } = await supabase.from('devices').select('push_token').eq('serial_number', client.serial_number);
-        
         if (devices && devices.length > 0) {
-            console.log(`📲 [APPLE PUSH] Tentative de réveil pour ${devices.length} appareil(s)...`);
-            try {
-                const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
-                const teamId = process.env.APPLE_TEAM_ID || 'Q762BTBA98'; 
-                const keyId = process.env.APPLE_KEY_ID || 'RM6P22PX7A';
-                
-                const provider = new apn.Provider({ token: { key: p8Key, keyId: keyId, teamId: teamId }, production: true });
-                const notification = new apn.Notification();
-                notification.topic = 'pass.pro.nuvy.loyalty'; // Doit être identique au passTypeIdentifier
-                
-                for (const d of devices) { 
-                    const response = await provider.send(notification, d.push_token); 
-                    // On affiche la réponse d'Apple dans les logs Railway
-                    console.log("🔍 [APPLE PUSH] Réponse d'Apple :", JSON.stringify(response));
-                }
-                provider.shutdown();
-            } catch (err) {
-                console.error("❌ [APPLE PUSH] Erreur fatale de connexion :", err.message);
+            console.log(`🔔 [APPLE] Envoi d'un signal de réveil à l'iPhone...`);
+            const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
+            const teamId = process.env.APPLE_TEAM_ID || 'Q762BTBA98'; 
+            const keyId = process.env.APPLE_KEY_ID || 'RM6P22PX7A';
+            
+            const provider = new apn.Provider({ token: { key: p8Key, keyId: keyId, teamId: teamId }, production: true });
+            const notification = new apn.Notification();
+            notification.topic = 'pass.pro.nuvy.loyalty';
+            
+            for (const d of devices) { 
+                const response = await provider.send(notification, d.push_token); 
+                console.log("🔍 [RÉPONSE APPLE] :", JSON.stringify(response));
             }
+            provider.shutdown();
         } else {
-            console.log("⚠️ [APPLE PUSH] Aucun appareil Apple trouvé dans la base pour ce client.");
+            console.log("⚠️ [APPLE] Impossible de sonner : aucun jeton Push trouvé pour ce client !");
         }
         res.json(updatedClient);
     } catch (e) { res.status(500).send(); }
@@ -1482,21 +1476,29 @@ app.get('/google-pass/:token', async (req, res) => {
 // WEB SERVICES APPLE (ÉCOUTE ET MISES À JOUR)
 // ==========================================
 app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
-    console.log(`📲 [APPLE HANDSHAKE] L'iPhone essaie de s'enregistrer !`);
-    const { error } = await supabase.from('devices').upsert([{ 
-        device_id: req.params.dId, 
-        push_token: req.body.pushToken, 
-        pass_type_id: req.params.pId, 
-        serial_number: req.params.sN 
-    }]);
-    
-    if (error) { 
-        console.error("❌ [APPLE HANDSHAKE] Erreur Supabase (table devices) :", error.message); 
-        return res.status(500).send(); 
+    console.log(`📲 [APPLE] L'iPhone essaie de s'enregistrer...`);
+    try {
+        // Méthode 100% sûre : On cherche d'abord, puis on met à jour ou on insère
+        const { data: existing } = await supabase.from('devices')
+            .select('id').eq('device_id', req.params.dId).eq('serial_number', req.params.sN).single();
+
+        if (existing) {
+            await supabase.from('devices').update({ push_token: req.body.pushToken }).eq('id', existing.id);
+        } else {
+            const { error } = await supabase.from('devices').insert([{ 
+                device_id: req.params.dId, 
+                push_token: req.body.pushToken, 
+                pass_type_id: req.params.pId, 
+                serial_number: req.params.sN 
+            }]);
+            if (error) throw error;
+        }
+        console.log(`✅ [APPLE] Jeton Push sauvegardé avec succès dans Supabase !`);
+        res.status(201).send();
+    } catch (e) {
+        console.error("❌ [APPLE] Erreur fatale de sauvegarde :", e.message);
+        res.status(500).send();
     }
-    
-    console.log(`✅ [APPLE HANDSHAKE] iPhone enregistré avec succès dans la base !`);
-    res.status(201).send();
 });
 
 app.delete('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
@@ -1513,7 +1515,7 @@ app.get('/v1/devices/:dId/registrations/:pId', async (req, res) => {
 
 app.get('/v1/passes/:pId/:sN', async (req, res) => {
     try {
-        console.log(`🔄 [APPLE UPDATE] L'iPhone demande la mise à jour de la carte...`);
+        console.log(`🔄 [APPLE] L'iPhone télécharge la nouvelle carte...`);
         const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('serial_number', req.params.sN).single();
         if(!c) return res.status(404).send();
         
@@ -1527,16 +1529,11 @@ app.get('/v1/passes/:pId/:sN', async (req, res) => {
         res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
         res.setHeader('Last-Modified', new Date().toUTCString()); 
         res.status(200).send(buf);
-        console.log(`✅ [APPLE UPDATE] Nouvelle carte envoyée à l'iPhone !`);
-    } catch (e) { 
-        console.error("❌ [APPLE UPDATE] Crash :", e.message);
-        res.status(500).send(); 
-    }
+    } catch (e) { res.status(500).send(); }
 });
 
-// 🚨 LE BOUCLIER LE PLUS IMPORTANT : Apple envoie ses messages d'erreur ici !
 app.post('/v1/log', (req, res) => {
-    console.error("🍎 [APPLE SE PLAINT] L'iPhone a rencontré une erreur :", JSON.stringify(req.body));
+    console.error("🍎 [APPLE ERREUR IPHONE] :", JSON.stringify(req.body));
     res.status(200).send();
 });
 
