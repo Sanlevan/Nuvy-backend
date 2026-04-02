@@ -1290,17 +1290,31 @@ app.get('/tap/:slug', (req, res) => {
 
             if (!token) {
                 window.location.href = '/join/' + slug;
+            } else if (sessionStorage.getItem('nuvy_tapped_' + slug)) {
+                // 🛡️ ANTI-SPAM : L'utilisateur a rechargé la page (Pas de nouveau push)
+                document.getElementById('ui-box').classList.add('success');
+                document.getElementById('loader-view').style.display = 'none';
+                document.getElementById('success-view').style.display = 'block';
+                
+                // On prépare le bouton intelligent même pour la page morte
+                const isAndroid = /android/i.test(navigator.userAgent);
+                const btnText = isAndroid ? "Voir sur Google Wallet" : "Voir ma carte ";
+                const btnHref = isAndroid ? '/google-pass/' + token : '/pass/' + token;
+                
+                document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Passage enregistré</h2><p>Votre visite a bien été transmise.</p><a href="' + btnHref + '" class="btn">' + btnText + '</a>';
             } else {
+                // NOUVEAU PASSAGE LÉGITIME
                 fetch('/tap/' + slug + '/notify?token=' + token, { method: 'POST' })
                 .then(r => {
                     if(r.ok) {
+                        sessionStorage.setItem('nuvy_tapped_' + slug, '1'); // 🛡️ On verrouille la page
                         playDing();
                         const box = document.getElementById('ui-box');
                         document.getElementById('loader-view').style.display = 'none';
                         document.getElementById('success-view').style.display = 'block';
                         box.classList.add('success');
                         
-                        // 🌟 MAGIE : On adapte le bouton de secours selon le téléphone !
+                        // 🌟 BOUTON INTELLIGENT
                         const btn = document.getElementById('wallet-btn');
                         const isAndroid = /android/i.test(navigator.userAgent);
                         
