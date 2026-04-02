@@ -923,8 +923,8 @@ app.post('/boutiques/:id/clients-manuels', verifyAuthOwner, async (req, res) => 
 // --- MISE À JOUR DU PROFIL BOUTIQUE (AVEC DIAGNOSTIC GPS) ---
 app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
     const { id } = req.params;
-    const { adresse, telephone, panier_moyen, valeur_tampon, roi_mode } = req.body;
-
+    const { adresse, telephone, panier_moyen, valeur_tampon, roi_mode, google_review_url } = req.body;
+    
     let latitude = null;
     let longitude = null;
     let geoDebug = "Non tenté"; // Notre mouchard
@@ -967,8 +967,11 @@ app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
         if (valeur_tampon !== undefined) updatePayload.valeur_tampon = parseFloat(valeur_tampon) || 0;
         if (roi_mode) updatePayload.roi_mode = roi_mode;
         if (latitude && longitude && peutGeoLocaliser) {
-            updatePayload.latitude = latitude;
-            updatePayload.longitude = longitude;
+            if (google_review_url !== undefined) updatePayload.google_review_url = google_review_url;
+            if (latitude && longitude) {
+                updatePayload.latitude = latitude;
+                updatePayload.longitude = longitude;
+            }
         }
 
         const { data, error } = await supabase
@@ -1339,8 +1342,18 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
 // ==========================================
 // LE TAP NFC (EXPÉRIENCE PREMIUM)
 // ==========================================
-app.get('/tap/:slug', (req, res) => {
+app.get('/tap/:slug', async (req, res) => {
     const slug = req.params.slug;
+    
+    // 🌟 NOUVEAU : On récupère le lien d'avis Google de la boutique
+    let reviewUrl = '';
+    try {
+        const { data: boutique } = await supabase.from('boutiques').select('google_review_url').eq('slug', slug).single();
+        if (boutique && boutique.google_review_url) {
+            reviewUrl = boutique.google_review_url;
+        }
+    } catch (e) { console.error(e); }
+
     const html = `
     <!DOCTYPE html>
     <html lang="fr">
@@ -1365,9 +1378,16 @@ app.get('/tap/:slug', (req, res) => {
             p { color: #888; font-weight: 600; margin: 0; font-size: 15px; line-height: 1.5; transition: color 0.4s; }
             .c.success p { color: #AAAAAA; }
             
-            .btn { display: inline-block; background: #2A8C9C; color: white; padding: 14px 28px; border-radius: 20px; text-decoration: none; font-weight: 800; font-size: 15px; margin-top: 25px; transition: transform 0.2s; }
+            .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: 25px; }
+            
+            .btn { display: inline-block; background: #2A8C9C; color: white; padding: 14px 28px; border-radius: 20px; text-decoration: none; font-weight: 800; font-size: 15px; transition: transform 0.2s; }
             .c.success .btn { background: #FFFFFF; color: #111111; }
             .btn:active { transform: scale(0.95); }
+            
+            /* 🌟 NOUVEAU STYLE : Bouton Google */
+            .btn-review { display: inline-block; background: #FFFFFF; color: #111111; padding: 14px 28px; border-radius: 20px; text-decoration: none; font-weight: 800; font-size: 15px; border: 2px solid #E0DEDA; transition: transform 0.2s; }
+            .c.success .btn-review { background: #222222; color: #FFFFFF; border-color: #333333; }
+            .btn-review:active { transform: scale(0.95); }
         </style>
     </head>
     <body>
@@ -1381,12 +1401,16 @@ app.get('/tap/:slug', (req, res) => {
                 <div class="check-box"><span class="check-icon">✓</span></div>
                 <h2>C'est validé ! 🎉</h2>
                 <p>Le commerçant a bien reçu votre carte sur sa caisse.</p>
-                <a href="#" id="wallet-btn" class="btn">Fermer & Voir ma carte </a>
+                <div class="btn-group">
+                    <a href="#" id="wallet-btn" class="btn">Fermer & Voir ma carte </a>
+                    ${reviewUrl ? `<a href="${reviewUrl}" target="_blank" class="btn-review">⭐ Laisser un avis Google</a>` : ''}
+                </div>
             </div>
         </div>
         
         <script>
             const slug = '${slug}';
+            const reviewUrl = '${reviewUrl}'; // Injecté depuis NodeJS
             const token = localStorage.getItem('nuvy_token_' + slug);
             
             function playDing() {
@@ -1408,30 +1432,30 @@ app.get('/tap/:slug', (req, res) => {
             if (!token) {
                 window.location.href = '/join/' + slug;
             } else if (sessionStorage.getItem('nuvy_tapped_' + slug)) {
-                // 🛡️ ANTI-SPAM : L'utilisateur a rechargé la page (Pas de nouveau push)
+                // 🛡️ ANTI-SPAM (Page rechargée)
                 document.getElementById('ui-box').classList.add('success');
                 document.getElementById('loader-view').style.display = 'none';
                 document.getElementById('success-view').style.display = 'block';
                 
-                // On prépare le bouton intelligent même pour la page morte
                 const isAndroid = /android/i.test(navigator.userAgent);
                 const btnText = isAndroid ? "Voir sur Google Wallet" : "Voir ma carte ";
                 const btnHref = isAndroid ? '/google-pass/' + token : '/pass/' + token;
                 
-                document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Passage enregistré</h2><p>Votre visite a bien été transmise.</p><a href="' + btnHref + '" class="btn" onclick="setTimeout(function(){window.location.reload();}, 1500)">' + btnText + '</a>';
+                const googleBtnHtml = reviewUrl ? '<a href="' + reviewUrl + '" target="_blank" class="btn-review">⭐ Laisser un avis Google</a>' : '';
+                
+                document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Passage enregistré</h2><p>Votre visite a bien été transmise.</p><div class="btn-group"><a href="' + btnHref + '" class="btn" onclick="setTimeout(function(){window.location.reload();}, 3000)">' + btnText + '</a>' + googleBtnHtml + '</div>';
             } else {
                 // NOUVEAU PASSAGE LÉGITIME
                 fetch('/tap/' + slug + '/notify?token=' + token, { method: 'POST' })
                 .then(r => {
                     if(r.ok) {
-                        sessionStorage.setItem('nuvy_tapped_' + slug, '1'); // 🛡️ On verrouille la page
+                        sessionStorage.setItem('nuvy_tapped_' + slug, '1');
                         playDing();
                         const box = document.getElementById('ui-box');
                         document.getElementById('loader-view').style.display = 'none';
                         document.getElementById('success-view').style.display = 'block';
                         box.classList.add('success');
                         
-                        // 🌟 BOUTON INTELLIGENT
                         const btn = document.getElementById('wallet-btn');
                         const isAndroid = /android/i.test(navigator.userAgent);
                         
@@ -1443,11 +1467,10 @@ app.get('/tap/:slug', (req, res) => {
                             btn.href = '/pass/' + token;
                         }
                         
-                        // 🌟 NOUVEAU : On referme/recharge la page proprement après le clic
                         btn.onclick = function() {
                             setTimeout(function() {
                                 window.location.reload();
-                            }, 3000); // 3 secondes de délai
+                            }, 3000);
                         };
 
                     } else if (r.status === 404) {

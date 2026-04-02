@@ -307,9 +307,16 @@
               <input type="number" step="0.5" min="0" id="edit-valeur-tampon" placeholder="Ex: 2.00" class="w-full mt-1 h-12 px-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
             </div>
           </div>
+          
           <div>
             <label class="text-sm font-bold text-gray-700">Téléphone public</label>
             <input type="tel" id="edit-phone" placeholder="01 23 45 67 89" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+          </div>
+          
+          <div>
+            <label class="text-sm font-bold text-gray-700">Lien pour Avis Google</label>
+            <input type="url" id="edit-google-review" placeholder="https://g.page/r/..." class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+            <p class="text-xs text-gray-500 mt-1">Ce lien s'affichera sous forme de bouton à vos clients juste après leur passage en caisse.</p>
           </div>
           
           <div class="pt-4 mt-2">
@@ -377,8 +384,9 @@
     const boutiqueNom = localStorage.getItem('nuvy_boutique_nom');
     const boutiqueId = localStorage.getItem('nuvy_boutique_id');
     const boutiqueSlug = localStorage.getItem('nuvy_boutique_slug');
+    const authToken = localStorage.getItem('nuvy_jwt'); // 🚨 LA LIGNE MAGIQUE QUI MANQUAIT !
     const statusBox = document.getElementById('conn-status');
-    
+
     const _originalFetch = window.fetch;
     window.fetch = async function(...args) {
         const res = await _originalFetch.apply(this, args);
@@ -386,7 +394,6 @@
         return res;
     };
     const AUTH_HEADERS = { 'Authorization': 'Bearer ' + authToken };
-
     let currentClient = null;
     let dailyGoal = localStorage.getItem('nuvy_daily_goal') || 20;
     let pointsToAdd = 1;
@@ -723,6 +730,7 @@
                 document.getElementById('edit-phone').value = b.telephone || "";
                 document.getElementById('edit-panier-moyen').value = b.panier_moyen || "";
                 document.getElementById('edit-valeur-tampon').value = b.valeur_tampon || "";
+                document.getElementById('edit-google-review').value = b.google_review_url || "";
                 setRoiMode(b.roi_mode || 'panier');
             }
         } catch (e) { console.error(e); }
@@ -740,6 +748,7 @@
         const phone = document.getElementById('edit-phone').value.trim();
         const panierMoyen = document.getElementById('edit-panier-moyen').value.trim();
         const valeurTampon = document.getElementById('edit-valeur-tampon').value.trim();
+        const googleReviewUrl = document.getElementById('edit-google-review').value.trim();
         const roiMode = currentRoiMode;
         
         // On assemble l'adresse parfaite pour l'API GPS (Ex: "12 rue de Paris, 75000 Ville, France")
@@ -749,7 +758,7 @@
             const res = await fetch(`/boutiques/${boutiqueId}`, { 
                 method: 'PUT', 
                 headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
-                body: JSON.stringify({ adresse: adresseComplete, telephone: phone, panier_moyen: panierMoyen, valeur_tampon: valeurTampon, roi_mode: roiMode })
+                body: JSON.stringify({ adresse: adresseComplete, telephone: phone, panier_moyen: panierMoyen, valeur_tampon: valeurTampon, roi_mode: roiMode, google_review_url: googleReviewUrl })
             });
             
             const data = await res.json();
