@@ -164,6 +164,15 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     let fideliteTexte = "";
     for(let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
+    // 🌟 NOUVEAU : On récupère la dernière notification de la boutique
+    const { data: lastNotif } = await supabase
+        .from('notifications')
+        .select('message')
+        .eq('boutique_id', boutique.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
     const layout = {
         "headerFields": [{
             "key": "score_header",
@@ -207,6 +216,16 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             }
         ]
     };
+
+    // 🌟 NOUVEAU : On injecte le message au dos de la carte s'il y en a un !
+    if (lastNotif && lastNotif.message) {
+        layout.backFields.unshift({
+            "key": "derniere_notification",
+            "label": "📢 DERNIÈRE INFO",
+            "value": lastNotif.message,
+            "changeMessage": "Info : %@" // C'est CECI qui déclenche la notification à l'écran !
+        });
+    }
     passJson.storeCard = layout;
 
     fs.writeFileSync(path.join(tmpDir, 'pass.json'), JSON.stringify(passJson));
