@@ -939,7 +939,7 @@ app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
         .select('plan')
         .eq('id', id)
         .single();
-    const peutGeoLocaliser = boutiqueCheck?.plan === 'multi-site';
+    const peutGeoLocaliser = true;
 
     try {
         if (adresse && adresse.trim() !== "" && peutGeoLocaliser) {
@@ -970,12 +970,10 @@ app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
         if (panier_moyen !== undefined) updatePayload.panier_moyen = parseFloat(panier_moyen) || 0;
         if (valeur_tampon !== undefined) updatePayload.valeur_tampon = parseFloat(valeur_tampon) || 0;
         if (roi_mode) updatePayload.roi_mode = roi_mode;
-        if (latitude && longitude && peutGeoLocaliser) {
-            if (google_review_url !== undefined) updatePayload.google_review_url = google_review_url;
-            if (latitude && longitude) {
-                updatePayload.latitude = latitude;
-                updatePayload.longitude = longitude;
-            }
+        if (google_review_url !== undefined) updatePayload.google_review_url = google_review_url;
+        if (latitude && longitude) {
+            updatePayload.latitude = latitude;
+            updatePayload.longitude = longitude;
         }
 
         const { data, error } = await supabase
