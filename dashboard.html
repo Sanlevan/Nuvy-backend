@@ -425,7 +425,7 @@
             gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.4);
             osc.stop(audioCtx.currentTime + 0.4);
-        } catch(e) { console.error(e); }
+        } catch(e) { logger.error(e); }
     }
 
     socket.on('connect', () => {
@@ -513,7 +513,7 @@
                 if (chartDistri) chartDistri.destroy();
                 chartDistri = new Chart(ctxDistri.getContext('2d'), { type: 'bar', data: { labels: stats.distribution.map((_, i) => i + " T"), datasets: [{ data: stats.distribution, backgroundColor: '#2A8C9C', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : '' } } } } });
             }
-        } catch (e) { console.error("Erreur Stats:", e); }
+        } catch (e) { logger.error("Erreur Stats:", e); }
     }
 
     function updateTempCount(val) { pointsToAdd = Math.max(1, pointsToAdd + val); updateUI(); }
@@ -537,7 +537,7 @@
                 rafraichirAffichageClient();
                 rafraichirCompteurJournalier(); loadAnalyticsData();
             }
-        } catch (e) { console.error(e); } finally { btn.disabled = false; updateUI(); }
+        } catch (e) { logger.error(e); } finally { btn.disabled = false; updateUI(); }
     }
 
     async function offrirCadeau() {
@@ -574,7 +574,7 @@
                 loadAnalyticsData();
             }
         } catch (e) { 
-            console.error(e); 
+            logger.error(e); 
         } finally { 
             // 🚨 CORRECTION : Le bouton se répare tout seul pour le client suivant !
             btn.disabled = false; 
@@ -626,7 +626,7 @@
                 item.innerHTML = `<div class="flex items-center gap-3"><div class="font-bold text-gray-900">${nom}</div><span class="text-xs font-bold px-2 py-1 rounded-full text-white" style="background:${couleur}">${action}</span></div><div class="text-sm text-gray-500">${heure}</div>`;
                 feed.prepend(item);
             });
-        } catch (e) { console.error("Erreur chargement activités:", e); }
+        } catch (e) { logger.error("Erreur chargement activités:", e); }
     }
 
     function rafraichirAffichageClient() {
@@ -647,7 +647,7 @@
             todayPassages = data.count;
             document.getElementById('today-count').innerText = todayPassages;
             document.getElementById('goal-bar').style.width = Math.min((todayPassages / dailyGoal) * 100, 100) + '%';
-        } catch (e) { console.error(e); }
+        } catch (e) { logger.error(e); }
     }
 
     function modifierObjectif() {
@@ -666,7 +666,7 @@
             cachedClients = await res.json();
             cacheTimestamp = Date.now();
             return cachedClients;
-        } catch (e) { console.error(e); return cachedClients || []; }
+        } catch (e) { logger.error(e); return cachedClients || []; }
     }
     
     async function chercherClient(query) {
@@ -733,7 +733,7 @@
                 document.getElementById('edit-google-review').value = b.google_review_url || "";
                 setRoiMode(b.roi_mode || 'panier');
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { logger.error(e); }
     }
 
     async function saveProfile() {
@@ -773,7 +773,7 @@
                 alert(`❌ Erreur Base de données :\n${data.error}\n\n👉 Avez-vous bien créé les colonnes 'latitude' et 'longitude' (en type float8) dans la table boutiques sur Supabase ?`);
             }
         } catch (e) { 
-            console.error(e); 
+            logger.error(e); 
             alert("Erreur réseau inattendue.");
         } finally { 
             btn.disabled = false; 
@@ -800,7 +800,7 @@ async function changerMotDePasse() {
                 alert(err.error || "Erreur lors de la modification");
             }
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             alert("Erreur réseau.");
         }
     }
@@ -846,7 +846,7 @@ async function changerMotDePasse() {
                 const date = new Date(n.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
                 return `<div class="flex justify-between items-center p-3 bg-gray-50 rounded-xl"><div class="flex-1"><p class="text-sm font-bold text-gray-900">${n.message}</p><p class="text-xs text-gray-400 mt-1">${date}</p></div><span class="text-xs font-bold text-nuvy ml-4">${n.devices_reached} envoi${n.devices_reached > 1 ? 's' : ''}</span></div>`;
             }).join('');
-        } catch (e) { console.error(e); }
+        } catch (e) { logger.error(e); }
     }
     let currentRoiMode = 'panier';
 
@@ -889,7 +889,7 @@ async function changerMotDePasse() {
                 document.getElementById('roi-ca-panier').innerText = r.caParPanier.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
                 document.getElementById('roi-visites').innerText = r.visitesCount;
             }
-        } catch (e) { console.error('Erreur ROI:', e); }
+        } catch (e) { logger.error('Erreur ROI:', e); }
     }
     function deconnexion() { localStorage.clear(); window.location.href = '/'; }
   </script>

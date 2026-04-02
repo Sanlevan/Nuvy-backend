@@ -9,12 +9,12 @@ let googleCredentials = null;
 try {
     if (process.env.GOOGLE_CREDENTIALS) {
         googleCredentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-        console.log("✅ [SYSTÈME] Clé Google chargée avec succès !");
+        logger.info("✅ [SYSTÈME] Clé Google chargée avec succès !");
     } else {
-        console.log("⚠️ [SYSTÈME] Aucune clé Google trouvée dans les variables Railway.");
+        logger.info("⚠️ [SYSTÈME] Aucune clé Google trouvée dans les variables Railway.");
     }
 } catch (erreur) {
-    console.error("❌ [ERREUR FATALE] Le texte collé dans GOOGLE_CREDENTIALS est mal formaté.", erreur.message);
+    logger.error("❌ [ERREUR FATALE] Le texte collé dans GOOGLE_CREDENTIALS est mal formaté.", erreur.message);
 }
 const GOOGLE_ISSUER_ID = '3388000000023094987';
 const express = require('express');
@@ -110,13 +110,13 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 fs.writeFileSync(path.join(tmpDir, 'icon@2x.png'), icon2x);
                 fs.writeFileSync(path.join(tmpDir, 'icon.png'), icon1x);
                 
-                console.log(`✅ Images Wallet générées avec succès pour : ${boutique.nom}`);
+                logger.info(`✅ Images Wallet générées avec succès pour : ${boutique.nom}`);
             } else {
-                console.error(`❌ ERREUR LIEN IMAGE : Le serveur (Supabase/Facebook) a refusé l'accès (Code ${response.status}).`);
-                console.error(`👉 Lien bloqué : ${boutique.logo_url}`);
+                logger.error(`❌ ERREUR LIEN IMAGE : Le serveur (Supabase/Facebook) a refusé l'accès (Code ${response.status}).`);
+                logger.error(`👉 Lien bloqué : ${boutique.logo_url}`);
             }
         } catch (e) {
-            console.error("❌ CRASH TRAITEMENT IMAGE (Un carré blanc par défaut sera affiché) :", e.message);
+            logger.error("❌ CRASH TRAITEMENT IMAGE (Un carré blanc par défaut sera affiché) :", e.message);
         }
     }
 
@@ -223,7 +223,6 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     fs.writeFileSync(path.join(tmpDir, 'pass.json'), JSON.stringify(passJson));
     const pass = await PKPass.from({ model: tmpDir, certificates: { wwdr: WWDR, signerCert, signerKey } });
     const buf = pass.getAsBuffer();
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
     return buf;
 }
@@ -376,9 +375,9 @@ async function updateGoogleWalletPass(client) {
             })
         });
         
-        console.log(`✅ [GOOGLE WALLET] Carte mise à jour pour ${client.nom} (${client.tampons} pts)`);
+        logger.info(`✅ [GOOGLE WALLET] Carte mise à jour pour ${client.nom} (${client.tampons} pts)`);
     } catch (e) {
-        console.error("⚠️ [GOOGLE WALLET] Erreur de synchronisation:", e.message);
+        logger.error("⚠️ [GOOGLE WALLET] Erreur de synchronisation:", e.message);
     }
 }
 // ==========================================
@@ -433,26 +432,26 @@ const PLAN_LIMITS = {
         push_notifications: false,
         analytics_avances:  false,
         geolocalisation:    false,
-        webhook:            false,
         rapport_pdf:        false,
+        personnalisation:   false,
     },
     pro: {
         max_clients:        2000,
-        max_boutiques:      2,
+        max_boutiques:      1,
         push_notifications: true,
         analytics_avances:  true,
         geolocalisation:    false,
-        webhook:            false,
         rapport_pdf:        false,
+        personnalisation:   true,
     },
-    premium: {
+    'multi-site': {
         max_clients:        Infinity,
-        max_boutiques:      5,
+        max_boutiques:      Infinity,
         push_notifications: true,
         analytics_avances:  true,
         geolocalisation:    true,
-        webhook:            true,
         rapport_pdf:        true,
+        personnalisation:   true,
     },
 };
 
@@ -473,7 +472,7 @@ async function requireFeature(req, res, feature) {
             error: `Cette fonctionnalité nécessite un plan supérieur.`,
             feature,
             plan_actuel: plan,
-            upgrade_required: plan === 'essentiel' ? 'pro' : 'premium',
+            upgrade_required: plan === 'essentiel' ? 'pro' : 'multi-site',
         });
     }
     return true; // Feature autorisée
@@ -498,9 +497,9 @@ app.get('/join/:slug', async (req, res) => {
 // 🔐 SÉCURITÉ CEO (SOURCE DE VÉRITÉ UNIQUE)
 // ==========================================
 const MASTER_CEO_KEY = process.env.CEO_KEY;
-if (!MASTER_CEO_KEY) { console.error("❌ FATAL : CEO_KEY manquante dans les variables d'environnement."); process.exit(1); }
+if (!MASTER_CEO_KEY) { logger.error("❌ FATAL : CEO_KEY manquante dans les variables d'environnement."); process.exit(1); }
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) { console.error("❌ FATAL : JWT_SECRET manquante dans les variables d'environnement."); process.exit(1); }
+if (!JWT_SECRET) { logger.error("❌ FATAL : JWT_SECRET manquante dans les variables d'environnement."); process.exit(1); }
 
 // 1. Route pour la page de Login
 app.get('/admin-login', (req, res) => {
@@ -741,7 +740,7 @@ app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) =
             try {
                 await provider.send(notification, d.push_token);
                 sent++;
-            } catch (e) { console.error("Push error:", e.message); }
+            } catch (e) { logger.error("Push error:", e.message); }
         }
         provider.shutdown();
         
@@ -803,12 +802,12 @@ app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) =
                         } catch (e) { /* objet inexistant = client n'a jamais ajouté la carte */ }
                     }
                 }
-            } catch (e) { console.error("⚠️ [GOOGLE PUSH] Erreur:", e.message); }
+            } catch (e) { logger.error("⚠️ [GOOGLE PUSH] Erreur:", e.message); }
         }
 
         res.json({ sent, total: devices.length, googleUpdated });
     } catch (e) {
-        console.error("Erreur push:", e);
+        logger.error("Erreur push:", e);
         res.status(500).json({ error: "Erreur lors de l'envoi." });
     }
 });
@@ -856,7 +855,7 @@ app.get('/admin/boutiques', async (req, res) => {
 
         res.json(boutiquesAnalysees);
     } catch (error) {
-        console.error("Erreur API Boutiques:", error);
+        logger.error("Erreur API Boutiques:", error);
         res.status(500).json({ error: "Erreur lors de l'analyse de la flotte" });
     }
 });
@@ -917,7 +916,7 @@ app.post('/boutiques/:id/clients-manuels', verifyAuthOwner, async (req, res) => 
         if (error) throw error;
         res.json(data);
     } catch (e) { 
-        console.error(e);
+        logger.error(e);
         res.status(500).json({ error: "Erreur lors de la création du client." }); 
     }
 });
@@ -1277,7 +1276,7 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
         if (expirationJours > 0 && client.last_visit) {
             const joursDepuisDerniereVisite = (Date.now() - new Date(client.last_visit).getTime()) / 86400000;
             if (joursDepuisDerniereVisite > expirationJours) {
-                console.log(`⏰ [EXPIRATION] Tampons de ${client.nom} expirés (${Math.round(joursDepuisDerniereVisite)}j > ${expirationJours}j)`);
+                logger.info(`⏰ [EXPIRATION] Tampons de ${client.nom} expirés (${Math.round(joursDepuisDerniereVisite)}j > ${expirationJours}j)`);
                 await supabase.from('clients').update({ tampons: 0 }).eq('id', req.params.id);
                 client.tampons = 0;
             }
@@ -1316,7 +1315,7 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
         // --- NOTIFICATION APPLE WALLET (AVEC MOUCHARD) ---
         const { data: devices } = await supabase.from('devices').select('push_token').eq('serial_number', client.serial_number);
         if (devices && devices.length > 0) {
-            console.log(`🔔 [APPLE] Envoi d'un signal de réveil à l'iPhone...`);
+            logger.info(`🔔 [APPLE] Envoi d'un signal de réveil à l'iPhone...`);
             const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
             const teamId = process.env.APPLE_TEAM_ID || 'Q762BTBA98'; 
             const keyId = process.env.APPLE_KEY_ID || 'RM6P22PX7A';
@@ -1331,11 +1330,11 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
             
             for (const d of devices) { 
                 const response = await provider.send(notification, d.push_token); 
-                console.log("🔍 [RÉPONSE APPLE] :", JSON.stringify(response));
+                logger.info("🔍 [RÉPONSE APPLE] :", JSON.stringify(response));
             }
             provider.shutdown();
         } else {
-            console.log("⚠️ [APPLE] Impossible de sonner : aucun jeton Push trouvé pour ce client !");
+            logger.info("⚠️ [APPLE] Impossible de sonner : aucun jeton Push trouvé pour ce client !");
         }
         res.json(updatedClient);
     } catch (e) { res.status(500).send(); }
@@ -1354,7 +1353,7 @@ app.get('/tap/:slug', async (req, res) => {
         if (boutique && boutique.google_review_url) {
             reviewUrl = boutique.google_review_url;
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
 
     const html = `
     <!DOCTYPE html>
@@ -1510,7 +1509,7 @@ app.post('/tap/:slug/notify', limiterStrict, async (req, res) => {
             res.status(404).send();
         }
     } catch (e) {
-        console.error("❌ Erreur Tap Notify:", e);
+        logger.error("❌ Erreur Tap Notify:", e);
         res.status(500).send();
     }
 });
@@ -1539,7 +1538,7 @@ app.get('/pass/:token', async (req, res) => {
         
         res.status(200).send(buf);
     } catch (e) {
-        console.error('❌ Erreur génération pass:', e);
+        logger.error('❌ Erreur génération pass:', e);
         res.status(500).send();
     }
 });
@@ -1561,7 +1560,17 @@ app.post('/join/:slug/create', limiterStrict, async (req, res) => {
         const telephone = cleanString(req.body.telephone, 20);
         if (!prenom || !nom || !telephone) return res.status(400).json({ error: "Tous les champs sont obligatoires." });
         if (!isValidPhone(telephone)) return res.status(400).json({ error: "Numéro de téléphone invalide." });
-        const { data: b } = await supabase.from('boutiques').select('id').eq('slug', req.params.slug).single();
+        const { data: b } = await supabase.from('boutiques').select('id, plan').eq('slug', req.params.slug).single();
+        
+        // Guard : limite de clients par plan
+        const plan = b?.plan || 'essentiel';
+        const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.essentiel;
+        if (limits.max_clients !== Infinity) {
+            const { count } = await supabase.from('clients').select('id', { count: 'exact', head: true }).eq('boutique_id', b.id);
+            if (count >= limits.max_clients) {
+                return res.status(403).json({ error: `Cette boutique a atteint sa limite de ${limits.max_clients} clients. Le commerçant doit passer au plan supérieur.` });
+            }
+        }
 
         // 1. LE DÉTECTEUR : Est-ce que ce numéro existe déjà dans CETTE pizzeria ?
         const { data: existingClient } = await supabase
@@ -1634,7 +1643,7 @@ app.get('/google-pass/:token', async (req, res) => {
         res.redirect(googleLink);
         
     } catch (e) {
-        console.error("❌ Erreur Google Wallet :", e.message);
+        logger.error("❌ Erreur Google Wallet :", e.message);
         res.status(500).send("Erreur lors de la génération de la carte Android.");
     }
 });
@@ -1643,7 +1652,7 @@ app.get('/google-pass/:token', async (req, res) => {
 // WEB SERVICES APPLE (ÉCOUTE ET MISES À JOUR)
 // ==========================================
 app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
-    console.log(`📲 [APPLE] L'iPhone essaie de s'enregistrer...`);
+    logger.info(`📲 [APPLE] L'iPhone essaie de s'enregistrer...`);
     try {
         // Méthode 100% sûre : On cherche d'abord, puis on met à jour ou on insère
         const { data: existing } = await supabase.from('devices')
@@ -1660,17 +1669,17 @@ app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
             }]);
             if (error) throw error;
         }
-        console.log(`✅ [APPLE] Jeton Push sauvegardé avec succès dans Supabase !`);
+        logger.info(`✅ [APPLE] Jeton Push sauvegardé avec succès dans Supabase !`);
         res.status(201).send();
     } catch (e) {
-        console.error("❌ [APPLE] Erreur fatale de sauvegarde :", e.message);
+        logger.error("❌ [APPLE] Erreur fatale de sauvegarde :", e.message);
         res.status(500).send();
     }
 });
 
 app.delete('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
     await supabase.from('devices').delete().eq('device_id', req.params.dId).eq('serial_number', req.params.sN);
-    console.log(`🗑️ [APPLE] iPhone désinscrit.`);
+    logger.info(`🗑️ [APPLE] iPhone désinscrit.`);
     res.status(200).send();
 });
 
@@ -1682,7 +1691,7 @@ app.get('/v1/devices/:dId/registrations/:pId', async (req, res) => {
 
 app.get('/v1/passes/:pId/:sN', async (req, res) => {
     try {
-        console.log(`🔄 [APPLE] L'iPhone télécharge la nouvelle carte...`);
+        logger.info(`🔄 [APPLE] L'iPhone télécharge la nouvelle carte...`);
         const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('serial_number', req.params.sN).single();
         if(!c) return res.status(404).send();
         
@@ -1700,7 +1709,7 @@ app.get('/v1/passes/:pId/:sN', async (req, res) => {
 });
 
 app.post('/v1/log', (req, res) => {
-    console.error("🍎 [APPLE ERREUR IPHONE] :", JSON.stringify(req.body));
+    logger.error("🍎 [APPLE ERREUR IPHONE] :", JSON.stringify(req.body));
     res.status(200).send();
 });
 
@@ -1712,4 +1721,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, '0.0.0.0', () => console.log(`=== MOTEUR NUVY PRÊT SUR LE PORT ${PORT} ===`));
+server.listen(PORT, '0.0.0.0', () => logger.info(`=== MOTEUR NUVY PRÊT SUR LE PORT ${PORT} ===`));

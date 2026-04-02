@@ -407,7 +407,7 @@
             document.getElementById('fleet-kpi-inactives').innerText = countInactives;
             lucide.createIcons();
         } catch (e) {
-            console.error("Erreur chargement flotte:", e);
+            logger.error("Erreur chargement flotte:", e);
         }
     }
 
@@ -531,7 +531,7 @@
 
             lucide.createIcons();
         } catch (e) {
-            console.error("Erreur stats globales:", e);
+            logger.error("Erreur stats globales:", e);
         }
     }
 
@@ -548,7 +548,7 @@
             if (topEl) topEl.innerHTML = data.top.length === 0
                 ? '<p class="text-sm text-gray-400 text-center py-4">Aucune activité cette semaine</p>'
                 : data.top.map((b, i) => `<div class="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100"><span class="text-sm font-bold">${['🥇','🥈','🥉','4.','5.'][i]} ${b.nom}</span><span class="text-nuvy font-bold text-xs">${b.scans} scans</span></div>`).join('');
-        } catch (e) { console.error("Erreur radar:", e); }
+        } catch (e) { logger.error("Erreur radar:", e); }
     }
 
     function switchView(viewId, title, btnElement) {
@@ -570,7 +570,7 @@
             chargerFlotteCommercants();
             chargerStatsGlobales();
         } else {
-            console.error("❌ Aucune clé trouvée dans l'URL !");
+            logger.error("❌ Aucune clé trouvée dans l'URL !");
         }
     });
     async function creerBoutique() {
