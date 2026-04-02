@@ -377,8 +377,9 @@
     const boutiqueNom = localStorage.getItem('nuvy_boutique_nom');
     const boutiqueId = localStorage.getItem('nuvy_boutique_id');
     const boutiqueSlug = localStorage.getItem('nuvy_boutique_slug');
+    const authToken = localStorage.getItem('nuvy_jwt'); // 🚨 LA LIGNE MAGIQUE QUI MANQUAIT !
     const statusBox = document.getElementById('conn-status');
-    
+
     const _originalFetch = window.fetch;
     window.fetch = async function(...args) {
         const res = await _originalFetch.apply(this, args);
@@ -386,7 +387,6 @@
         return res;
     };
     const AUTH_HEADERS = { 'Authorization': 'Bearer ' + authToken };
-
     let currentClient = null;
     let dailyGoal = localStorage.getItem('nuvy_daily_goal') || 20;
     let pointsToAdd = 1;
