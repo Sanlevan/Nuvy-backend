@@ -32,6 +32,7 @@ const sharp = require('sharp');
 const app = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
+// 🌟 On autorise toutes les origines (*) le temps des tests !
 const io = new Server(server, { cors: { origin: "*" } });
 
 const rateLimit = require('express-rate-limit');
