@@ -712,7 +712,60 @@ app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) =
             created_at: new Date().toISOString()
         }]);
         
-        res.json({ sent, total: devices.length });
+        // 4. Mise à jour des cartes Google Wallet (clients Android)
+        let googleUpdated = 0;
+        if (googleCredentials) {
+            try {
+                const { data: allClients } = await supabase.from('clients').select('id, nom, tampons, recompenses, boutique_id').eq('boutique_id', req.params.id);
+                if (allClients && allClients.length > 0) {
+                    const { data: bout } = await supabase.from('boutiques').select('max_tampons, categorie').eq('id', req.params.id).single();
+                    const maxT = bout?.max_tampons || 10;
+
+                    const authClaim = {
+                        iss: googleCredentials.client_email,
+                        scope: "https://www.googleapis.com/auth/wallet_object.issuer",
+                        aud: "https://oauth2.googleapis.com/token",
+                        exp: Math.floor(Date.now() / 1000) + 3600,
+                        iat: Math.floor(Date.now() / 1000)
+                    };
+                    const authToken = jwt.sign(authClaim, googleCredentials.private_key, { algorithm: 'RS256' });
+                    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: authToken })
+                    });
+                    const { access_token } = await tokenRes.json();
+
+                    for (const c of allClients) {
+                        try {
+                            const objectId = `${GOOGLE_ISSUER_ID}.${c.id}`;
+                            const prenom = c.nom ? c.nom.split(' ')[0] : 'Client';
+                            const symbolePlein = SYMBOLS[bout?.categorie] ? SYMBOLS[bout.categorie].full : "⭐";
+                            const symboleVide = SYMBOLS[bout?.categorie] ? SYMBOLS[bout.categorie].empty : "⚪";
+                            let fideliteTexte = "";
+                            for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (c.tampons || 0)) ? symbolePlein : symboleVide; }
+
+                            const msgs = [
+                                { header: `Bonjour ${prenom} ! 👋`, body: fideliteTexte, id: "fidelite" },
+                                { header: "📢 Message de la boutique", body: message, id: "promo" }
+                            ];
+                            if ((c.recompenses || 0) > 0) {
+                                msgs.push({ header: "Cadeaux disponibles 🎁", body: `${c.recompenses} cadeau${c.recompenses > 1 ? 'x' : ''} à récupérer !`, id: "cadeaux" });
+                            }
+
+                            await fetch(`https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${objectId}`, {
+                                method: 'PATCH',
+                                headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ textModulesData: msgs })
+                            });
+                            googleUpdated++;
+                        } catch (e) { /* objet inexistant = client n'a jamais ajouté la carte */ }
+                    }
+                }
+            } catch (e) { console.error("⚠️ [GOOGLE PUSH] Erreur:", e.message); }
+        }
+
+        res.json({ sent, total: devices.length, googleUpdated });
     } catch (e) {
         console.error("Erreur push:", e);
         res.status(500).json({ error: "Erreur lors de l'envoi." });
@@ -905,7 +958,7 @@ app.get('/boutiques/:id/passages-du-jour', verifyAuthOwner, async (req, res) => 
 });
 
 app.get('/boutiques/:id/push-history', verifyAuthOwner, async (req, res) => {
-    const { data, error } = await supabase.from('notifications').select('*').eq('boutique_id', req.params.id).order('created_at', { ascending: false }).limit(20);
+    const { data, error } = await supabase.from('notifications').select('*').eq('boutique_id', req.params.id).order('created_at', { ascending: false }).limit(6);
     if (error) return res.status(500).json({ error: error.message });
     res.json(data || []);
 });
@@ -920,7 +973,7 @@ app.get('/boutiques/:id/activites-du-jour', verifyAuthOwner, async (req, res) =>
             .eq('boutique_id', req.params.id)
             .gte('created_at', debut.toISOString())
             .order('created_at', { ascending: false })
-            .limit(50);
+            .limit(8);
         if (error) throw error;
         res.json(data || []);
     } catch (e) {

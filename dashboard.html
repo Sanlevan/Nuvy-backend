@@ -209,6 +209,11 @@
           <tbody id="list-body">
             </tbody>
         </table>
+        <div id="pagination" class="flex items-center justify-between px-6 py-4 border-t border-gray-100" style="display:none;">
+          <button id="btn-prev" onclick="changerPageClients(-1)" class="text-sm font-bold text-nuvy hover:underline disabled:opacity-30 disabled:no-underline" disabled>← Précédent</button>
+          <span id="page-info" class="text-sm text-gray-500"></span>
+          <button id="btn-next" onclick="changerPageClients(1)" class="text-sm font-bold text-nuvy hover:underline disabled:opacity-30 disabled:no-underline" disabled>Suivant →</button>
+        </div>
       </div>
     </section>
 
@@ -323,6 +328,50 @@
   <script>
     lucide.createIcons(); // Active les icônes
 
+    let allClientsTries = [];
+    let allClientsMax = 10;
+    let pageClients = 1;
+    const CLIENTS_PAR_PAGE = 10;
+
+    function afficherPageClients() {
+        const listBody = document.getElementById('list-body');
+        if (!listBody) return;
+        const total = allClientsTries.length;
+        const totalPages = Math.max(1, Math.ceil(total / CLIENTS_PAR_PAGE));
+        if (pageClients > totalPages) pageClients = totalPages;
+        const debut = (pageClients - 1) * CLIENTS_PAR_PAGE;
+        const fin = Math.min(debut + CLIENTS_PAR_PAGE, total);
+        const page = allClientsTries.slice(debut, fin);
+
+        listBody.innerHTML = page.map((c, i) => {
+            const index = debut + i;
+            const badge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+            return `<tr class="border-b hover:bg-gray-50">
+                <td class="py-3 px-4 text-lg font-bold text-gray-400">${badge}</td>
+                <td class="py-3 px-4 font-bold">${c.nom}</td>
+                <td class="py-3 px-4 font-bold text-gray-500">${c.total_historique || 0} pts totaux</td>
+                <td class="py-3 px-4 font-bold text-nuvy">${c.tampons || 0} / ${allClientsMax}</td>
+                <td class="py-3 px-4 font-bold text-nuvy-gold">${c.recompenses || 0} 🎁</td>
+                <td class="py-3 px-4 text-right"><button onclick="supprimerClient(${c.id}, '${c.nom.replace(/'/g, "\\'")}')" class="text-gray-300 hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+            </tr>`;
+        }).join('');
+
+        const pag = document.getElementById('pagination');
+        if (total > CLIENTS_PAR_PAGE) {
+            pag.style.display = 'flex';
+            document.getElementById('page-info').innerText = `Page ${pageClients} / ${totalPages}`;
+            document.getElementById('btn-prev').disabled = pageClients <= 1;
+            document.getElementById('btn-next').disabled = pageClients >= totalPages;
+        } else {
+            pag.style.display = 'none';
+        }
+        lucide.createIcons();
+    }
+
+    function changerPageClients(dir) {
+        pageClients += dir;
+        afficherPageClients();
+    }
     let todayPassages = 0;
     const socket = io();
     const boutiqueNom = localStorage.getItem('nuvy_boutique_nom');
@@ -424,20 +473,10 @@
             const storeMax = localStorage.getItem('nuvy_max_tampons') || 10;
             
             const clientsTries = [...clientsData].sort((a, b) => (b.total_historique || 0) - (a.total_historique || 0));
-            const listBody = document.getElementById('list-body');
-            if (listBody) {
-                listBody.innerHTML = clientsTries.map((c, index) => {
-                    const badge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
-                    return `<tr class="border-b hover:bg-gray-50">
-                        <td class="py-3 px-4 text-lg font-bold text-gray-400">${badge}</td>
-                        <td class="py-3 px-4 font-bold">${c.nom}</td>
-                        <td class="py-3 px-4 font-bold text-gray-500">${c.total_historique || 0} pts totaux</td>
-                        <td class="py-3 px-4 font-bold text-nuvy">${c.tampons || 0} / ${storeMax}</td>
-                        <td class="py-3 px-4 font-bold text-nuvy-gold">${c.recompenses || 0} 🎁</td>
-                        <td class="py-3 px-4 text-right"><button onclick="supprimerClient(${c.id}, '${c.nom.replace(/'/g, "\\'")}')" class="text-gray-300 hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
-                    </tr>`;
-                }).join('');
-            }
+            allClientsTries = clientsTries;
+            allClientsMax = storeMax;
+            pageClients = 1;
+            afficherPageClients();
 
             document.getElementById('s-tot').innerText = clientsData.length;
             document.getElementById('s-gft').innerText = clientsData.reduce((acc, c) => acc + (c.recompenses || 0), 0);
@@ -543,6 +582,7 @@
         item.style.borderColor = couleur;
         item.innerHTML = `<div class="flex items-center gap-3"><div class="font-bold text-gray-900">${nom}</div><span class="text-xs font-bold px-2 py-1 rounded-full text-white" style="background:${couleur}">${action}</span></div><div class="text-sm text-gray-500">${heure}</div>`;
         feed.prepend(item);
+        while (feed.children.length > 8) { feed.removeChild(feed.lastChild); }
     }
 
     async function chargerActivitesDuJour() {
@@ -771,7 +811,8 @@ async function changerMotDePasse() {
             if (res.ok) {
                 const resultEl = document.getElementById('push-result');
                 resultEl.classList.remove('hidden');
-                resultEl.innerText = `✅ Notification envoyée à ${data.sent} appareil${data.sent > 1 ? 's' : ''} !`;
+                const gTxt = data.googleUpdated ? ` + ${data.googleUpdated} carte${data.googleUpdated > 1 ? 's' : ''} Google` : '';
+                resultEl.innerText = `✅ Notification envoyée à ${data.sent} iPhone${data.sent > 1 ? 's' : ''}${gTxt} !`;
                 document.getElementById('push-message').value = '';
                 document.getElementById('push-chars').innerText = '0 / 200';
                 chargerHistoriquePush();
