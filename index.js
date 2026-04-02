@@ -172,16 +172,25 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         }],
         "primaryFields": [{
             "key": "bienvenue",
-            "label": `Vous êtes le ${vraiRang}${suffixe} meilleur client`,
-            "value": `Bonjour, ${prenom} ! 👋`
+            "label": `${vraiRang}${suffixe} meilleur client 🏆`,
+            "value": `${prenom}`
         }],
-        "secondaryFields": [{
-            "key": "fidelite",
-            "label": "VOTRE FIDÉLITÉ",
-            "value": fideliteTexte,
-            "textAlignment": "PKTextAlignmentCenter"
-        }],
-        "auxiliaryFields": [], 
+        "secondaryFields": [
+            {
+                "key": "fidelite",
+                "label": "VOTRE FIDÉLITÉ",
+                "value": fideliteTexte,
+                "textAlignment": "PKTextAlignmentLeft"
+            },
+            {
+                "key": "cadeaux",
+                "label": "CADEAUX",
+                "value": `${client.recompenses || 0} 🎁`,
+                "textAlignment": "PKTextAlignmentRight",
+                "changeMessage": "Vos cadeaux : %@ 🎁"
+            }
+        ],
+        "auxiliaryFields": [],
         "backFields": [
             {
                 "key": "adresse",
@@ -196,15 +205,6 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             }
         ]
     };
-
-    // 🚨 CORRECTION : Affiche toujours les cadeaux et déclenche la notification !
-    layout.auxiliaryFields.push({
-        "key": "cadeaux",
-        "label": "CADEAUX DISPONIBLES",
-        "value": `${client.recompenses || 0} 🎁`,
-        "textAlignment": "PKTextAlignmentCenter",
-        "changeMessage": "Vos cadeaux : %@ 🎁"
-    });
     passJson.storeCard = layout;
 
     fs.writeFileSync(path.join(tmpDir, 'pass.json'), JSON.stringify(passJson));
@@ -221,7 +221,6 @@ function generateGoogleWalletLink(client, boutique) {
     const maxT = boutique.max_tampons || 10;
     const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
 
-    // Couleurs par catégorie (comme Apple)
     const GOOGLE_COLORS = {
         default:     "#2A8C9C",
         boulangerie: "#8B4513",
@@ -232,34 +231,27 @@ function generateGoogleWalletLink(client, boutique) {
     };
     const bgColor = GOOGLE_COLORS[boutique.categorie] || GOOGLE_COLORS.default;
 
-    // Barre de fidélité avec emojis (comme Apple)
     const symbolePlein = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].full : "⭐";
     const symboleVide = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].empty : "⚪";
     let fideliteTexte = "";
     for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
-    // Messages personnalisés
-    const messages = [];
-    messages.push({
-        header: `Bonjour ${prenom} ! 👋`,
-        body: fideliteTexte,
-        id: "fidelite"
-    });
-    if ((client.recompenses || 0) > 0) {
-        messages.push({
-            header: "Cadeaux disponibles 🎁",
-            body: `${client.recompenses} cadeau${client.recompenses > 1 ? 'x' : ''} à récupérer !`,
-            id: "cadeaux"
-        });
-    }
+    // Rang du client
+    const rang = client._rang || 1;
+    const suffixe = rang === 1 ? "er" : "ème";
 
-    // Infos de contact en bas de carte
-    const infoModule = [];
+    // Modules texte détaillés
+    const textModules = [];
+    textModules.push({ header: "Votre fidélité", body: fideliteTexte, id: "fidelite" });
+    textModules.push({ header: "Classement", body: `${rang}${suffixe} meilleur client 🏆`, id: "rang" });
+    if ((client.recompenses || 0) > 0) {
+        textModules.push({ header: "Cadeaux disponibles 🎁", body: `${client.recompenses} cadeau${client.recompenses > 1 ? 'x' : ''} à récupérer !`, id: "cadeaux" });
+    }
     if (boutique.adresse) {
-        infoModule.push({ header: "Adresse", body: boutique.adresse, id: "adresse" });
+        textModules.push({ header: "Adresse", body: boutique.adresse, id: "adresse" });
     }
     if (boutique.telephone) {
-        infoModule.push({ header: "Contact", body: boutique.telephone, id: "telephone" });
+        textModules.push({ header: "Contact", body: boutique.telephone, id: "telephone" });
     }
 
     const payload = {
@@ -283,6 +275,10 @@ function generateGoogleWalletLink(client, boutique) {
                         description: "Carte de fidélité",
                         id: "link-fidelite"
                     }]
+                },
+                secondaryLoyaltyPoints: {
+                    label: "Cadeaux 🎁",
+                    balance: { int: client.recompenses || 0 }
                 }
             }],
             loyaltyObjects: [{
@@ -290,16 +286,13 @@ function generateGoogleWalletLink(client, boutique) {
                 classId: classId,
                 state: "ACTIVE",
                 accountId: client.id.toString(),
-                accountName: client.nom,
-                barcode: {
-                    type: "QR_CODE",
-                    value: `https://nuvy.pro/tap/${boutique.slug}?client=${client.id}`
-                },
+                accountName: `${client.nom} — ${rang}${suffixe} meilleur client`,
+                header: { defaultValue: { language: "fr", value: `Bonjour ${prenom} ! 👋` } },
                 loyaltyPoints: {
                     label: "Tampons",
-                    balance: { string: `${client.tampons || 0} / ${maxT}` }
+                    balance: { string: fideliteTexte }
                 },
-                textModulesData: [...messages, ...infoModule]
+                textModulesData: textModules
             }]
         }
     };
@@ -1305,7 +1298,16 @@ app.get('/google-pass/:token', async (req, res) => {
             return res.status(500).send("Google Wallet non configuré sur ce serveur.");
         }
 
-        // 3. On génère le lien magique
+        // 3. Calcul du rang
+        const { data: allClients } = await supabase.from('clients').select('id, total_historique').eq('boutique_id', client.boutique_id);
+        let vraiRang = 1;
+        if (allClients) {
+            const monScore = client.total_historique || 0;
+            allClients.forEach(c => { if ((c.total_historique || 0) > monScore) vraiRang++; });
+        }
+        client._rang = vraiRang;
+
+        // 4. On génère le lien magique
         const googleLink = generateGoogleWalletLink(client, client.boutiques);
 
         // 4. On redirige le client vers l'application Google Wallet !
