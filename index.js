@@ -833,7 +833,7 @@ app.post('/boutiques/:id/clients-manuels', verifyAuthOwner, async (req, res) => 
 // --- MISE À JOUR DU PROFIL BOUTIQUE (AVEC DIAGNOSTIC GPS) ---
 app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
     const { id } = req.params;
-    const { adresse, telephone, panier_moyen } = req.body;
+    const { adresse, telephone, panier_moyen, valeur_tampon, roi_mode } = req.body;
 
     let latitude = null;
     let longitude = null;
@@ -866,6 +866,8 @@ app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
 
         const updatePayload = { adresse, telephone };
         if (panier_moyen !== undefined) updatePayload.panier_moyen = parseFloat(panier_moyen) || 0;
+        if (valeur_tampon !== undefined) updatePayload.valeur_tampon = parseFloat(valeur_tampon) || 0;
+        if (roi_mode) updatePayload.roi_mode = roi_mode;
         if (latitude && longitude) {
             updatePayload.latitude = latitude;
             updatePayload.longitude = longitude;
@@ -979,12 +981,19 @@ app.get('/boutiques/:id/stats', verifyAuthOwner, async (req, res) => {
         const { data: visitesMois } = await supabase.from('visites').select('id').eq('boutique_id', req.params.id).gte('created_at', debutMois.toISOString());
         const visitesCount = visitesMois?.length || 0;
 
-        // ROI : panier moyen de la boutique
-        const { data: boutiqueROI } = await supabase.from('boutiques').select('panier_moyen').eq('id', req.params.id).single();
-        const panierMoyen = boutiqueROI?.panier_moyen || 0;
-        const caFidelise = visitesCount * panierMoyen;
+        // ROI : tampons distribués ce mois
+        const { data: visitesMoisDetail } = await supabase.from('visites').select('points_ajoutes').eq('boutique_id', req.params.id).gte('created_at', debutMois.toISOString());
+        const tamponsMois = (visitesMoisDetail || []).reduce((acc, v) => acc + Math.max(0, v.points_ajoutes || 0), 0);
 
-        res.json({ avgFrequency, peakHours, distribution, evolutionLabels, evolutionData, totalClients: allClients?.length || 0, roi: { visitesCount, panierMoyen, caFidelise } });
+        const { data: boutiqueROI } = await supabase.from('boutiques').select('panier_moyen, valeur_tampon, roi_mode').eq('id', req.params.id).single();
+        const panierMoyen = boutiqueROI?.panier_moyen || 0;
+        const valeurTampon = boutiqueROI?.valeur_tampon || 0;
+        const roiMode = boutiqueROI?.roi_mode || 'panier';
+
+        const caParPanier = visitesCount * panierMoyen;
+        const caParTampon = tamponsMois * valeurTampon;
+
+        res.json({ avgFrequency, peakHours, distribution, evolutionLabels, evolutionData, totalClients: allClients?.length || 0, roi: { visitesCount, tamponsMois, panierMoyen, valeurTampon, roiMode, caParPanier, caParTampon } });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

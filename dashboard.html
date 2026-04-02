@@ -126,24 +126,33 @@
           <h3 class="text-base font-bold text-emerald-900">Valeur générée par Nuvy</h3>
           <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full" id="roi-mois-label">Ce mois</span>
         </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <p class="text-sm text-emerald-700 font-medium">CA fidélisé estimé</p>
-            <p id="roi-ca" class="text-3xl font-extrabold text-emerald-900 mt-1">0 €</p>
+        <div id="roi-content-panier" style="display:none;">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-emerald-700 font-medium">CA fidélisé estimé</p>
+              <p id="roi-ca-panier" class="text-3xl font-extrabold text-emerald-900 mt-1">0 €</p>
+            </div>
+            <div>
+              <p class="text-sm text-emerald-700 font-medium">Visites ce mois</p>
+              <p id="roi-visites" class="text-3xl font-extrabold text-emerald-900 mt-1">0</p>
+            </div>
           </div>
-          <div>
-            <p class="text-sm text-emerald-700 font-medium">Visites ce mois</p>
-            <p id="roi-visites" class="text-3xl font-extrabold text-emerald-900 mt-1">0</p>
+          <p class="text-xs text-emerald-600 mt-3">Basé sur votre panier moyen × nombre de visites.</p>
+        </div>
+        <div id="roi-content-tampon" style="display:none;">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-emerald-700 font-medium">Revenus via tampons</p>
+              <p id="roi-ca-tampon" class="text-3xl font-extrabold text-emerald-900 mt-1">0 €</p>
+            </div>
+            <div>
+              <p class="text-sm text-emerald-700 font-medium">Tampons ce mois</p>
+              <p id="roi-tampons" class="text-3xl font-extrabold text-emerald-900 mt-1">0</p>
+            </div>
           </div>
+          <p class="text-xs text-emerald-600 mt-3">Basé sur la valeur de chaque tampon distribué via Nuvy.</p>
         </div>
-        <p class="text-xs text-emerald-600 mt-3">Basé sur votre panier moyen. <span class="underline cursor-pointer" onclick="switchView('view-account', document.querySelector('[onclick*=view-account]'))">Modifier dans Mon Compte →</span></p>
-      </div>
-      <div class="flex gap-4">
-        <div class="relative flex-1">
-            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
-            <input type="text" id="search-manual" onkeyup="chercherClient(this.value)" placeholder="Rechercher un client (Nom ou Tel)..." class="w-full pl-12 pr-4 h-14 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-nuvy/50 shadow-sm transition-all">
-            <div id="search-results" style="display:none;" class="absolute top-16 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"></div>
-        </div>
+        <p class="text-xs text-emerald-500 mt-2 cursor-pointer underline" onclick="switchView('view-account', document.querySelector('[onclick*=view-account]'))">Modifier dans Mon Compte →</p>
       </div>
 
       <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 lg:p-8">
@@ -278,9 +287,20 @@
             <label class="text-sm font-bold text-gray-700">Pays</label>
             <input type="text" id="edit-country" value="France" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
           </div>
-          <div>
-            <label class="text-sm font-bold text-gray-700">Panier moyen (€)<span class="info-tip" data-tip="Le montant moyen dépensé par client lors d'une visite. Sert à calculer le CA généré par votre programme de fidélité.">i</span></label>
-            <input type="number" step="0.5" min="0" id="edit-panier-moyen" placeholder="Ex: 12.50" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+          <div class="p-4 bg-nuvy/5 border border-nuvy/20 rounded-xl">
+            <label class="text-sm font-bold text-gray-700 block mb-3">Calculateur de ROI</label>
+            <div class="flex gap-2 mb-4">
+              <button id="btn-mode-panier" onclick="setRoiMode('panier')" class="flex-1 h-10 text-sm font-bold rounded-lg transition-all">Panier moyen</button>
+              <button id="btn-mode-tampon" onclick="setRoiMode('tampon')" class="flex-1 h-10 text-sm font-bold rounded-lg transition-all">Valeur par tampon</button>
+            </div>
+            <div id="input-panier-moyen">
+              <label class="text-xs text-gray-500">Panier moyen d'un client (€)<span class="info-tip" data-tip="Montant moyen dépensé par un client à chaque visite. Le ROI est calculé par : visites × panier moyen.">i</span></label>
+              <input type="number" step="0.5" min="0" id="edit-panier-moyen" placeholder="Ex: 12.50" class="w-full mt-1 h-12 px-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+            </div>
+            <div id="input-valeur-tampon" style="display:none;">
+              <label class="text-xs text-gray-500">Bénéfice approximatif par tampon (€)<span class="info-tip" data-tip="Combien vous rapporte environ 1 tampon distribué. Ex: si 1 tampon = 1 café à 2€, mettez 2. Le ROI est calculé par : tampons distribués × valeur.">i</span></label>
+              <input type="number" step="0.5" min="0" id="edit-valeur-tampon" placeholder="Ex: 2.00" class="w-full mt-1 h-12 px-4 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+            </div>
           </div>
           <div>
             <label class="text-sm font-bold text-gray-700">Téléphone public</label>
@@ -657,6 +677,8 @@
                 }
                 document.getElementById('edit-phone').value = b.telephone || "";
                 document.getElementById('edit-panier-moyen').value = b.panier_moyen || "";
+                document.getElementById('edit-valeur-tampon').value = b.valeur_tampon || "";
+                setRoiMode(b.roi_mode || 'panier');
             }
         } catch (e) { console.error(e); }
     }
@@ -672,6 +694,8 @@
         const country = document.getElementById('edit-country').value.trim();
         const phone = document.getElementById('edit-phone').value.trim();
         const panierMoyen = document.getElementById('edit-panier-moyen').value.trim();
+        const valeurTampon = document.getElementById('edit-valeur-tampon').value.trim();
+        const roiMode = currentRoiMode;
         
         // On assemble l'adresse parfaite pour l'API GPS (Ex: "12 rue de Paris, 75000 Ville, France")
         const adresseComplete = `${street}, ${zip} ${city}, ${country}`;
@@ -680,7 +704,7 @@
             const res = await fetch(`/boutiques/${boutiqueId}`, { 
                 method: 'PUT', 
                 headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
-                body: JSON.stringify({ adresse: adresseComplete, telephone: phone, panier_moyen: panierMoyen })
+                body: JSON.stringify({ adresse: adresseComplete, telephone: phone, panier_moyen: panierMoyen, valeur_tampon: valeurTampon, roi_mode: roiMode })
             });
             
             const data = await res.json();
@@ -769,16 +793,46 @@ async function changerMotDePasse() {
             }).join('');
         } catch (e) { console.error(e); }
     }
+    let currentRoiMode = 'panier';
+
+    function setRoiMode(mode) {
+        currentRoiMode = mode;
+        document.getElementById('input-panier-moyen').style.display = mode === 'panier' ? 'block' : 'none';
+        document.getElementById('input-valeur-tampon').style.display = mode === 'tampon' ? 'block' : 'none';
+        const btnP = document.getElementById('btn-mode-panier');
+        const btnT = document.getElementById('btn-mode-tampon');
+        if (mode === 'panier') {
+            btnP.className = 'flex-1 h-10 text-sm font-bold rounded-lg transition-all bg-nuvy text-white';
+            btnT.className = 'flex-1 h-10 text-sm font-bold rounded-lg transition-all bg-gray-100 text-gray-500';
+        } else {
+            btnT.className = 'flex-1 h-10 text-sm font-bold rounded-lg transition-all bg-nuvy text-white';
+            btnP.className = 'flex-1 h-10 text-sm font-bold rounded-lg transition-all bg-gray-100 text-gray-500';
+        }
+    }
+
     async function chargerROI() {
         try {
             const res = await fetch(`/boutiques/${boutiqueId}/stats`, { headers: AUTH_HEADERS });
             const stats = await res.json();
-            if (stats.roi && stats.roi.panierMoyen > 0) {
-                document.getElementById('roi-card').style.display = 'block';
-                document.getElementById('roi-ca').innerText = stats.roi.caFidelise.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
-                document.getElementById('roi-visites').innerText = stats.roi.visitesCount;
-                const mois = new Date().toLocaleString('fr-FR', { month: 'long' });
-                document.getElementById('roi-mois-label').innerText = mois.charAt(0).toUpperCase() + mois.slice(1);
+            if (!stats.roi) return;
+            const r = stats.roi;
+            const show = (r.roiMode === 'tampon' && r.valeurTampon > 0) || (r.roiMode === 'panier' && r.panierMoyen > 0);
+            if (!show) return;
+
+            document.getElementById('roi-card').style.display = 'block';
+            const mois = new Date().toLocaleString('fr-FR', { month: 'long' });
+            document.getElementById('roi-mois-label').innerText = mois.charAt(0).toUpperCase() + mois.slice(1);
+
+            if (r.roiMode === 'tampon') {
+                document.getElementById('roi-content-tampon').style.display = 'block';
+                document.getElementById('roi-content-panier').style.display = 'none';
+                document.getElementById('roi-ca-tampon').innerText = r.caParTampon.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+                document.getElementById('roi-tampons').innerText = r.tamponsMois;
+            } else {
+                document.getElementById('roi-content-panier').style.display = 'block';
+                document.getElementById('roi-content-tampon').style.display = 'none';
+                document.getElementById('roi-ca-panier').innerText = r.caParPanier.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+                document.getElementById('roi-visites').innerText = r.visitesCount;
             }
         } catch (e) { console.error('Erreur ROI:', e); }
     }
