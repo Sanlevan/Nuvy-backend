@@ -165,28 +165,28 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     let fideliteTexte = "";
     for(let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
-    // 🌟 1. On récupère le dernier message de la boutique (pour les notifs manuelles)
+    // 🌟 1. On récupère le dernier message ET sa date
     const { data: lastNotif } = await supabase
         .from('notifications')
-        .select('message')
+        .select('message, created_at')
         .eq('boutique_id', boutique.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle(); // maybeSingle évite un crash s'il n'y a pas encore de message
+        .maybeSingle();
 
-    // 🌟 2. On construit la carte avec les alertes uniquement là où on veut du texte propre
     const layout = {
-       "headerFields": [{
+        "headerFields": [{
             "key": "score_header",
             "label": "TAMPONS",
             "value": `${client.tampons || 0} / ${maxT}`,
             "textAlignment": "PKTextAlignmentRight",
-            "changeMessage": "Nouveau solde : %@ 🎁"
+            // 👇 L'alerte affichera EXACTEMENT le texte voulu pour un tampon !
+            "changeMessage": "Nouveau solde : %@ ✨" 
         }],
         "primaryFields": [{
             "key": "bienvenue",
             "label": `${vraiRang}${suffixe} meilleur client 🏆`,
-            "value": `${prenom}👋`
+            "value": `${prenom} 👋`
         }],
         "secondaryFields": [
             {
@@ -194,6 +194,7 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 "label": "VOTRE FIDÉLITÉ",
                 "value": fideliteTexte,
                 "textAlignment": "PKTextAlignmentLeft"
+                // 🚫 AUCUN changeMessage ici = Pas de ronds bizarres dans les notifs
             },
             {
                 "key": "cadeaux",
@@ -203,7 +204,7 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 "changeMessage": "Vos cadeaux : %@ 🎁"
             }
         ],
-        "auxiliaryFields": [], 
+        "auxiliaryFields": [], // 🎨 VIDE par défaut pour ton design épuré !
         "backFields": [
             {
                 "key": "adresse",
@@ -219,17 +220,22 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         ]
     };
 
-    // 🌟 3. On injecte le message personnalisé (OBLIGATOIREMENT SUR LA FACE AVANT POUR APPLE)
+    // 🌟 2. L'ASTUCE DU CHAMP ÉPHÉMÈRE (Pour les notifs manuelles)
     if (lastNotif && lastNotif.message) {
-        layout.auxiliaryFields.push({
-            "key": "derniere_notification",
-            "label": "📢 MESSAGE DU COMMERÇANT",
-            "value": lastNotif.message,
-            // 👇 C'est CECI qui autorise enfin l'iPhone à afficher ton texte !
-            "changeMessage": "%@" 
-        });
+        // On calcule l'âge du message en heures
+        const ageHeures = (new Date() - new Date(lastNotif.created_at)) / (1000 * 60 * 60);
         
-        // (Optionnel) On le copie aussi au dos pour que ça serve d'historique si le client retourne la carte
+        // Si le message a été envoyé il y a moins de 24h, on le force en façade !
+        if (ageHeures < 24) {
+            layout.auxiliaryFields.push({
+                "key": "derniere_notification",
+                "label": "📢 MESSAGE DU COMMERÇANT",
+                "value": lastNotif.message,
+                "changeMessage": "%@" // Apple l'autorise car il est maintenant en façade !
+            });
+        }
+        
+        // On le stocke de façon permanente au dos pour l'historique
         layout.backFields.unshift({
             "key": "historique_notif",
             "label": "📢 DERNIÈRE INFO",
