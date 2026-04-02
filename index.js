@@ -1058,34 +1058,31 @@ app.get('/admin/global-stats', async (req, res) => {
         boutiques?.forEach(b => {
             if (b.adresse) {
                 const parts = b.adresse.split(',');
-                const cityRaw = parts[parts.length - 1].trim().replace(/^\d{5}\s*/, '').trim();
+                
+                // On prend le dernier bout par défaut
+                let cityRaw = parts[parts.length - 1].trim();
+                
+                // 🚨 CORRECTION : Si le dernier bout est "France" (ou "France métropolitaine"), on recule d'une case !
+                if (cityRaw.toLowerCase().includes('france') && parts.length > 1) {
+                    cityRaw = parts[parts.length - 2].trim();
+                }
+                
+                // On retire le code postal (les 5 chiffres) s'il y en a un
+                cityRaw = cityRaw.replace(/^\d{5}\s*/, '').trim();
+                
                 if (cityRaw) boutiqueVille[b.id] = cityRaw;
             }
         });
+        
         visites30j?.forEach(v => {
             const ville = boutiqueVille[v.boutique_id];
             if (ville) villeScans[ville] = (villeScans[ville] || 0) + 1;
         });
+        
         const totalScansVilles = Object.values(villeScans).reduce((a, b) => a + b, 0) || 1;
         const topVilles = Object.entries(villeScans)
             .sort((a, b) => b[1] - a[1]).slice(0, 5)
             .map(([city, scans]) => ({ city, scans, percentage: Math.round((scans / totalScansVilles) * 100) }));
-
-        res.json({
-            scansAujourdhui: visitesAujourd?.length || 0,
-            scans30j: visites30j?.length || 0,
-            totalClients: totalClients || 0,
-            uniqueUsers30j,
-            cartesWallet,
-            tauxRetention,
-            healthScore,
-            secteurs,
-            deviceData,
-            weeklyData: weeklyOrdered,
-            topVilles,
-            chartLabels: Object.keys(scansParJour).map(d => d.slice(5)),
-            chartData: Object.values(scansParJour),
-        });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
