@@ -120,7 +120,24 @@
           <div id="goal-bar" class="h-full bg-nuvy rounded-full transition-all duration-500" style="width: 0%"></div>
         </div>
       </div>
-
+<!-- CALCULATEUR ROI -->
+      <div id="roi-card" class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 lg:p-6" style="display:none;">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-base font-bold text-emerald-900">Valeur générée par Nuvy</h3>
+          <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full" id="roi-mois-label">Ce mois</span>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-sm text-emerald-700 font-medium">CA fidélisé estimé</p>
+            <p id="roi-ca" class="text-3xl font-extrabold text-emerald-900 mt-1">0 €</p>
+          </div>
+          <div>
+            <p class="text-sm text-emerald-700 font-medium">Visites ce mois</p>
+            <p id="roi-visites" class="text-3xl font-extrabold text-emerald-900 mt-1">0</p>
+          </div>
+        </div>
+        <p class="text-xs text-emerald-600 mt-3">Basé sur votre panier moyen. <span class="underline cursor-pointer" onclick="switchView('view-account', document.querySelector('[onclick*=view-account]'))">Modifier dans Mon Compte →</span></p>
+      </div>
       <div class="flex gap-4">
         <div class="relative flex-1">
             <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
@@ -262,6 +279,10 @@
             <input type="text" id="edit-country" value="France" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
           </div>
           <div>
+            <label class="text-sm font-bold text-gray-700">Panier moyen (€)<span class="info-tip" data-tip="Le montant moyen dépensé par client lors d'une visite. Sert à calculer le CA généré par votre programme de fidélité.">i</span></label>
+            <input type="number" step="0.5" min="0" id="edit-panier-moyen" placeholder="Ex: 12.50" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
+          </div>
+          <div>
             <label class="text-sm font-bold text-gray-700">Téléphone public</label>
             <input type="tel" id="edit-phone" placeholder="01 23 45 67 89" class="w-full mt-2 h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all">
           </div>
@@ -305,6 +326,7 @@
         const goalElem = document.getElementById('goal-val');
         if (goalElem) goalElem.innerText = dailyGoal;
         rafraichirCompteurJournalier();
+        chargerROI();
         loadAnalyticsData();
         chargerActivitesDuJour();
     });
@@ -619,6 +641,7 @@
                     }
                 }
                 document.getElementById('edit-phone').value = b.telephone || "";
+                document.getElementById('edit-panier-moyen').value = b.panier_moyen || "";
             }
         } catch (e) { console.error(e); }
     }
@@ -633,6 +656,7 @@
         const city = document.getElementById('edit-city').value.trim();
         const country = document.getElementById('edit-country').value.trim();
         const phone = document.getElementById('edit-phone').value.trim();
+        const panierMoyen = document.getElementById('edit-panier-moyen').value.trim();
         
         // On assemble l'adresse parfaite pour l'API GPS (Ex: "12 rue de Paris, 75000 Ville, France")
         const adresseComplete = `${street}, ${zip} ${city}, ${country}`;
@@ -641,7 +665,7 @@
             const res = await fetch(`/boutiques/${boutiqueId}`, { 
                 method: 'PUT', 
                 headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
-                body: JSON.stringify({ adresse: adresseComplete, telephone: phone }) 
+                body: JSON.stringify({ adresse: adresseComplete, telephone: phone, panier_moyen: panierMoyen })
             });
             
             const data = await res.json();
@@ -729,6 +753,19 @@ async function changerMotDePasse() {
                 return `<div class="flex justify-between items-center p-3 bg-gray-50 rounded-xl"><div class="flex-1"><p class="text-sm font-bold text-gray-900">${n.message}</p><p class="text-xs text-gray-400 mt-1">${date}</p></div><span class="text-xs font-bold text-nuvy ml-4">${n.devices_reached} envoi${n.devices_reached > 1 ? 's' : ''}</span></div>`;
             }).join('');
         } catch (e) { console.error(e); }
+    }
+    async function chargerROI() {
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}/stats`, { headers: AUTH_HEADERS });
+            const stats = await res.json();
+            if (stats.roi && stats.roi.panierMoyen > 0) {
+                document.getElementById('roi-card').style.display = 'block';
+                document.getElementById('roi-ca').innerText = stats.roi.caFidelise.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+                document.getElementById('roi-visites').innerText = stats.roi.visitesCount;
+                const mois = new Date().toLocaleString('fr-FR', { month: 'long' });
+                document.getElementById('roi-mois-label').innerText = mois.charAt(0).toUpperCase() + mois.slice(1);
+            }
+        } catch (e) { console.error('Erreur ROI:', e); }
     }
     function deconnexion() { localStorage.clear(); window.location.href = '/'; }
   </script>
