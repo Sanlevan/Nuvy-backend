@@ -1152,20 +1152,25 @@ app.get('/tap/:slug', (req, res) => {
             }
 
             if (!token) {
-                // Si la personne n'a pas la carte de CETTE boutique, on l'envoie s'inscrire !
                 window.location.href = '/join/' + slug;
+            } else if (sessionStorage.getItem('nuvy_tapped_' + slug)) {
+                // 🛡️ Déjà tapé dans cet onglet → page morte
+                document.getElementById('ui-box').classList.add('success');
+                document.getElementById('loader-view').style.display = 'none';
+                document.getElementById('success-view').style.display = 'block';
+                document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Passage enregistré</h2><p>Votre visite a bien été transmise.</p>';
             } else {
                 fetch('/tap/' + slug + '/notify?token=' + token, { method: 'POST' })
                 .then(r => {
                     if(r.ok) {
+                        sessionStorage.setItem('nuvy_tapped_' + slug, '1');
                         playDing();
                         const box = document.getElementById('ui-box');
                         document.getElementById('loader-view').style.display = 'none';
                         document.getElementById('success-view').style.display = 'block';
                         box.classList.add('success');
-                        document.getElementById('wallet-btn').href = '/pass/' + token;
+                        document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">C\\\'est validé ! 🎉</h2><p>Le commerçant a bien reçu votre carte sur sa caisse.</p>';
                     } else if (r.status === 404) {
-                        // 🚨 CORRECTION : On supprime la bonne boîte si la carte n'existe plus !
                         localStorage.removeItem('nuvy_token_' + slug);
                         window.location.href = '/join/' + slug;
                     } else {

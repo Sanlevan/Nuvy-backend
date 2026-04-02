@@ -383,7 +383,7 @@
         const btn = document.getElementById('btn-validate');
         btn.disabled = true; btn.innerText = "VALIDATION...";
         try {
-            const res = await fetch(`/clients/${currentClient.id}/tampon`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS }, body: JSON.stringify({ nb: pointsAjoutes }) });
+            const res = await fetch(`/clients/${currentClient.id}/tampon`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS }, body: JSON.stringify({ nb: pointsToAdd }) });
             if (res.ok) {
                 const updatedClient = await res.json();
                 currentClient = updatedClient;
@@ -392,7 +392,7 @@
                 rafraichirAffichageClient();
                 rafraichirCompteurJournalier(); loadAnalyticsData();
             }
-        } catch (e) { console.error(e); } finally { btn.disabled = false; btn.innerText = "OFFRIR CADEAU 🎁"; updateUI(); }
+        } catch (e) { console.error(e); } finally { btn.disabled = false; updateUI(); }
     }
 
     async function offrirCadeau() {
