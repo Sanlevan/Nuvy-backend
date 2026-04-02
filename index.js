@@ -868,8 +868,8 @@ app.post('/boutiques/:id/clients-manuels', verifyAuthOwner, async (req, res) => 
 // --- MISE À JOUR DU PROFIL BOUTIQUE (AVEC DIAGNOSTIC GPS) ---
 app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
     const { id } = req.params;
-    const { adresse, telephone, panier_moyen, valeur_tampon, roi_mode } = req.body;
-
+    const { adresse, telephone, panier_moyen, valeur_tampon, roi_mode, google_review_url } = req.body;
+    
     let latitude = null;
     let longitude = null;
     let geoDebug = "Non tenté"; // Notre mouchard
@@ -903,6 +903,7 @@ app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
         if (panier_moyen !== undefined) updatePayload.panier_moyen = parseFloat(panier_moyen) || 0;
         if (valeur_tampon !== undefined) updatePayload.valeur_tampon = parseFloat(valeur_tampon) || 0;
         if (roi_mode) updatePayload.roi_mode = roi_mode;
+        if (google_review_url !== undefined) updatePayload.google_review_url = google_review_url;
         if (latitude && longitude) {
             updatePayload.latitude = latitude;
             updatePayload.longitude = longitude;
