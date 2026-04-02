@@ -486,24 +486,6 @@ app.post('/admin/create-boutique', async (req, res) => {
         res.json({ success: true, boutique: data });
     } catch (e) { res.status(400).json({ message: e.message }); }
 });
-
-
-// RÉINITIALISER UN MOT DE PASSE
-app.post('/admin/reset-password', async (req, res) => {
-    const { boutiqueId, newPassword, ceoKey } = req.body;
-    
-    // 🛡️ CORRECTION ICI
-    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
-
-    try {
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        const { error } = await supabase.from('boutiques').update({ password: hashedPassword }).eq('id', boutiqueId);
-        if (error) throw error;
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: "Erreur de mise à jour" });
-    }
-});
 app.post('/auth/login', limiterLogin, async (req, res) => {
     const { user, pass } = req.body;
     

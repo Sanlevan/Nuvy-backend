@@ -352,7 +352,7 @@
                 <td class="py-3 px-4 font-bold text-gray-500">${c.total_historique || 0} pts totaux</td>
                 <td class="py-3 px-4 font-bold text-nuvy">${c.tampons || 0} / ${allClientsMax}</td>
                 <td class="py-3 px-4 font-bold text-nuvy-gold">${c.recompenses || 0} 🎁</td>
-                <td class="py-3 px-4 text-right"><button onclick="supprimerClient(${c.id}, '${c.nom.replace(/'/g, "\\'")}')" class="text-gray-300 hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                <td class="py-3 px-4 text-right"><button onclick="supprimerClient(${c.id}, ${JSON.stringify(c.nom).replace(/"/g, '&quot;')})"
             </tr>`;
         }).join('');
 
@@ -379,8 +379,12 @@
     const boutiqueSlug = localStorage.getItem('nuvy_boutique_slug');
     const statusBox = document.getElementById('conn-status');
     
-    const authToken = localStorage.getItem('nuvy_jwt');
-    if (!boutiqueId || !authToken) { localStorage.clear(); window.location.href = '/'; }
+    const _originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+        const res = await _originalFetch.apply(this, args);
+        if (res.status === 401) { localStorage.clear(); window.location.href = '/'; }
+        return res;
+    };
     const AUTH_HEADERS = { 'Authorization': 'Bearer ' + authToken };
 
     let currentClient = null;
@@ -668,8 +672,9 @@
         
         if (matches.length > 0) {
             resultsBox.style.display = 'block';
-            resultsBox.innerHTML = matches.map(c => {
-                return `<div onclick='selectionnerClientManuel(${JSON.stringify(c)})' class="p-4 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"><div><b class="text-gray-900">${c.nom}</b><br><span class="text-xs text-gray-500">${c.telephone}</span></div><div class="font-bold text-nuvy">${c.total_historique || 0} pts totaux</div></div>`;
+            resultsBox.innerHTML = matches.map((c, idx) => {
+                window['_sc' + idx] = c;
+                return `<div onclick="selectionnerClientManuel(window['_sc${idx}'])" class="p-4 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"><div><b class="text-gray-900">${c.nom.replace(/</g, '&lt;')}</b><br><span class="text-xs text-gray-500">${c.telephone}</span></div><div class="font-bold text-nuvy">${c.total_historique || 0} pts totaux</div></div>`;
             }).join('');
         } else { resultsBox.style.display = 'block'; resultsBox.innerHTML = '<div class="p-4 text-center text-gray-500">Aucun client trouvé 😕</div>'; }
     }
