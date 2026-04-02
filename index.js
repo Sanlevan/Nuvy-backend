@@ -165,22 +165,12 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     let fideliteTexte = "";
     for(let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
-    // 🌟 1. On récupère le dernier message ET sa date
-    const { data: lastNotif } = await supabase
-        .from('notifications')
-        .select('message, created_at')
-        .eq('boutique_id', boutique.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
     const layout = {
         "headerFields": [{
             "key": "score_header",
             "label": "TAMPONS",
             "value": `${client.tampons || 0} / ${maxT}`,
             "textAlignment": "PKTextAlignmentRight",
-            // 👇 L'alerte affichera EXACTEMENT le texte voulu pour un tampon !
             "changeMessage": "Nouveau solde : %@ ✨" 
         }],
         "primaryFields": [{
@@ -194,7 +184,6 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 "label": "VOTRE FIDÉLITÉ",
                 "value": fideliteTexte,
                 "textAlignment": "PKTextAlignmentLeft"
-                // 🚫 AUCUN changeMessage ici = Pas de ronds bizarres dans les notifs
             },
             {
                 "key": "cadeaux",
@@ -204,7 +193,7 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 "changeMessage": "Vos cadeaux : %@ 🎁"
             }
         ],
-        "auxiliaryFields": [], // 🎨 VIDE par défaut pour ton design épuré !
+        "auxiliaryFields": [], 
         "backFields": [
             {
                 "key": "adresse",
@@ -219,29 +208,6 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             }
         ]
     };
-
-    // 🌟 2. L'ASTUCE DU CHAMP ÉPHÉMÈRE (Pour les notifs manuelles)
-    if (lastNotif && lastNotif.message) {
-        // On calcule l'âge du message en heures
-        const ageHeures = (new Date() - new Date(lastNotif.created_at)) / (1000 * 60 * 60);
-        
-        // Si le message a été envoyé il y a moins de 24h, on le force en façade !
-        if (ageHeures < 24) {
-            layout.auxiliaryFields.push({
-                "key": "derniere_notification",
-                "label": "📢 MESSAGE DU COMMERÇANT",
-                "value": lastNotif.message,
-                "changeMessage": "%@" // Apple l'autorise car il est maintenant en façade !
-            });
-        }
-        
-        // On le stocke de façon permanente au dos pour l'historique
-        layout.backFields.unshift({
-            "key": "historique_notif",
-            "label": "📢 DERNIÈRE INFO",
-            "value": lastNotif.message
-        });
-    }
 
     passJson.storeCard = layout;
 
