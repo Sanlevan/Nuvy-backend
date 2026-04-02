@@ -1181,21 +1181,31 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
         // On envoie le client fraîchement mis à jour (updatedClient) à l'API Google
         updateGoogleWalletPass(updatedClient);
 
-        // --- NOTIFICATION APPLE WALLET ---
+        // --- NOTIFICATION APPLE WALLET (AVEC MOUCHARD) ---
         const { data: devices } = await supabase.from('devices').select('push_token').eq('serial_number', client.serial_number);
+        
         if (devices && devices.length > 0) {
-            const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
-            const teamId = process.env.APPLE_TEAM_ID || 'Q762BTBA98'; 
-            const keyId = process.env.APPLE_KEY_ID || 'RM6P22PX7A';
-            
-            const provider = new apn.Provider({ token: { key: p8Key, keyId: keyId, teamId: teamId }, production: true });
-            
-            // Le payload Wallet DOIT être vide pour fonctionner
-            const notification = new apn.Notification();
-            notification.topic = 'pass.pro.nuvy.loyalty';
-            
-            for (const d of devices) { await provider.send(notification, d.push_token); }
-            provider.shutdown();
+            console.log(`📲 [APPLE PUSH] Tentative de réveil pour ${devices.length} appareil(s)...`);
+            try {
+                const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
+                const teamId = process.env.APPLE_TEAM_ID || 'Q762BTBA98'; 
+                const keyId = process.env.APPLE_KEY_ID || 'RM6P22PX7A';
+                
+                const provider = new apn.Provider({ token: { key: p8Key, keyId: keyId, teamId: teamId }, production: true });
+                const notification = new apn.Notification();
+                notification.topic = 'pass.pro.nuvy.loyalty'; // Doit être identique au passTypeIdentifier
+                
+                for (const d of devices) { 
+                    const response = await provider.send(notification, d.push_token); 
+                    // On affiche la réponse d'Apple dans les logs Railway
+                    console.log("🔍 [APPLE PUSH] Réponse d'Apple :", JSON.stringify(response));
+                }
+                provider.shutdown();
+            } catch (err) {
+                console.error("❌ [APPLE PUSH] Erreur fatale de connexion :", err.message);
+            }
+        } else {
+            console.log("⚠️ [APPLE PUSH] Aucun appareil Apple trouvé dans la base pour ce client.");
         }
         res.json(updatedClient);
     } catch (e) { res.status(500).send(); }
