@@ -32,7 +32,7 @@ const sharp = require('sharp');
 const app = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: ["https://nuvy.pro", "https://nuvy-production.up.railway.app"] } });
+const io = new Server(server, { cors: { origin: ["https://www.nuvy.pro", "https://nuvy-production.up.railway.app"] } });
 
 const rateLimit = require('express-rate-limit');
 app.use(express.json());
