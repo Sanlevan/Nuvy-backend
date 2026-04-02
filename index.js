@@ -424,6 +424,60 @@ function verifyAuthOwner(req, res, next) {
     });
 }
 
+// ── PLAN LIMITS ───────────────────────────────────────────────
+const PLAN_LIMITS = {
+    essentiel: {
+        max_clients:        500,
+        max_boutiques:      1,
+        push_notifications: false,
+        analytics_avances:  false,
+        geolocalisation:    false,
+        webhook:            false,
+        rapport_pdf:        false,
+    },
+    pro: {
+        max_clients:        2000,
+        max_boutiques:      2,
+        push_notifications: true,
+        analytics_avances:  true,
+        geolocalisation:    false,
+        webhook:            false,
+        rapport_pdf:        false,
+    },
+    premium: {
+        max_clients:        Infinity,
+        max_boutiques:      5,
+        push_notifications: true,
+        analytics_avances:  true,
+        geolocalisation:    true,
+        webhook:            true,
+        rapport_pdf:        true,
+    },
+};
+
+// Récupère le plan d'une boutique et vérifie une feature
+async function requireFeature(req, res, feature) {
+    const boutiqueId = req.params.id || req.params.boutiqueId;
+    const { data: boutique } = await supabase
+        .from('boutiques')
+        .select('plan')
+        .eq('id', boutiqueId)
+        .single();
+
+    const plan = boutique?.plan || 'essentiel';
+    const limits = PLAN_LIMITS[plan];
+
+    if (!limits[feature]) {
+        return res.status(403).json({
+            error: `Cette fonctionnalité nécessite un plan supérieur.`,
+            feature,
+            plan_actuel: plan,
+            upgrade_required: plan === 'essentiel' ? 'pro' : 'premium',
+        });
+    }
+    return true; // Feature autorisée
+}
+
 // ==========================================
 // ROUTES : AFFICHAGE DES PAGES HTML
 // ==========================================
@@ -648,8 +702,9 @@ app.get('/admin/export-csv', async (req, res) => {
 
 // NOTIFICATION PUSH MARKETING (COMMERÇANT)
 app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) => {
-    const message = cleanString(req.body.message, 200);
-    if (!message) return res.status(400).json({ error: "Message vide." });
+    const allowed = await requireFeature(req, res, 'push_notifications');
+    if (allowed !== true) return; // La réponse 403 a déjà été envoyée
+    // ... reste du code inchangé
     
     try {
         // 1. Récupérer tous les devices de cette boutique
@@ -874,8 +929,16 @@ app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
     let longitude = null;
     let geoDebug = "Non tenté"; // Notre mouchard
 
+    // Vérification du plan pour la géolocalisation
+    const { data: boutiqueCheck } = await supabase
+        .from('boutiques')
+        .select('plan')
+        .eq('id', id)
+        .single();
+    const peutGeoLocaliser = boutiqueCheck?.plan === 'multi-site';
+
     try {
-        if (adresse && adresse.trim() !== "") {
+        if (adresse && adresse.trim() !== "" && peutGeoLocaliser) {
             try {
                 const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(adresse)}`;
                 const geoRes = await fetch(url, {
@@ -903,7 +966,7 @@ app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
         if (panier_moyen !== undefined) updatePayload.panier_moyen = parseFloat(panier_moyen) || 0;
         if (valeur_tampon !== undefined) updatePayload.valeur_tampon = parseFloat(valeur_tampon) || 0;
         if (roi_mode) updatePayload.roi_mode = roi_mode;
-        if (latitude && longitude) {
+        if (latitude && longitude && peutGeoLocaliser) {
             updatePayload.latitude = latitude;
             updatePayload.longitude = longitude;
         }
