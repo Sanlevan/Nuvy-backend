@@ -273,7 +273,7 @@ function generateGoogleWalletLink(client, boutique) {
                 issuerName: "Nuvy",
                 programName: boutique.nom || "Fidélité",
                 programLogo: boutique.logo_url ? { sourceUri: { uri: boutique.logo_url } } : undefined,
-                reviewStatus: "UNDER_REVIEW",
+                reviewStatus: "APPROVED",
                 hexBackgroundColor: bgColor,
                 localizedIssuerName: { defaultValue: { language: "fr", value: boutique.nom || "Nuvy" } },
                 locations: boutique.latitude && boutique.longitude ? [{ latitude: parseFloat(boutique.latitude), longitude: parseFloat(boutique.longitude) }] : [],
