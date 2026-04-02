@@ -165,17 +165,18 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     let fideliteTexte = "";
     for(let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
-    // 🌟 NOUVEAU : On récupère la dernière notification de la boutique
+    // 🌟 1. On récupère le dernier message de la boutique (pour les notifs manuelles)
     const { data: lastNotif } = await supabase
         .from('notifications')
         .select('message')
         .eq('boutique_id', boutique.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle(); // maybeSingle évite un crash s'il n'y a pas encore de message
 
+    // 🌟 2. On construit la carte avec les alertes uniquement là où on veut du texte propre
     const layout = {
-        "headerFields": [{
+       "headerFields": [{
             "key": "score_header",
             "label": "TAMPONS",
             "value": `${client.tampons || 0} / ${maxT}`,
@@ -185,7 +186,7 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         "primaryFields": [{
             "key": "bienvenue",
             "label": `${vraiRang}${suffixe} meilleur client 🏆`,
-            "value": `${prenom}`
+            "value": `${prenom}👋`
         }],
         "secondaryFields": [
             {
@@ -202,7 +203,7 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 "changeMessage": "Vos cadeaux : %@ 🎁"
             }
         ],
-        "auxiliaryFields": [],
+        "auxiliaryFields": [], 
         "backFields": [
             {
                 "key": "adresse",
@@ -218,15 +219,17 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         ]
     };
 
-    // 🌟 NOUVEAU : On injecte le message au dos de la carte s'il y en a un !
+    // 🌟 3. On injecte le message personnalisé au dos s'il existe !
     if (lastNotif && lastNotif.message) {
         layout.backFields.unshift({
             "key": "derniere_notification",
             "label": "📢 DERNIÈRE INFO",
             "value": lastNotif.message,
-            "changeMessage": "Info : %@" // C'est CECI qui déclenche la notification à l'écran !
+            // 👇 L'alerte affichera EXACTEMENT le texte que tu as tapé dans le Dashboard !
+            "changeMessage": "%@" 
         });
     }
+
     passJson.storeCard = layout;
 
     fs.writeFileSync(path.join(tmpDir, 'pass.json'), JSON.stringify(passJson));
