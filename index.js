@@ -1,5 +1,7 @@
 require('dotenv').config();
-console.log("=== NUVY MASTER ENGINE V1.0 (PRODUCTION) - 2026 ===");
+const pino = require('pino');
+const logger = pino({ level: 'info' });
+logger.info("=== NUVY MASTER ENGINE V1.0 (PRODUCTION) - 2026 ===");
 
 const jwt = require('jsonwebtoken');
 // 🛡️ LECTURE SÉCURISÉE DE LA CLÉ GOOGLE (Anti-Crash)
@@ -416,7 +418,14 @@ function verifyAuthOwner(req, res, next) {
 // ==========================================
 app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.resolve(__dirname, 'dashboard.html')));
-app.get('/join/:slug', (req, res) => res.sendFile(path.resolve(__dirname, 'join.html')));
+app.get('/join/:slug', async (req, res) => {
+    const { data: boutique } = await supabase.from('boutiques').select('nom, slug, categorie, logo_url, color_bg, color_text').eq('slug', req.params.slug).single();
+    if (!boutique) return res.status(404).send('Boutique introuvable');
+    
+    const html = fs.readFileSync(path.resolve(__dirname, 'join.html'), 'utf8');
+    const injected = html.replace('</head>', `<script>window.__BOUTIQUE__=${JSON.stringify(boutique)};</script></head>`);
+    res.send(injected);
+});
 
 // ==========================================
 // 🔐 SÉCURITÉ CEO (SOURCE DE VÉRITÉ UNIQUE)
@@ -456,9 +465,10 @@ app.post('/admin/create-boutique', async (req, res) => {
         const finalMaxTampons = parseInt(max_tampons) || 10;
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        const finalExpiration = parseInt(req.body.expiration_jours) || 0;
         const { data, error } = await supabase.from('boutiques').insert([{ 
             nom, slug, username, password: hashedPassword, categorie, logo_url, join_url, 
-            color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons
+            color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons, expiration_jours: finalExpiration
         }]).select().single();
         
         if (error) throw error;
@@ -640,6 +650,54 @@ app.get('/admin/export-csv', async (req, res) => {
         res.send('\uFEFF' + csv); // BOM pour Excel
     } catch (e) {
         res.status(500).send("Erreur export : " + e.message);
+    }
+});
+
+// NOTIFICATION PUSH MARKETING (COMMERÇANT)
+app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) => {
+    const message = cleanString(req.body.message, 200);
+    if (!message) return res.status(400).json({ error: "Message vide." });
+    
+    try {
+        // 1. Récupérer tous les devices de cette boutique
+        const { data: clients } = await supabase.from('clients').select('serial_number').eq('boutique_id', req.params.id);
+        if (!clients || clients.length === 0) return res.json({ sent: 0 });
+        
+        const serials = clients.map(c => c.serial_number).filter(Boolean);
+        const { data: devices } = await supabase.from('devices').select('push_token').in('serial_number', serials);
+        
+        if (!devices || devices.length === 0) return res.json({ sent: 0, message: "Aucun appareil Apple enregistré." });
+        
+        // 2. Envoyer la notification push Apple
+        const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
+        const provider = new apn.Provider({ token: { key: p8Key, keyId: process.env.APPLE_KEY_ID || 'RM6P22PX7A', teamId: process.env.APPLE_TEAM_ID || 'Q762BTBA98' }, production: true });
+        
+        // Notification Wallet : on envoie un push vide pour forcer la mise à jour de la carte
+        // + on met à jour le message sur la carte elle-même
+        const notification = new apn.Notification();
+        notification.topic = 'pass.pro.nuvy.loyalty';
+        
+        let sent = 0;
+        for (const d of devices) {
+            try {
+                await provider.send(notification, d.push_token);
+                sent++;
+            } catch (e) { console.error("Push error:", e.message); }
+        }
+        provider.shutdown();
+        
+        // 3. Sauvegarder la notification en base
+        await supabase.from('notifications').insert([{
+            boutique_id: req.params.id,
+            message: message,
+            devices_reached: sent,
+            created_at: new Date().toISOString()
+        }]);
+        
+        res.json({ sent, total: devices.length });
+    } catch (e) {
+        console.error("Erreur push:", e);
+        res.status(500).json({ error: "Erreur lors de l'envoi." });
     }
 });
 
@@ -825,6 +883,12 @@ app.get('/boutiques/:id/passages-du-jour', verifyAuthOwner, async (req, res) => 
     res.json({ count: data?.length || 0 });
 });
 
+app.get('/boutiques/:id/push-history', verifyAuthOwner, async (req, res) => {
+    const { data, error } = await supabase.from('notifications').select('*').eq('boutique_id', req.params.id).order('created_at', { ascending: false }).limit(20);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data || []);
+});
+
 app.get('/boutiques/:id/activites-du-jour', verifyAuthOwner, async (req, res) => {
     try {
         const debut = new Date();
@@ -866,7 +930,31 @@ app.get('/boutiques/:id/stats', verifyAuthOwner, async (req, res) => {
             avgFrequency = Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length);
         }
 
-        res.json({ avgFrequency, peakHours, distribution });
+        // Courbe d'évolution des clients (30 derniers jours)
+        const { data: allClients } = await supabase.from('clients').select('created_at').eq('boutique_id', req.params.id);
+        const clientsParJour = {};
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
+            clientsParJour[d] = 0;
+        }
+        let cumul = 0;
+        const allSorted = (allClients || []).map(c => c.created_at.split('T')[0]).sort();
+        const cumulParJour = {};
+        allSorted.forEach(d => { cumulParJour[d] = (cumulParJour[d] || 0) + 1; });
+        
+        // Compter tous les clients avant la fenêtre de 30j
+        const debutFenetre = Object.keys(clientsParJour)[0];
+        allSorted.forEach(d => { if (d < debutFenetre) cumul++; });
+        
+        const evolutionLabels = [];
+        const evolutionData = [];
+        Object.keys(clientsParJour).forEach(d => {
+            cumul += (cumulParJour[d] || 0);
+            evolutionLabels.push(d.slice(5));
+            evolutionData.push(cumul);
+        });
+
+        res.json({ avgFrequency, peakHours, distribution, evolutionLabels, evolutionData, totalClients: allClients?.length || 0 });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -1020,6 +1108,9 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
         if (!isValidInteger(req.body.nb)) return res.status(400).json({ error: "Nombre de points invalide." });
         const pointsAjoutes = parseInt(req.body.nb);
         
+        // 🕐 EXPIRATION DES TAMPONS
+        // Si la boutique a configuré une durée d'expiration (en jours) et que le client n'est pas venu depuis trop longtemps
+        
         // On récupère le client ET les infos de sa boutique associée
         const { data: client } = await supabase
             .from('clients')
@@ -1029,6 +1120,17 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
         
         // On récupère la limite de la boutique (ou 10 par défaut si non défini)
         const maxT = client.boutiques.max_tampons || 10;
+        const expirationJours = client.boutiques.expiration_jours || 0;
+        
+        // Si expiration activée et dernier passage trop ancien → reset des tampons
+        if (expirationJours > 0 && client.last_visit) {
+            const joursDepuisDerniereVisite = (Date.now() - new Date(client.last_visit).getTime()) / 86400000;
+            if (joursDepuisDerniereVisite > expirationJours) {
+                console.log(`⏰ [EXPIRATION] Tampons de ${client.nom} expirés (${Math.round(joursDepuisDerniereVisite)}j > ${expirationJours}j)`);
+                await supabase.from('clients').update({ tampons: 0 }).eq('id', req.params.id);
+                client.tampons = 0;
+            }
+        }
 
         let finalTampons = client.tampons || 0;
     let finalRecompenses = client.recompenses || 0;
@@ -1237,6 +1339,16 @@ app.get('/pass/:token', async (req, res) => {
         console.error('❌ Erreur génération pass:', e);
         res.status(500).send();
     }
+});
+
+// TRACKING : Compteur de visiteurs page join
+app.post('/join/:slug/visit', limiterStrict, async (req, res) => {
+    try {
+        const { data: b } = await supabase.from('boutiques').select('id').eq('slug', req.params.slug).single();
+        if (!b) return res.status(404).send();
+        await supabase.from('page_visits').insert([{ boutique_id: b.id, page: 'join' }]);
+        res.json({ ok: true });
+    } catch (e) { res.status(500).send(); }
 });
 
 app.post('/join/:slug/create', limiterStrict, async (req, res) => {

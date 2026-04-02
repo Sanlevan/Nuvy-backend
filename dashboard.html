@@ -65,6 +65,16 @@
           </button>
         </li>
         <li>
+          <button onclick="switchView('view-push', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
+            <i data-lucide="bell" class="w-5 h-5"></i><span>Notifications</span>
+          </button>
+        </li>
+        <li>
+          <button onclick="switchView('view-push', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
+            <i data-lucide="bell" class="w-5 h-5"></i><span>Notifications</span>
+          </button>
+        </li>
+        <li>
           <button onclick="switchView('view-account', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
             <i data-lucide="user" class="w-5 h-5"></i><span>Mon Compte</span>
           </button>
@@ -91,6 +101,9 @@
       </button>
       <button onclick="switchView('view-analytics', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
         <i data-lucide="bar-chart-3" class="w-6 h-6"></i><span class="text-xs font-medium">Stats</span>
+      </button>
+      <button onclick="switchView('view-push', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
+        <i data-lucide="bell" class="w-6 h-6"></i><span class="text-xs font-medium">Notifs</span>
       </button>
       <button onclick="switchView('view-account', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
         <i data-lucide="user" class="w-6 h-6"></i><span class="text-xs font-medium">Compte</span>
@@ -204,6 +217,30 @@
       <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
           <h3 class="text-lg font-bold text-gray-900 mb-6">📊 Distribution des tampons</h3>
           <div class="h-[300px] w-full relative"><canvas id="distriChart"></canvas></div>
+      </div>
+
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-6">📈 Évolution des clients (30j)<span class="info-tip" data-tip="Nombre total de clients inscrits cumulés sur les 30 derniers jours.">i</span></h3>
+          <div class="h-[300px] w-full relative"><canvas id="evolutionChart"></canvas></div>
+      </div>
+    </section>
+
+    <section id="view-push" class="view space-y-4 lg:space-y-6 w-full max-w-3xl mx-auto">
+      <h2 class="text-xl lg:text-2xl font-bold text-gray-900">Notifications Push</h2>
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 lg:p-8">
+        <p class="text-sm text-gray-500 mb-4">Envoyez une notification à tous vos clients qui ont la carte Apple Wallet. Leur carte se mettra à jour automatiquement.</p>
+        <textarea id="push-message" rows="3" maxlength="200" placeholder="Ex: Promo ce weekend ! -20% sur toutes les pizzas 🍕" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-nuvy/30 outline-none transition-all resize-none text-sm"></textarea>
+        <div class="flex justify-between items-center mt-2 mb-4">
+          <span id="push-chars" class="text-xs text-gray-400">0 / 200</span>
+        </div>
+        <button id="btn-push" onclick="envoyerNotification()" class="w-full h-12 font-bold bg-nuvy hover:bg-nuvy-dark text-white rounded-xl shadow-md active:scale-[0.98] transition-all">ENVOYER LA NOTIFICATION</button>
+        <div id="push-result" class="hidden mt-4 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700 font-bold text-center"></div>
+      </div>
+      <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
+        <h3 class="text-base font-bold text-gray-900 mb-4">Historique des envois</h3>
+        <div id="push-history" class="space-y-2">
+          <p class="text-sm text-gray-400 text-center py-4">Aucune notification envoyée.</p>
+        </div>
       </div>
     </section>
 
@@ -361,6 +398,12 @@
             if (ctxPeak) {
                 if (chartPeak) chartPeak.destroy();
                 chartPeak = new Chart(ctxPeak.getContext('2d'), { type: 'line', data: { labels: Array.from({length: 24}, (_, i) => i + "h"), datasets: [{ label: 'Passages/jour', data: stats.peakHours, borderColor: '#2A8C9C', backgroundColor: 'rgba(42, 140, 156, 0.05)', fill: true, tension: 0.4, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : '' } } } } });
+            }
+
+            // Courbe d'évolution
+            const ctxEvol = document.getElementById('evolutionChart');
+            if (ctxEvol && stats.evolutionLabels) {
+                new Chart(ctxEvol.getContext('2d'), { type: 'line', data: { labels: stats.evolutionLabels, datasets: [{ data: stats.evolutionData, borderColor: '#2A8C9C', backgroundColor: 'rgba(42,140,156,0.05)', fill: true, tension: 0.4, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 } } }, y: { grid: { display: false }, border: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : '' } } } } });
             }
 
             const ctxDistri = document.getElementById('distriChart');
@@ -648,6 +691,49 @@ async function changerMotDePasse() {
             console.error(e);
             alert("Erreur réseau.");
         }
+    }
+    document.getElementById('push-message')?.addEventListener('input', function() {
+        document.getElementById('push-chars').innerText = this.value.length + ' / 200';
+    });
+
+    async function envoyerNotification() {
+        const message = document.getElementById('push-message').value.trim();
+        if (!message) { alert("Écrivez un message."); return; }
+        
+        const btn = document.getElementById('btn-push');
+        btn.disabled = true; btn.innerText = "ENVOI EN COURS...";
+        
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}/push-notification`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+                body: JSON.stringify({ message })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const resultEl = document.getElementById('push-result');
+                resultEl.classList.remove('hidden');
+                resultEl.innerText = `✅ Notification envoyée à ${data.sent} appareil${data.sent > 1 ? 's' : ''} !`;
+                document.getElementById('push-message').value = '';
+                document.getElementById('push-chars').innerText = '0 / 200';
+                chargerHistoriquePush();
+            } else { alert(data.error || "Erreur"); }
+        } catch (e) { alert("Erreur réseau."); }
+        finally { btn.disabled = false; btn.innerText = "ENVOYER LA NOTIFICATION"; }
+    }
+
+    async function chargerHistoriquePush() {
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}/push-history`, { headers: AUTH_HEADERS });
+            if (!res.ok) return;
+            const notifs = await res.json();
+            const el = document.getElementById('push-history');
+            if (notifs.length === 0) return;
+            el.innerHTML = notifs.map(n => {
+                const date = new Date(n.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                return `<div class="flex justify-between items-center p-3 bg-gray-50 rounded-xl"><div class="flex-1"><p class="text-sm font-bold text-gray-900">${n.message}</p><p class="text-xs text-gray-400 mt-1">${date}</p></div><span class="text-xs font-bold text-nuvy ml-4">${n.devices_reached} envoi${n.devices_reached > 1 ? 's' : ''}</span></div>`;
+            }).join('');
+        } catch (e) { console.error(e); }
     }
     function deconnexion() { localStorage.clear(); window.location.href = '/'; }
   </script>

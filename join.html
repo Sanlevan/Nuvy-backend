@@ -51,7 +51,40 @@
     </div>
     <script>
         const urlSlug = window.location.pathname.split('/').pop();
-        document.getElementById('shop-display').innerText = urlSlug.replace(/-/g, ' ');
+        const boutique = window.__BOUTIQUE__ || {};
+        document.getElementById('shop-display').innerText = boutique.nom || urlSlug.replace(/-/g, ' ');
+        
+        // Personnalisation visuelle
+        if (boutique.color_text) {
+            document.querySelector('.nuvy-text').style.color = boutique.color_text;
+            document.querySelector('.btn-submit').style.background = boutique.color_text;
+            document.querySelector('h1').style.color = boutique.color_text;
+        }
+        if (boutique.color_bg) {
+            document.body.style.background = boutique.color_bg;
+            document.querySelector('.onboarding-card').style.borderColor = boutique.color_text || '#E0DEDA';
+        }
+        // Tracking visite
+        fetch('/join/' + urlSlug + '/visit', { method: 'POST' }).catch(() => {});
+        // Multi-langue
+        const lang = (navigator.language || 'fr').slice(0, 2);
+        if (lang !== 'fr') {
+            document.querySelector('h1').innerText = 'Welcome';
+            document.querySelector('p').innerText = 'Create your digital loyalty card in seconds and start earning rewards.';
+            document.getElementById('prenom').placeholder = 'First name';
+            document.getElementById('nom').placeholder = 'Last name';
+            document.getElementById('telephone').placeholder = 'Phone number';
+            document.querySelector('.btn-submit').innerText = 'CREATE MY CARD';
+            document.querySelector('#success-view h1').innerText = 'Card ready!';
+            document.querySelector('#success-view p').innerText = 'Your card is opening automatically...';
+            document.getElementById('btn-apple').innerText = 'OPEN MY CARD';
+        }
+        if (boutique.logo_url) {
+            const logoEl = document.createElement('img');
+            logoEl.src = boutique.logo_url;
+            logoEl.style.cssText = 'max-height: 60px; max-width: 200px; margin: 0 auto 20px; display: block; object-fit: contain;';
+            document.querySelector('.onboarding-card').prepend(logoEl);
+        }
         let passToken = null;
         // 🛡️ NETTOYEUR DE NUMÉRO INFAILLIBLE
         function formaterTelephone(tel) {
