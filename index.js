@@ -1260,8 +1260,6 @@ app.get('/tap/:slug', (req, res) => {
         
         <script>
             const slug = '${slug}';
-            
-            // 🚨 CORRECTION : On cherche la boîte SPÉCIFIQUE à cette boutique !
             const token = localStorage.getItem('nuvy_token_' + slug);
             
             function playDing() {
@@ -1282,23 +1280,28 @@ app.get('/tap/:slug', (req, res) => {
 
             if (!token) {
                 window.location.href = '/join/' + slug;
-            } else if (sessionStorage.getItem('nuvy_tapped_' + slug)) {
-                // 🛡️ Déjà tapé dans cet onglet → page morte
-                document.getElementById('ui-box').classList.add('success');
-                document.getElementById('loader-view').style.display = 'none';
-                document.getElementById('success-view').style.display = 'block';
-                document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Passage enregistré</h2><p>Votre visite a bien été transmise.</p>';
             } else {
                 fetch('/tap/' + slug + '/notify?token=' + token, { method: 'POST' })
                 .then(r => {
                     if(r.ok) {
-                        sessionStorage.setItem('nuvy_tapped_' + slug, '1');
                         playDing();
                         const box = document.getElementById('ui-box');
                         document.getElementById('loader-view').style.display = 'none';
                         document.getElementById('success-view').style.display = 'block';
                         box.classList.add('success');
-                        document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">C\\\'est validé ! 🎉</h2><p>Le commerçant a bien reçu votre carte sur sa caisse.</p>';
+                        
+                        // 🌟 MAGIE : On adapte le bouton de secours selon le téléphone !
+                        const btn = document.getElementById('wallet-btn');
+                        const isAndroid = /android/i.test(navigator.userAgent);
+                        
+                        if (isAndroid) {
+                            btn.innerText = "Voir sur Google Wallet";
+                            btn.href = '/google-pass/' + token;
+                        } else {
+                            btn.innerText = "Voir ma carte ";
+                            btn.href = '/pass/' + token;
+                        }
+
                     } else if (r.status === 404) {
                         localStorage.removeItem('nuvy_token_' + slug);
                         window.location.href = '/join/' + slug;
