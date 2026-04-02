@@ -219,14 +219,21 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         ]
     };
 
-    // 🌟 3. On injecte le message personnalisé au dos s'il existe !
+    // 🌟 3. On injecte le message personnalisé (OBLIGATOIREMENT SUR LA FACE AVANT POUR APPLE)
     if (lastNotif && lastNotif.message) {
-        layout.backFields.unshift({
+        layout.auxiliaryFields.push({
             "key": "derniere_notification",
-            "label": "📢 DERNIÈRE INFO",
+            "label": "📢 MESSAGE DU COMMERÇANT",
             "value": lastNotif.message,
-            // 👇 L'alerte affichera EXACTEMENT le texte que tu as tapé dans le Dashboard !
+            // 👇 C'est CECI qui autorise enfin l'iPhone à afficher ton texte !
             "changeMessage": "%@" 
+        });
+        
+        // (Optionnel) On le copie aussi au dos pour que ça serve d'historique si le client retourne la carte
+        layout.backFields.unshift({
+            "key": "historique_notif",
+            "label": "📢 DERNIÈRE INFO",
+            "value": lastNotif.message
         });
     }
 
