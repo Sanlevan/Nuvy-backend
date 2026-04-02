@@ -1202,6 +1202,7 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
             const provider = new apn.Provider({ token: { key: p8Key, keyId: keyId, teamId: teamId }, production: true });
             const notification = new apn.Notification();
             notification.topic = 'pass.pro.nuvy.loyalty';
+            notification.rawPayload = {}; // 🚨 LA CORRECTION EST ICI : On force l'envoi d'un JSON vide
             
             for (const d of devices) { 
                 const response = await provider.send(notification, d.push_token); 
