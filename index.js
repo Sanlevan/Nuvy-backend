@@ -189,6 +189,12 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
         "auxiliaryFields": [], 
         "backFields": [
             {
+                "key": "promo",
+                "label": "DERNIÈRE INFO DE LA BOUTIQUE",
+                "value": boutique.last_push_message || "Aucune actualité pour le moment.",
+                "changeMessage": "%@"
+            },
+            {
                 "key": "adresse",
                 "label": "ADRESSE DE LA BOUTIQUE",
                 "value": boutique.adresse || "Adresse non renseignée"
@@ -677,10 +683,17 @@ app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) =
         const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
         const provider = new apn.Provider({ token: { key: p8Key, keyId: process.env.APPLE_KEY_ID || 'RM6P22PX7A', teamId: process.env.APPLE_TEAM_ID || 'Q762BTBA98' }, production: true });
         
-        // Notification Wallet : on envoie un push vide pour forcer la mise à jour de la carte
-        // + on met à jour le message sur la carte elle-même
+        // 1.5 Sauvegarder le message sur la boutique AVANT d'envoyer le push
+        // (comme ça, quand l'iPhone rappelle le serveur, la carte contiendra le message)
+        await supabase.from('boutiques').update({ 
+            last_push_message: message, 
+            last_push_date: new Date().toISOString() 
+        }).eq('id', req.params.id);
+
+        // 2. Envoyer le push avec un payload (sinon Apple ignore)
         const notification = new apn.Notification();
         notification.topic = 'pass.pro.nuvy.loyalty';
+        notification.payload = { action: "update_pass" };
         
         let sent = 0;
         for (const d of devices) {
