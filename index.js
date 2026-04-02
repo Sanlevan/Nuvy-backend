@@ -1301,7 +1301,7 @@ app.get('/tap/:slug', (req, res) => {
                 const btnText = isAndroid ? "Voir sur Google Wallet" : "Voir ma carte ";
                 const btnHref = isAndroid ? '/google-pass/' + token : '/pass/' + token;
                 
-                document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Passage enregistré</h2><p>Votre visite a bien été transmise.</p><a href="' + btnHref + '" class="btn">' + btnText + '</a>';
+                document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Passage enregistré</h2><p>Votre visite a bien été transmise.</p><a href="' + btnHref + '" class="btn" onclick="setTimeout(function(){window.location.reload();}, 1500)">' + btnText + '</a>';
             } else {
                 // NOUVEAU PASSAGE LÉGITIME
                 fetch('/tap/' + slug + '/notify?token=' + token, { method: 'POST' })
@@ -1325,6 +1325,13 @@ app.get('/tap/:slug', (req, res) => {
                             btn.innerText = "Voir ma carte ";
                             btn.href = '/pass/' + token;
                         }
+                        
+                        // 🌟 NOUVEAU : On referme/recharge la page proprement après le clic
+                        btn.onclick = function() {
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 3000); // 3 secondes de délai
+                        };
 
                     } else if (r.status === 404) {
                         localStorage.removeItem('nuvy_token_' + slug);
