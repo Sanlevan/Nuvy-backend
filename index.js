@@ -184,13 +184,6 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 "label": "VOTRE FIDÉLITÉ",
                 "value": fideliteTexte,
                 "textAlignment": "PKTextAlignmentLeft"
-            },
-            {
-                "key": "cadeaux",
-                "label": "CADEAUX",
-                "value": `${client.recompenses || 0} 🎁`,
-                "textAlignment": "PKTextAlignmentRight",
-                "changeMessage": "Vos cadeaux : %@ 🎁"
             }
         ],
         "auxiliaryFields": [], 
