@@ -57,9 +57,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const STEREOTYPES = {
     default:     { bg: "#FAF8F5", text: "#2A8C9C", label: "#AFE3E0" },
     boulangerie: { bg: "#ffcb9b", text: "#8B4513", label: "#CD853F" },
-    pizza:       { bg: "#ff8080", text: "#CD5C5C", label: "#FFA07A" },
-    onglerie:    { bg: "#fbadc7", text: "#C71585", label: "#FFB6C1" },
-    coiffeur:    { bg: "#8a8a8a", text: "#2727b4", label: "#B0C4DE" },
+    pizza:       { bg: "#ffd8d8", text: "#CD5C5C", label: "#FFA07A" },
+    onglerie:    { bg: "#fcc1d5", text: "#C71585", label: "#FFB6C1" },
+    coiffeur:    { bg: "#ffedbc", text: "#2727b4", label: "#B0C4DE" },
     cafe:        { bg: "#F5F5DC", text: "#4B3621", label: "#A0522D" }
 };
 const SYMBOLS = {
