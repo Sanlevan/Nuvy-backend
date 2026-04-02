@@ -1014,7 +1014,6 @@ app.get('/admin/global-stats', async (req, res) => {
         const scansParSemaine = Array(7).fill(0);
         visites30j?.forEach(v => { scansParSemaine[new Date(v.created_at).getDay()]++; });
         const weeklyData = joursLabels.map((day, i) => ({ day, scans: scansParSemaine[i] }));
-        // Réordonner Lun → Dim
         const weeklyOrdered = [...weeklyData.slice(1), weeklyData[0]];
 
         // --- Utilisateurs uniques 30j ---
@@ -1023,14 +1022,14 @@ app.get('/admin/global-stats', async (req, res) => {
         // --- Cartes Apple Wallet ---
         const cartesWallet = new Set(devices?.map(d => d.serial_number)).size;
 
-        // --- Taux de rétention (clients venus 2+ fois sur 30j) ---
+        // --- Taux de rétention ---
         const comptageParClient = {};
         visites30j?.forEach(v => { comptageParClient[v.client_id] = (comptageParClient[v.client_id] || 0) + 1; });
         const clientsFideles = Object.values(comptageParClient).filter(n => n > 1).length;
         const totalVisiteurs = Object.keys(comptageParClient).length;
         const tauxRetention = totalVisiteurs > 0 ? Math.round((clientsFideles / totalVisiteurs) * 100) : 0;
 
-        // --- Health Score & KPIs flotte ---
+        // --- Health Score ---
         const totalBoutiques = boutiques?.length || 0;
         const { data: actives7j } = await supabase.from('visites').select('boutique_id').gte('created_at', septJours);
         const activesIds = new Set(actives7j?.map(v => v.boutique_id) || []);
@@ -1040,7 +1039,7 @@ app.get('/admin/global-stats', async (req, res) => {
         const secteurs = {};
         boutiques?.forEach(b => { const c = b.categorie || 'default'; secteurs[c] = (secteurs[c] || 0) + 1; });
 
-        // --- Répartition appareils (depuis device_type enregistré à l'inscription) ---
+        // --- Répartition appareils ---
         const { data: deviceTypes } = await supabase.from('clients').select('device_type');
         const totalD = deviceTypes?.length || 1;
         const iosCount     = deviceTypes?.filter(c => c.device_type === 'ios').length     || 0;
@@ -1052,24 +1051,20 @@ app.get('/admin/global-stats', async (req, res) => {
             autre:   Math.round((otherCount   / totalD) * 100),
         };
 
-        // --- Top 5 Villes (depuis adresse des boutiques) ---
+        // --- Top 5 Villes ---
         const villeScans = {};
         const boutiqueVille = {};
         boutiques?.forEach(b => {
             if (b.adresse) {
                 const parts = b.adresse.split(',');
-                
-                // On prend le dernier bout par défaut
                 let cityRaw = parts[parts.length - 1].trim();
                 
-                // 🚨 CORRECTION : Si le dernier bout est "France" (ou "France métropolitaine"), on recule d'une case !
+                // Si la dernière partie est "France", on prend la partie d'avant
                 if (cityRaw.toLowerCase().includes('france') && parts.length > 1) {
                     cityRaw = parts[parts.length - 2].trim();
                 }
                 
-                // On retire le code postal (les 5 chiffres) s'il y en a un
                 cityRaw = cityRaw.replace(/^\d{5}\s*/, '').trim();
-                
                 if (cityRaw) boutiqueVille[b.id] = cityRaw;
             }
         });
@@ -1083,6 +1078,23 @@ app.get('/admin/global-stats', async (req, res) => {
         const topVilles = Object.entries(villeScans)
             .sort((a, b) => b[1] - a[1]).slice(0, 5)
             .map(([city, scans]) => ({ city, scans, percentage: Math.round((scans / totalScansVilles) * 100) }));
+
+        // 🚨 C'EST CETTE PARTIE QUI AVAIT DÛ ÊTRE EFFACÉE ! 🚨
+        res.json({
+            scansAujourdhui: visitesAujourd?.length || 0,
+            scans30j: visites30j?.length || 0,
+            totalClients: totalClients || 0,
+            uniqueUsers30j,
+            cartesWallet,
+            tauxRetention,
+            healthScore,
+            secteurs,
+            deviceData,
+            weeklyData: weeklyOrdered,
+            topVilles,
+            chartLabels: Object.keys(scansParJour).map(d => d.slice(5)),
+            chartData: Object.values(scansParJour),
+        });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
