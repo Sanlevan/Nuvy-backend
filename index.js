@@ -224,6 +224,7 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     const pass = await PKPass.from({ model: tmpDir, certificates: { wwdr: WWDR, signerCert, signerKey } });
     const buf = pass.getAsBuffer();
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
     return buf;
 }
 
@@ -488,15 +489,18 @@ app.get('/join/:slug', async (req, res) => {
     if (!boutique) return res.status(404).send('Boutique introuvable');
     
     const html = fs.readFileSync(path.resolve(__dirname, 'join.html'), 'utf8');
-    const injected = html.replace('</head>', `<script>window.__BOUTIQUE__=${JSON.stringify(boutique)};</script></head>`);
+    const safeJson = JSON.stringify(boutique).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+    const injected = html.replace('</head>', `<script>window.__BOUTIQUE__=${safeJson};</script></head>`);
     res.send(injected);
 });
 
 // ==========================================
 // 🔐 SÉCURITÉ CEO (SOURCE DE VÉRITÉ UNIQUE)
 // ==========================================
-const MASTER_CEO_KEY = process.env.CEO_KEY || "natrisT05";
-const JWT_SECRET = process.env.JWT_SECRET || "nuvy_jwt_secret_temporaire_2026";
+const MASTER_CEO_KEY = process.env.CEO_KEY;
+if (!MASTER_CEO_KEY) { console.error("❌ FATAL : CEO_KEY manquante dans les variables d'environnement."); process.exit(1); }
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) { console.error("❌ FATAL : JWT_SECRET manquante dans les variables d'environnement."); process.exit(1); }
 
 // 1. Route pour la page de Login
 app.get('/admin-login', (req, res) => {
