@@ -379,8 +379,23 @@
         element.classList.remove('text-gray-700'); element.classList.add('bg-nuvy/10', 'text-nuvy');
         
         if (viewId === 'view-analytics' || viewId === 'view-clients') loadAnalyticsData(); 
-        if (viewId === 'view-account') loadAccountData(); 
+        if (viewId === 'view-account') loadAccountData();
+        if (viewId === 'view-push') chargerHistoriquePush();
+
+        // Mise à jour de l'URL sans rechargement
+        const hashMap = { 'view-home': 'accueil', 'view-clients': 'clients', 'view-analytics': 'stats', 'view-push': 'notifications', 'view-account': 'compte' };
+        window.location.hash = hashMap[viewId] || 'accueil';
     }
+    // Au chargement : lire le hash et ouvrir la bonne page
+    (function() {
+        const hashToView = { 'accueil': 'view-home', 'clients': 'view-clients', 'stats': 'view-analytics', 'notifications': 'view-push', 'compte': 'view-account' };
+        const hash = window.location.hash.replace('#', '');
+        const targetView = hashToView[hash];
+        if (targetView) {
+            const btn = document.querySelector(`[onclick*="${targetView}"]`);
+            if (btn) switchView(targetView, btn);
+        }
+    })();
 
     async function loadAnalyticsData() {
         try {
