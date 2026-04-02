@@ -208,6 +208,16 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             }
         ]
     };
+    // 🎁 CONDITION : On ajoute le champ Cadeaux SEULEMENT s'il y en a au moins 1
+    if (client.recompenses && client.recompenses > 0) {
+        layout.secondaryFields.push({
+            "key": "cadeaux",
+            "label": "CADEAUX",
+            "value": `${client.recompenses} 🎁`,
+            "textAlignment": "PKTextAlignmentRight",
+            "changeMessage": "Vos cadeaux : %@ 🎁"
+        });
+    }
 
     passJson.storeCard = layout;
 
