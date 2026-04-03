@@ -1,75 +1,5 @@
-require('dotenv').config();
-const pino = require('pino');
-const logger = pino({ level: 'info' });
-logger.info("=== NUVY MASTER ENGINE V1.0 (PRODUCTION) - 2026 ===");
+const { logger, jwt, MASTER_CEO_KEY, JWT_SECRET, googleCredentials, GOOGLE_ISSUER_ID, supabase, STEREOTYPES, SYMBOLS, PLAN_LIMITS } = require('./config');
 
-const jwt = require('jsonwebtoken');
-// 🛡️ LECTURE SÉCURISÉE DE LA CLÉ GOOGLE (Anti-Crash)
-let googleCredentials = null;
-try {
-    if (process.env.GOOGLE_CREDENTIALS) {
-        googleCredentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-        logger.info("✅ [SYSTÈME] Clé Google chargée avec succès !");
-    } else {
-        logger.info("⚠️ [SYSTÈME] Aucune clé Google trouvée dans les variables Railway.");
-    }
-} catch (erreur) {
-    logger.error("❌ [ERREUR FATALE] Le texte collé dans GOOGLE_CREDENTIALS est mal formaté.", erreur.message);
-}
-const GOOGLE_ISSUER_ID = '3388000000023094987';
-const express = require('express');
-const { createClient } = require('@supabase/supabase-js');
-const { PKPass } = require('passkit-generator');
-const apn = require('@parse/node-apn');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-const bcrypt = require('bcrypt');
-const { Server } = require('socket.io');
-const http = require('http');
-const sharp = require('sharp');
-
-const app = express();
-app.set('trust proxy', 1);
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: ["https://nuvy.pro", "https://nuvy-production.up.railway.app"] } });
-
-const rateLimit = require('express-rate-limit');
-app.use(express.json());
-app.use(express.static('public'));
-
-// 🛡️ RATE LIMITERS
-const limiterStrict = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 30, // 30 requêtes max par IP
-    message: { error: "Trop de requêtes. Réessayez dans quelques minutes." }
-});
-const limiterLogin = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10, // 10 tentatives de login max
-    message: { error: "Trop de tentatives. Réessayez dans 15 minutes." }
-});
-
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-const STEREOTYPES = {
-    default:     { bg: "#FAF8F5", text: "#2A8C9C", label: "#AFE3E0" },
-    boulangerie: { bg: "#ffcb9b", text: "#8B4513", label: "#CD853F" },
-    pizza:       { bg: "#ffd8d8", text: "#CD5C5C", label: "#FFA07A" },
-    onglerie:    { bg: "#fcc1d5", text: "#C71585", label: "#FFB6C1" },
-    coiffeur:    { bg: "#ffedbc", text: "#2727b4", label: "#B0C4DE" },
-    cafe:        { bg: "#F5F5DC", text: "#4B3621", label: "#A0522D" }
-};
-const SYMBOLS = {
-    pizza:       { full: "🍕", empty: "◽" },
-    onglerie:    { full: "💅", empty: "⚪" },
-    cafe:        { full: "☕", empty: "▫️" },
-    boulangerie: { full: "🥐", empty: "◽" },
-    coiffeur:    { full: "✂️", empty: "▫️" },
-    default:     { full: "●",  empty: "○" }
-};
 const getCert = (envVar, fileName) => {
     if (process.env[envVar]) return Buffer.from(process.env[envVar], 'base64');
     const p = path.resolve(__dirname, fileName);
@@ -424,37 +354,6 @@ function verifyAuthOwner(req, res, next) {
     });
 }
 
-// ── PLAN LIMITS ───────────────────────────────────────────────
-const PLAN_LIMITS = {
-    essentiel: {
-        max_clients:        500,
-        max_boutiques:      1,
-        push_notifications: false,
-        analytics_avances:  false,
-        geolocalisation:    false,
-        rapport_pdf:        false,
-        personnalisation:   false,
-    },
-    pro: {
-        max_clients:        2000,
-        max_boutiques:      1,
-        push_notifications: true,
-        analytics_avances:  true,
-        geolocalisation:    false,
-        rapport_pdf:        false,
-        personnalisation:   true,
-    },
-    'multi-site': {
-        max_clients:        Infinity,
-        max_boutiques:      Infinity,
-        push_notifications: true,
-        analytics_avances:  true,
-        geolocalisation:    true,
-        rapport_pdf:        true,
-        personnalisation:   true,
-    },
-};
-
 // Récupère le plan d'une boutique et vérifie une feature
 async function requireFeature(req, res, feature) {
     const boutiqueId = req.params.id || req.params.boutiqueId;
@@ -496,10 +395,6 @@ app.get('/join/:slug', async (req, res) => {
 // ==========================================
 // 🔐 SÉCURITÉ CEO (SOURCE DE VÉRITÉ UNIQUE)
 // ==========================================
-const MASTER_CEO_KEY = process.env.CEO_KEY;
-if (!MASTER_CEO_KEY) { logger.error("❌ FATAL : CEO_KEY manquante dans les variables d'environnement."); process.exit(1); }
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) { logger.error("❌ FATAL : JWT_SECRET manquante dans les variables d'environnement."); process.exit(1); }
 
 // 1. Route pour la page de Login
 app.get('/admin-login', (req, res) => {
