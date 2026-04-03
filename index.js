@@ -317,32 +317,6 @@ const { cleanString, isValidPhone, isValidInteger } = require('./utils/validatio
 // ==========================================
 // 🛡️ MIDDLEWARE D'AUTHENTIFICATION JWT
 // ==========================================
-function verifyAuth(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: "Non authentifié. Token manquant." });
-    }
-    try {
-        const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.auth = decoded; // { boutiqueId, slug, nom }
-        next();
-    } catch (e) {
-        return res.status(401).json({ error: "Session expirée. Reconnectez-vous." });
-    }
-}
-
-// Variante : vérifie que le boutiqueId dans l'URL correspond au token
-function verifyAuthOwner(req, res, next) {
-    verifyAuth(req, res, () => {
-        if (String(req.auth.boutiqueId) !== String(req.params.id)) {
-            return res.status(403).json({ error: "Accès interdit à cette boutique." });
-        }
-        next();
-    });
-}
-
-// Récupère le plan d'une boutique et vérifie une feature
 const { verifyAuth, verifyAuthOwner, requireFeature } = require('./middleware/auth');
 
 // ==========================================
