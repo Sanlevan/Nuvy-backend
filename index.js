@@ -1311,58 +1311,68 @@ app.get('/tap/:slug', async (req, res) => {
 
             if (!token) {
                 window.location.href = '/join/' + slug;
-            } else if (sessionStorage.getItem('nuvy_tapped_' + slug)) {
-                // 🛡️ ANTI-SPAM (Page rechargée)
-                document.getElementById('ui-box').classList.add('success');
-                document.getElementById('loader-view').style.display = 'none';
-                document.getElementById('success-view').style.display = 'block';
-                
-                const isAndroid = /android/i.test(navigator.userAgent);
-                const btnText = isAndroid ? "Voir sur Google Wallet" : "Voir ma carte ";
-                const btnHref = isAndroid ? '/google-pass/' + token : '/pass/' + token;
-                
-                const googleBtnHtml = reviewUrl ? '<a href="' + reviewUrl + '" target="_blank" class="btn-review">⭐ Laisser un avis Google</a>' : '';
-                
-                document.getElementById('success-view').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Passage enregistré</h2><p>Votre visite a bien été transmise.</p><div class="btn-group"><a href="' + btnHref + '" class="btn" onclick="setTimeout(function(){window.location.reload();}, 3000)">' + btnText + '</a>' + googleBtnHtml + '</div>';
             } else {
-                // NOUVEAU PASSAGE LÉGITIME
-                fetch('/tap/' + slug + '/notify?token=' + token, { method: 'POST' })
-                .then(r => {
-                    if(r.ok) {
-                        sessionStorage.setItem('nuvy_tapped_' + slug, '1');
-                        playDing();
+                const isBlocked = localStorage.getItem('nuvy_blocked_' + slug);
+                const navEntry = (performance.getEntriesByType('navigation')[0] || {});
+                const isNewNavigation = (navEntry.type === 'navigate');
+
+                if (isBlocked && !isNewNavigation) {
+                    // REFRESH ou RETOUR ONGLET → page morte
+                    document.getElementById('ui-box').classList.add('success');
+                    document.getElementById('loader-view').style.display = 'none';
+                    document.getElementById('success-view').style.display = 'block';
+                    const isAndroid = /android/i.test(navigator.userAgent);
+                    const btnHref = isAndroid ? '/google-pass/' + token : '/pass/' + token;
+                    const btnText = isAndroid ? "Voir sur Google Wallet" : "Voir ma carte";
+                    const googleBtnHtml = reviewUrl ? '<a href="' + reviewUrl + '" target="_blank" class="btn-review">⭐ Laisser un avis Google</a>' : '';
+                    document.getElementById('success-view').innerHTML = '<div style="font-size:50px;margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Déjà enregistré</h2><p>Présentez le badge en boutique pour un nouveau passage.</p><div class="btn-group"><a href="' + btnHref + '" class="btn">' + btnText + '</a>' + googleBtnHtml + '</div>';
+                } else {
+                    // NOUVEAU TAP NFC (navigate) ou premier passage → on demande au serveur
+                    fetch('/tap/' + slug + '/notify?token=' + token, { method: 'POST' })
+                    .then(r => {
+                        if (r.status === 404) {
+                            localStorage.removeItem('nuvy_token_' + slug);
+                            localStorage.removeItem('nuvy_blocked_' + slug);
+                            window.location.href = '/join/' + slug;
+                            return;
+                        }
+                        if (!r.ok) throw new Error();
+                        return r.json();
+                    })
+                    .then(data => {
+                        if (!data) return;
+
                         const box = document.getElementById('ui-box');
                         document.getElementById('loader-view').style.display = 'none';
                         document.getElementById('success-view').style.display = 'block';
                         box.classList.add('success');
-                        
-                        const btn = document.getElementById('wallet-btn');
-                        const isAndroid = /android/i.test(navigator.userAgent);
-                        
-                        if (isAndroid) {
-                            btn.innerText = "Voir sur Google Wallet";
-                            btn.href = '/google-pass/' + token;
-                        } else {
-                            btn.innerText = "Voir ma carte ";
-                            btn.href = '/pass/' + token;
-                        }
-                        
-                        btn.onclick = function() {
-                            setTimeout(function() {
-                                window.location.reload();
-                            }, 3000);
-                        };
 
-                    } else if (r.status === 404) {
-                        localStorage.removeItem('nuvy_token_' + slug);
-                        window.location.href = '/join/' + slug;
-                    } else {
-                        throw new Error();
-                    }
-                })
-                .catch(() => {
-                    document.getElementById('ui-box').innerHTML = '<div style="font-size: 50px; margin-bottom:15px;">⚠️</div><h2 style="color:#C62828;">Oups...</h2><p>Vérifiez votre connexion internet.</p>';
-                });
+                        const isAndroid = /android/i.test(navigator.userAgent);
+                        const btnText = isAndroid ? "Voir sur Google Wallet" : "Voir ma carte";
+                        const btnHref = isAndroid ? '/google-pass/' + token : '/pass/' + token;
+                        const googleBtnHtml = reviewUrl ? '<a href="' + reviewUrl + '" target="_blank" class="btn-review">⭐ Laisser un avis Google</a>' : '';
+
+                        // On verrouille dans tous les cas
+                        localStorage.setItem('nuvy_blocked_' + slug, '1');
+
+                        if (data.already) {
+                            document.getElementById('success-view').innerHTML = '<div style="font-size:50px;margin-bottom:15px;">✅</div><h2 style="color:#FFFFFF;">Déjà enregistré</h2><p>Présentez le badge en boutique pour un nouveau passage.</p><div class="btn-group"><a href="' + btnHref + '" class="btn">' + btnText + '</a>' + googleBtnHtml + '</div>';
+                        } else {
+                            playDing();
+                            const btn = document.getElementById('wallet-btn');
+                            if (isAndroid) {
+                                btn.innerText = "Voir sur Google Wallet";
+                                btn.href = '/google-pass/' + token;
+                            } else {
+                                btn.innerText = "Voir ma carte";
+                                btn.href = '/pass/' + token;
+                            }
+                        }
+                    })
+                    .catch(() => {
+                        document.getElementById('ui-box').innerHTML = '<div style="font-size:50px;margin-bottom:15px;">⚠️</div><h2 style="color:#C62828;">Oups...</h2><p>Vérifiez votre connexion internet.</p>';
+                    });
+                }
             }
         </script>
     </body>
@@ -1382,7 +1392,7 @@ app.post('/tap/:slug/notify', limiterStrict, async (req, res) => {
             await supabase.from('clients').update({ last_visit: new Date().toISOString() }).eq('id', clientData.id);
             
             // 🌟 2. On fait "popper" la carte sur le Dashboard Commerçant !
-            io.to(req.params.slug.toLowerCase().trim()).emit('client-detected', clientData); 
+            io.to(req.params.slug.toLowerCase().trim()).emit('client-detected', clientData); // Flag pour débloquer le prochain tap côté client
             res.json({ success: true }); 
         } else {
             res.status(404).send();

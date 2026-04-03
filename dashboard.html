@@ -120,40 +120,6 @@
           <div id="goal-bar" class="h-full bg-nuvy rounded-full transition-all duration-500" style="width: 0%"></div>
         </div>
       </div>
-<!-- CALCULATEUR ROI -->
-      <div id="roi-card" class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 lg:p-6" style="display:none;">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-base font-bold text-emerald-900">Valeur générée par Nuvy</h3>
-          <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full" id="roi-mois-label">Ce mois</span>
-        </div>
-        <div id="roi-content-panier" style="display:none;">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <p class="text-sm text-emerald-700 font-medium">CA fidélisé estimé</p>
-              <p id="roi-ca-panier" class="text-3xl font-extrabold text-emerald-900 mt-1">0 €</p>
-            </div>
-            <div>
-              <p class="text-sm text-emerald-700 font-medium">Visites ce mois</p>
-              <p id="roi-visites" class="text-3xl font-extrabold text-emerald-900 mt-1">0</p>
-            </div>
-          </div>
-          <p class="text-xs text-emerald-600 mt-3">Basé sur votre panier moyen × nombre de visites.</p>
-        </div>
-        <div id="roi-content-tampon" style="display:none;">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <p class="text-sm text-emerald-700 font-medium">Revenus via tampons</p>
-              <p id="roi-ca-tampon" class="text-3xl font-extrabold text-emerald-900 mt-1">0 €</p>
-            </div>
-            <div>
-              <p class="text-sm text-emerald-700 font-medium">Tampons ce mois</p>
-              <p id="roi-tampons" class="text-3xl font-extrabold text-emerald-900 mt-1">0</p>
-            </div>
-          </div>
-          <p class="text-xs text-emerald-600 mt-3">Basé sur la valeur de chaque tampon distribué via Nuvy.</p>
-        </div>
-        <p class="text-xs text-emerald-500 mt-2 cursor-pointer underline" onclick="switchView('view-account', document.querySelector('[onclick*=view-account]'))">Modifier dans Mon Compte →</p>
-      </div>
 
       <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 lg:p-8">
         <div id="no-client" class="flex flex-col items-center justify-center py-8 lg:py-12 border-2 border-dashed border-nuvy/30 rounded-2xl bg-nuvy/5">
@@ -233,6 +199,41 @@
             <p class="text-sm font-semibold text-gray-500">Récompenses prêtes<span class="info-tip" data-tip="Total des cadeaux disponibles chez tous vos clients (cartes remplies non encore réclamées).">i</span></p>
             <p id="s-gft" class="text-3xl font-extrabold text-nuvy-gold mt-2">0</p>
         </div>
+      </div>
+
+      <!-- CALCULATEUR ROI -->
+      <div id="roi-card" class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 lg:p-6" style="display:none;">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-base font-bold text-emerald-900">Valeur générée par Nuvy</h3>
+          <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full" id="roi-mois-label">Ce mois</span>
+        </div>
+        <div id="roi-content-panier" style="display:none;">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-emerald-700 font-medium">CA fidélisé estimé</p>
+              <p id="roi-ca-panier" class="text-3xl font-extrabold text-emerald-900 mt-1">0 €</p>
+            </div>
+            <div>
+              <p class="text-sm text-emerald-700 font-medium">Visites ce mois</p>
+              <p id="roi-visites" class="text-3xl font-extrabold text-emerald-900 mt-1">0</p>
+            </div>
+          </div>
+          <p class="text-xs text-emerald-600 mt-3">Basé sur votre panier moyen × nombre de visites.</p>
+        </div>
+        <div id="roi-content-tampon" style="display:none;">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-emerald-700 font-medium">Revenus via tampons</p>
+              <p id="roi-ca-tampon" class="text-3xl font-extrabold text-emerald-900 mt-1">0 €</p>
+            </div>
+            <div>
+              <p class="text-sm text-emerald-700 font-medium">Tampons ce mois</p>
+              <p id="roi-tampons" class="text-3xl font-extrabold text-emerald-900 mt-1">0</p>
+            </div>
+          </div>
+          <p class="text-xs text-emerald-600 mt-3">Basé sur la valeur de chaque tampon distribué via Nuvy.</p>
+        </div>
+        <p class="text-xs text-emerald-500 mt-2 cursor-pointer underline" onclick="switchView('view-account', document.querySelector('[onclick*=view-account]'))">Modifier dans Mon Compte →</p>
       </div>
 
       <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6">
@@ -541,6 +542,7 @@
                 addActivity(currentClient.nom, `+${pointsToAdd} points`, '#2A8C9C');
                 rafraichirAffichageClient();
                 rafraichirCompteurJournalier(); loadAnalyticsData();
+                setTimeout(() => { resetLive(); }, 500);
             }
         } catch (e) { console.error(e); } finally { btn.disabled = false; updateUI(); }
     }
