@@ -688,7 +688,7 @@ app.get('/admin/boutiques', async (req, res) => {
 
     try {
         // 1. Récupérer toutes les boutiques
-        const { data: boutiques, error } = await supabase.from('boutiques').select('id, nom, username, slug, created_at');
+        const { data: boutiques, error } = await supabase.from('boutiques').select('id, nom, username, slug, plan, created_at');
         if (error) throw error;
 
         // 2. Analyse temporelle : Qui a scanné récemment ?

@@ -156,7 +156,7 @@
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
           <table class="w-full text-left">
             <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-bold uppercase tracking-wider">
-              <tr><th class="py-4 px-6">Statut</th><th class="py-4 px-6">Boutique</th><th class="py-4 px-6">Identifiant</th><th class="py-4 px-6 text-right">Inscrit le</th><th class="py-4 px-6 text-right">Actions</th></tr>
+              <tr><th class="py-4 px-6">Statut</th><th class="py-4 px-6">Boutique</th><th class="py-4 px-6">Plan</th><th class="py-4 px-6 text-right">Inscrit le</th><th class="py-4 px-6 text-right">Actions</th></tr>
             </thead>
             <tbody id="fleet-tbody" class="divide-y divide-gray-100"></tbody>
           </table>
@@ -377,7 +377,13 @@
                 tr.innerHTML = `
                     <td class="py-4 px-6">${badgeHtml}</td>
                     <td class="py-4 px-6 font-bold text-gray-900">${b.nom}</td>
-                    <td class="py-4 px-6 text-gray-400 font-mono text-xs">@${b.slug || b.username}</td>
+                    <td class="py-4 px-6">
+                        <select onchange="changerPlanDirect(${b.id}, this.value)" class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-nuvy/30 cursor-pointer" style="color: ${(b.plan||'essentiel')==='multi-site'?'#7C3AED':(b.plan||'essentiel')==='pro'?'#2A8C9C':'#6B7280'}">
+                          <option value="essentiel" ${(b.plan||'essentiel')==='essentiel'?'selected':''}>Essentiel</option>
+                          <option value="pro" ${b.plan==='pro'?'selected':''}>Pro</option>
+                          <option value="multi-site" ${b.plan==='multi-site'?'selected':''}>Multi-Site</option>
+                        </select>
+                      </td>
                     <td class="py-4 px-6 text-right text-sm text-gray-500">${dateCreation}</td>
                     <td class="py-4 px-6 text-right">
                       <div class="relative inline-block ml-auto">
@@ -655,23 +661,17 @@
         }
     });
 
-    async function changerPlan(boutiqueId, nomBoutique) {
-        const plan = prompt(`Changer le plan de "${nomBoutique}" :\n\nTapez : essentiel, pro ou multi-site`);
-        if (!plan) return;
-        if (!['essentiel', 'pro', 'multi-site'].includes(plan.trim().toLowerCase())) {
-            alert("Plan invalide. Choix : essentiel, pro, multi-site"); return;
-        }
+    async function changerPlanDirect(boutiqueId, plan) {
         try {
             const res = await fetch('/admin/boutique/' + boutiqueId + '/plan', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-ceo-key': CEO_KEY },
-                body: JSON.stringify({ plan: plan.trim().toLowerCase() })
+                body: JSON.stringify({ plan })
             });
             if (!res.ok) throw new Error();
-            const data = await res.json();
-            alert('✅ ' + nomBoutique + ' → plan ' + data.plan.toUpperCase());
+            // Recharger pour mettre à jour les couleurs
             chargerFlotteCommercants();
-        } catch (e) { alert("❌ Erreur."); }
+        } catch (e) { alert("❌ Erreur changement de plan."); chargerFlotteCommercants(); }
     }
 
     async function resetPassword(boutiqueId, nomBoutique) {
