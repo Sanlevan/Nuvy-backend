@@ -1,5 +1,36 @@
 const { logger, jwt, MASTER_CEO_KEY, JWT_SECRET, googleCredentials, GOOGLE_ISSUER_ID, supabase, STEREOTYPES, SYMBOLS, PLAN_LIMITS } = require('./config');
 
+const express = require('express');
+const { PKPass } = require('passkit-generator');
+const apn = require('@parse/node-apn');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const bcrypt = require('bcrypt');
+const { Server } = require('socket.io');
+const http = require('http');
+const sharp = require('sharp');
+const rateLimit = require('express-rate-limit');
+
+const app = express();
+app.set('trust proxy', 1);
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: ["https://nuvy.pro", "https://nuvy-production.up.railway.app"] } });
+
+app.use(express.json());
+app.use(express.static('public'));
+
+const limiterStrict = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: { error: "Trop de requêtes. Réessayez dans quelques minutes." }
+});
+const limiterLogin = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { error: "Trop de tentatives. Réessayez dans 15 minutes." }
+});
+
 const getCert = (envVar, fileName) => {
     if (process.env[envVar]) return Buffer.from(process.env[envVar], 'base64');
     const p = path.resolve(__dirname, fileName);
