@@ -1,28 +1,28 @@
 require('dotenv').config();
 const pino = require('pino');
 const logger = pino({ level: 'info' });
-logger.info("=== NUVY ENGINE V2.0 (PRODUCTION) ===");
+console.log("=== NUVY ENGINE V2.0 (PRODUCTION) ===");
 
 const jwt = require('jsonwebtoken');
 
 // ── SECRETS (crash si absent) ─────────────────────────────
 const MASTER_CEO_KEY = process.env.CEO_KEY;
-if (!MASTER_CEO_KEY) { logger.error("FATAL : CEO_KEY manquante."); process.exit(1); }
+if (!MASTER_CEO_KEY) { console.error("FATAL : CEO_KEY manquante."); process.exit(1); }
 
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) { logger.error("FATAL : JWT_SECRET manquante."); process.exit(1); }
+if (!JWT_SECRET) { console.error("FATAL : JWT_SECRET manquante."); process.exit(1); }
 
 // ── GOOGLE CREDENTIALS ────────────────────────────────────
 let googleCredentials = null;
 try {
     if (process.env.GOOGLE_CREDENTIALS) {
         googleCredentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-        logger.info("Clé Google chargée");
+        console.log("Clé Google chargée");
     } else {
         logger.warn("Aucune clé Google trouvée");
     }
 } catch (e) {
-    logger.error({ err: e }, "GOOGLE_CREDENTIALS mal formaté");
+    console.error({ err: e }, "GOOGLE_CREDENTIALS mal formaté");
 }
 const GOOGLE_ISSUER_ID = '3388000000023094987';
 

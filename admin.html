@@ -388,6 +388,9 @@
                           <button onclick="gererBoutique(${b.id})" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-nuvy/10 hover:text-nuvy flex items-center gap-2 transition-colors">
                             <i data-lucide="layout-dashboard" class="h-4 w-4"></i> Accéder au dashboard
                           </button>
+                          <button onclick="changerPlan(${b.id}, '${b.nom.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors border-t border-gray-100">
+                            <i data-lucide="crown" class="h-4 w-4"></i> Changer de plan
+                          </button>
                           <button onclick="resetPassword(${b.id}, '${b.nom.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 transition-colors border-t border-gray-100">
                             <i data-lucide="key" class="h-4 w-4"></i> Réinitialiser le mot de passe
                           </button>
@@ -407,7 +410,9 @@
             document.getElementById('fleet-kpi-inactives').innerText = countInactives;
             lucide.createIcons();
         } catch (e) {
-            logger.error("Erreur chargement flotte:", e);
+            console.error("Erreur chargement flotte:", e);
+             const tbody = document.getElementById('fleet-tbody');
+             tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500 font-bold">Impossible de charger les données. Vérifiez la clé d'accès.</td></tr>`;
         }
     }
 
@@ -531,7 +536,7 @@
 
             lucide.createIcons();
         } catch (e) {
-            logger.error("Erreur stats globales:", e);
+            console.error("Erreur stats globales:", e);
         }
     }
 
@@ -548,7 +553,7 @@
             if (topEl) topEl.innerHTML = data.top.length === 0
                 ? '<p class="text-sm text-gray-400 text-center py-4">Aucune activité cette semaine</p>'
                 : data.top.map((b, i) => `<div class="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100"><span class="text-sm font-bold">${['🥇','🥈','🥉','4.','5.'][i]} ${b.nom}</span><span class="text-nuvy font-bold text-xs">${b.scans} scans</span></div>`).join('');
-        } catch (e) { logger.error("Erreur radar:", e); }
+        } catch (e) { console.error("Erreur radar:", e); }
     }
 
     function switchView(viewId, title, btnElement) {
@@ -570,7 +575,7 @@
             chargerFlotteCommercants();
             chargerStatsGlobales();
         } else {
-            logger.error("❌ Aucune clé trouvée dans l'URL !");
+            console.error("❌ Aucune clé trouvée dans l'URL !");
         }
     });
     async function creerBoutique() {
@@ -649,6 +654,25 @@
             openMenuId = null;
         }
     });
+
+    async function changerPlan(boutiqueId, nomBoutique) {
+        const plan = prompt(`Changer le plan de "${nomBoutique}" :\n\nTapez : essentiel, pro ou multi-site`);
+        if (!plan) return;
+        if (!['essentiel', 'pro', 'multi-site'].includes(plan.trim().toLowerCase())) {
+            alert("Plan invalide. Choix : essentiel, pro, multi-site"); return;
+        }
+        try {
+            const res = await fetch('/admin/boutique/' + boutiqueId + '/plan', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'x-ceo-key': CEO_KEY },
+                body: JSON.stringify({ plan: plan.trim().toLowerCase() })
+            });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            alert('✅ ' + nomBoutique + ' → plan ' + data.plan.toUpperCase());
+            chargerFlotteCommercants();
+        } catch (e) { alert("❌ Erreur."); }
+    }
 
     async function resetPassword(boutiqueId, nomBoutique) {
         const newPass = prompt(`Nouveau mot de passe pour "${nomBoutique}" :`);

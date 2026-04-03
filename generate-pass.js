@@ -17,7 +17,7 @@ async function generatePass() {
 
   const buffer = pass.getAsBuffer()
   fs.writeFileSync(path.resolve(__dirname, 'test.pkpass'), buffer)
-  logger.info('Carte générée : test.pkpass')
+  console.log('Carte générée : test.pkpass')
 }
 
 generatePass().catch(console.error)

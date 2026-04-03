@@ -40,13 +40,13 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 fs.writeFileSync(path.join(tmpDir, 'icon@2x.png'), icon2x);
                 fs.writeFileSync(path.join(tmpDir, 'icon.png'), icon1x);
                 
-                logger.info(`✅ Images Wallet générées avec succès pour : ${boutique.nom}`);
+                console.log(`✅ Images Wallet générées avec succès pour : ${boutique.nom}`);
             } else {
-                logger.error(`❌ ERREUR LIEN IMAGE : Le serveur (Supabase/Facebook) a refusé l'accès (Code ${response.status}).`);
-                logger.error(`👉 Lien bloqué : ${boutique.logo_url}`);
+                console.error(`❌ ERREUR LIEN IMAGE : Le serveur (Supabase/Facebook) a refusé l'accès (Code ${response.status}).`);
+                console.error(`👉 Lien bloqué : ${boutique.logo_url}`);
             }
         } catch (e) {
-            logger.error("❌ CRASH TRAITEMENT IMAGE (Un carré blanc par défaut sera affiché) :", e.message);
+            console.error("❌ CRASH TRAITEMENT IMAGE (Un carré blanc par défaut sera affiché) :", e.message);
         }
     }
 
@@ -305,27 +305,15 @@ async function updateGoogleWalletPass(client) {
             })
         });
         
-        logger.info(`✅ [GOOGLE WALLET] Carte mise à jour pour ${client.nom} (${client.tampons} pts)`);
+        console.log(`✅ [GOOGLE WALLET] Carte mise à jour pour ${client.nom} (${client.tampons} pts)`);
     } catch (e) {
-        logger.error("⚠️ [GOOGLE WALLET] Erreur de synchronisation:", e.message);
+        console.error("⚠️ [GOOGLE WALLET] Erreur de synchronisation:", e.message);
     }
 }
 // ==========================================
 // 🛡️ UTILITAIRES DE VALIDATION
 // ==========================================
-function cleanString(str, maxLength = 100) {
-    if (typeof str !== 'string') return '';
-    return str.trim().slice(0, maxLength);
-}
-function isValidPhone(tel) {
-    if (typeof tel !== 'string') return false;
-    const clean = tel.replace(/[^\d+]/g, '');
-    return /^(\+?\d{8,15}|0[1-9]\d{8})$/.test(clean);
-}
-function isValidInteger(val) {
-    const n = parseInt(val);
-    return !isNaN(n) && n >= -100 && n <= 100;
-}
+const { cleanString, isValidPhone, isValidInteger } = require('./utils/validation');
 // ==========================================
 // 🛡️ MIDDLEWARE D'AUTHENTIFICATION JWT
 // ==========================================
@@ -355,27 +343,7 @@ function verifyAuthOwner(req, res, next) {
 }
 
 // Récupère le plan d'une boutique et vérifie une feature
-async function requireFeature(req, res, feature) {
-    const boutiqueId = req.params.id || req.params.boutiqueId;
-    const { data: boutique } = await supabase
-        .from('boutiques')
-        .select('plan')
-        .eq('id', boutiqueId)
-        .single();
-
-    const plan = boutique?.plan || 'essentiel';
-    const limits = PLAN_LIMITS[plan];
-
-    if (!limits[feature]) {
-        return res.status(403).json({
-            error: `Cette fonctionnalité nécessite un plan supérieur.`,
-            feature,
-            plan_actuel: plan,
-            upgrade_required: plan === 'essentiel' ? 'pro' : 'multi-site',
-        });
-    }
-    return true; // Feature autorisée
-}
+const { verifyAuth, verifyAuthOwner, requireFeature } = require('./middleware/auth');
 
 // ==========================================
 // ROUTES : AFFICHAGE DES PAGES HTML
@@ -443,7 +411,7 @@ app.post('/auth/login', limiterLogin, async (req, res) => {
     
     // 1. On cherche la boutique UNIQUEMENT avec le nom d'utilisateur (on récupère le hash)
     const { data: boutique } = await supabase.from('boutiques')
-        .select('id, slug, nom, max_tampons, password')
+        .select('id, slug, nom, max_tampons, password, plan')
         .eq('username', user)
         .maybeSingle();
 
@@ -465,6 +433,7 @@ app.post('/auth/login', limiterLogin, async (req, res) => {
             slug: boutique.slug, 
             nom: boutique.nom, 
             maxTampons: boutique.max_tampons,
+            plan: boutique.plan || 'essentiel',
             token: authToken
         });
     } else {
@@ -635,7 +604,7 @@ app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) =
             try {
                 await provider.send(notification, d.push_token);
                 sent++;
-            } catch (e) { logger.error("Push error:", e.message); }
+            } catch (e) { console.error("Push error:", e.message); }
         }
         provider.shutdown();
         
@@ -697,12 +666,12 @@ app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) =
                         } catch (e) { /* objet inexistant = client n'a jamais ajouté la carte */ }
                     }
                 }
-            } catch (e) { logger.error("⚠️ [GOOGLE PUSH] Erreur:", e.message); }
+            } catch (e) { console.error("⚠️ [GOOGLE PUSH] Erreur:", e.message); }
         }
 
         res.json({ sent, total: devices.length, googleUpdated });
     } catch (e) {
-        logger.error("Erreur push:", e);
+        console.error("Erreur push:", e);
         res.status(500).json({ error: "Erreur lors de l'envoi." });
     }
 });
@@ -750,7 +719,7 @@ app.get('/admin/boutiques', async (req, res) => {
 
         res.json(boutiquesAnalysees);
     } catch (error) {
-        logger.error("Erreur API Boutiques:", error);
+        console.error("Erreur API Boutiques:", error);
         res.status(500).json({ error: "Erreur lors de l'analyse de la flotte" });
     }
 });
@@ -811,7 +780,7 @@ app.post('/boutiques/:id/clients-manuels', verifyAuthOwner, async (req, res) => 
         if (error) throw error;
         res.json(data);
     } catch (e) { 
-        logger.error(e);
+        console.error(e);
         res.status(500).json({ error: "Erreur lors de la création du client." }); 
     }
 });
@@ -885,6 +854,16 @@ app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
+});
+
+app.put('/admin/boutique/:id/plan', async (req, res) => {
+    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
+    const { plan } = req.body;
+    const plansValides = ['essentiel', 'pro', 'multi-site'];
+    if (!plansValides.includes(plan)) return res.status(400).json({ error: "Plan invalide." });
+    const { data, error } = await supabase.from('boutiques').update({ plan }).eq('id', req.params.id).select('id, nom, plan').single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
 });
 
 app.get('/boutiques/:id', verifyAuthOwner, async (req, res) => {
@@ -1171,7 +1150,7 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
         if (expirationJours > 0 && client.last_visit) {
             const joursDepuisDerniereVisite = (Date.now() - new Date(client.last_visit).getTime()) / 86400000;
             if (joursDepuisDerniereVisite > expirationJours) {
-                logger.info(`⏰ [EXPIRATION] Tampons de ${client.nom} expirés (${Math.round(joursDepuisDerniereVisite)}j > ${expirationJours}j)`);
+                console.log(`⏰ [EXPIRATION] Tampons de ${client.nom} expirés (${Math.round(joursDepuisDerniereVisite)}j > ${expirationJours}j)`);
                 await supabase.from('clients').update({ tampons: 0 }).eq('id', req.params.id);
                 client.tampons = 0;
             }
@@ -1210,7 +1189,7 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
         // --- NOTIFICATION APPLE WALLET (AVEC MOUCHARD) ---
         const { data: devices } = await supabase.from('devices').select('push_token').eq('serial_number', client.serial_number);
         if (devices && devices.length > 0) {
-            logger.info(`🔔 [APPLE] Envoi d'un signal de réveil à l'iPhone...`);
+            console.log(`🔔 [APPLE] Envoi d'un signal de réveil à l'iPhone...`);
             const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
             const teamId = process.env.APPLE_TEAM_ID || 'Q762BTBA98'; 
             const keyId = process.env.APPLE_KEY_ID || 'RM6P22PX7A';
@@ -1225,11 +1204,11 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
             
             for (const d of devices) { 
                 const response = await provider.send(notification, d.push_token); 
-                logger.info("🔍 [RÉPONSE APPLE] :", JSON.stringify(response));
+                console.log("🔍 [RÉPONSE APPLE] :", JSON.stringify(response));
             }
             provider.shutdown();
         } else {
-            logger.info("⚠️ [APPLE] Impossible de sonner : aucun jeton Push trouvé pour ce client !");
+            console.log("⚠️ [APPLE] Impossible de sonner : aucun jeton Push trouvé pour ce client !");
         }
         res.json(updatedClient);
     } catch (e) { res.status(500).send(); }
@@ -1248,7 +1227,7 @@ app.get('/tap/:slug', async (req, res) => {
         if (boutique && boutique.google_review_url) {
             reviewUrl = boutique.google_review_url;
         }
-    } catch (e) { logger.error(e); }
+    } catch (e) { console.error(e); }
 
     const html = `
     <!DOCTYPE html>
@@ -1404,7 +1383,7 @@ app.post('/tap/:slug/notify', limiterStrict, async (req, res) => {
             res.status(404).send();
         }
     } catch (e) {
-        logger.error("❌ Erreur Tap Notify:", e);
+        console.error("❌ Erreur Tap Notify:", e);
         res.status(500).send();
     }
 });
@@ -1433,7 +1412,7 @@ app.get('/pass/:token', async (req, res) => {
         
         res.status(200).send(buf);
     } catch (e) {
-        logger.error('❌ Erreur génération pass:', e);
+        console.error('❌ Erreur génération pass:', e);
         res.status(500).send();
     }
 });
@@ -1538,7 +1517,7 @@ app.get('/google-pass/:token', async (req, res) => {
         res.redirect(googleLink);
         
     } catch (e) {
-        logger.error("❌ Erreur Google Wallet :", e.message);
+        console.error("❌ Erreur Google Wallet :", e.message);
         res.status(500).send("Erreur lors de la génération de la carte Android.");
     }
 });
@@ -1547,7 +1526,7 @@ app.get('/google-pass/:token', async (req, res) => {
 // WEB SERVICES APPLE (ÉCOUTE ET MISES À JOUR)
 // ==========================================
 app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
-    logger.info(`📲 [APPLE] L'iPhone essaie de s'enregistrer...`);
+    console.log(`📲 [APPLE] L'iPhone essaie de s'enregistrer...`);
     try {
         // Méthode 100% sûre : On cherche d'abord, puis on met à jour ou on insère
         const { data: existing } = await supabase.from('devices')
@@ -1564,17 +1543,17 @@ app.post('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
             }]);
             if (error) throw error;
         }
-        logger.info(`✅ [APPLE] Jeton Push sauvegardé avec succès dans Supabase !`);
+        console.log(`✅ [APPLE] Jeton Push sauvegardé avec succès dans Supabase !`);
         res.status(201).send();
     } catch (e) {
-        logger.error("❌ [APPLE] Erreur fatale de sauvegarde :", e.message);
+        console.error("❌ [APPLE] Erreur fatale de sauvegarde :", e.message);
         res.status(500).send();
     }
 });
 
 app.delete('/v1/devices/:dId/registrations/:pId/:sN', async (req, res) => {
     await supabase.from('devices').delete().eq('device_id', req.params.dId).eq('serial_number', req.params.sN);
-    logger.info(`🗑️ [APPLE] iPhone désinscrit.`);
+    console.log(`🗑️ [APPLE] iPhone désinscrit.`);
     res.status(200).send();
 });
 
@@ -1586,7 +1565,7 @@ app.get('/v1/devices/:dId/registrations/:pId', async (req, res) => {
 
 app.get('/v1/passes/:pId/:sN', async (req, res) => {
     try {
-        logger.info(`🔄 [APPLE] L'iPhone télécharge la nouvelle carte...`);
+        console.log(`🔄 [APPLE] L'iPhone télécharge la nouvelle carte...`);
         const { data: c } = await supabase.from('clients').select('*, boutiques(*)').eq('serial_number', req.params.sN).single();
         if(!c) return res.status(404).send();
         
@@ -1604,7 +1583,7 @@ app.get('/v1/passes/:pId/:sN', async (req, res) => {
 });
 
 app.post('/v1/log', (req, res) => {
-    logger.error("🍎 [APPLE ERREUR IPHONE] :", JSON.stringify(req.body));
+    console.error("🍎 [APPLE ERREUR IPHONE] :", JSON.stringify(req.body));
     res.status(200).send();
 });
 
@@ -1616,4 +1595,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, '0.0.0.0', () => logger.info(`=== MOTEUR NUVY PRÊT SUR LE PORT ${PORT} ===`));
+server.listen(PORT, '0.0.0.0', () => console.log(`=== MOTEUR NUVY PRÊT SUR LE PORT ${PORT} ===`));
