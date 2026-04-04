@@ -420,7 +420,7 @@ app.post('/admin/create-boutique', async (req, res) => {
         
         const slug = nom.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '');
         const da = STEREOTYPES[categorie] || STEREOTYPES.default;
-        const join_url = `https://${req.get('host')}/join/${slug}`;
+        const join_url = `www.nuvy.pro/tap/${slug}`;
         const finalMaxTampons = parseInt(max_tampons) || 10;
         const hashedPassword = await bcrypt.hash(password, 10);
 
