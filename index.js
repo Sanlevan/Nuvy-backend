@@ -1454,9 +1454,9 @@ app.post('/tap/:slug/notify', limiterStrict, async (req, res) => {
             await supabase.from('clients').update({ last_visit: new Date().toISOString() }).eq('id', clientData.id);
 
             // Rattacher au user si pas encore fait
-            if (!existingClient.user_id) {
+            if (!clientData.user_id) {
                 const { data: u } = await supabase.from('users').select('id').eq('telephone', telephone).maybeSingle();
-                if (u) await supabase.from('clients').update({ user_id: u.id }).eq('id', existingClient.id);
+                if (u) await supabase.from('clients').update({ user_id: u.id }).eq('id', clientData.id);
             }
             
             // 🌟 2. On fait "popper" la carte sur le Dashboard Commerçant !
