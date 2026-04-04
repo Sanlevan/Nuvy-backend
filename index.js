@@ -599,7 +599,8 @@ app.get('/admin/export-csv', async (req, res) => {
 app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) => {
     const allowed = await requireFeature(req, res, 'push_notifications');
     if (allowed !== true) return; // La réponse 403 a déjà été envoyée
-    // ... reste du code inchangé
+    const { message } = req.body;
+    if (!message || message.trim() === '') return res.status(400).json({ error: "Message vide." });
     
     try {
         // 1. Récupérer tous les devices de cette boutique
