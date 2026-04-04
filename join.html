@@ -34,6 +34,9 @@
             <input type="text" id="nom" placeholder="Votre nom">
             <input type="tel" id="telephone" placeholder="Numéro de téléphone">
             <button class="btn-submit" onclick="creerCarte()">CRÉER MA CARTE</button>
+            <div style="margin-top: 20px; text-align: center;">
+                <a href="#" onclick="dejaClient(); return false;" style="font-size: 13px; color: #2A8C9C; font-weight: 600; text-decoration: none;">Déjà inscrit dans une boutique Nuvy ?</a>
+            </div>
         </div>
         <div id="success-view">
             <h1 style="color: #2A8C9C;">Carte prête !</h1>
@@ -156,6 +159,16 @@
                 btn.innerText = "CRÉER MA CARTE"; 
                 btn.disabled = false; 
             }
+        }
+        function dejaClient() {
+            const tel = prompt("Entrez le numéro de téléphone utilisé lors de votre première inscription Nuvy :");
+            if (!tel) return;
+            const clean = formaterTelephone(tel);
+            if (!clean) { alert("Numéro invalide."); return; }
+            // On pré-remplit le formulaire
+            document.getElementById('telephone').value = clean;
+            document.getElementById('telephone').focus();
+            alert("Numéro reconnu ! Remplissez votre prénom et nom puis validez.");
         }
         function telechargerApple() { if (passToken) window.location.href = `/pass/${passToken}`; }
         function telechargerGoogle() { if (passToken) window.location.href = `/google-pass/${passToken}`; }
