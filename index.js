@@ -108,7 +108,7 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
             }
         ];
         // 🎯 On demande 500 mètres (Apple appliquera 500m, ou son propre maximum s'il est inférieur)
-        passJson.maxDistance = 500; 
+        passJson.maxDistance = 10;
     }
 
     const maxT = boutique.max_tampons || 10;
