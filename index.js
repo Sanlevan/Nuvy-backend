@@ -165,7 +165,13 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 "label": "CONTACT",
                 "value": boutique.telephone || "Non renseigné",
                 "dataDetectorTypes": ["PKDataDetectorTypePhoneNumber"]
-            }
+            },
+            ...(boutique.google_review_url ? [{
+                "key": "avis",
+                "label": "DONNEZ-NOUS VOTRE AVIS ⭐",
+                "value": boutique.google_review_url,
+                "dataDetectorTypes": ["PKDataDetectorTypeLink"]
+            }] : [])
         ]
     };
     // 🎁 CONDITION : On ajoute le champ Cadeaux SEULEMENT s'il y en a au moins 1
@@ -244,11 +250,18 @@ function generateGoogleWalletLink(client, boutique) {
                 localizedIssuerName: { defaultValue: { language: "fr", value: boutique.nom || "Nuvy" } },
                 locations: boutique.latitude && boutique.longitude ? [{ latitude: parseFloat(boutique.latitude), longitude: parseFloat(boutique.longitude) }] : [],
                 linksModuleData: {
-                    uris: [{
-                        uri: `https://nuvy.pro/join/${boutique.slug}`,
-                        description: "Carte de fidélité",
-                        id: "link-fidelite"
-                    }]
+                    uris: [
+                        {
+                            uri: `https://nuvy.pro/join/${boutique.slug}`,
+                            description: "Carte de fidélité",
+                            id: "link-fidelite"
+                        },
+                        ...(boutique.google_review_url ? [{
+                            uri: boutique.google_review_url,
+                            description: "⭐ Laisser un avis Google",
+                            id: "link-avis"
+                        }] : [])
+                    ]
                 },
                 secondaryLoyaltyPoints: {
                     label: "Cadeaux 🎁",
@@ -871,6 +884,12 @@ app.put('/admin/boutique/:id/plan', async (req, res) => {
     res.json(data);
 });
 
+app.get('/boutiques/:id/plan', verifyAuthOwner, async (req, res) => {
+    const { data } = await supabase.from('boutiques').select('plan').eq('id', req.params.id).single();
+    const plan = data?.plan || 'essentiel';
+    res.json({ plan, limits: PLAN_LIMITS[plan] || PLAN_LIMITS.essentiel });
+});
+
 app.get('/boutiques/:id', verifyAuthOwner, async (req, res) => {
     const { data, error } = await supabase.from('boutiques').select('*').eq('id', req.params.id).single();
     if (error) return res.status(404).json({ error: 'Boutique introuvable' });
@@ -883,6 +902,39 @@ app.get('/boutiques/:id/passages-du-jour', verifyAuthOwner, async (req, res) => 
     const { data, error } = await supabase.from('visites').select('id').eq('boutique_id', req.params.id).gte('created_at', debut.toISOString());
     if (error) return res.status(500).json({ error: "Erreur lors du comptage des passages." });
     res.json({ count: data?.length || 0 });
+});
+
+app.get('/boutiques/:id/segments', verifyAuthOwner, async (req, res) => {
+    try {
+        const { data: clients } = await supabase.from('clients').select('id, nom, telephone, tampons, recompenses, total_historique, last_visit').eq('boutique_id', req.params.id);
+        if (!clients || clients.length === 0) return res.json({ vip: [], reguliers: [], dormants: [] });
+
+        const now = Date.now();
+        const jour14 = 14 * 86400000;
+        const jour30 = 30 * 86400000;
+
+        // Trier par total_historique pour trouver le top 10%
+        const sorted = [...clients].sort((a, b) => (b.total_historique || 0) - (a.total_historique || 0));
+        const topCount = Math.max(1, Math.ceil(sorted.length * 0.1));
+        const vipIds = new Set(sorted.slice(0, topCount).map(c => c.id));
+
+        const vip = [];
+        const reguliers = [];
+        const dormants = [];
+
+        clients.forEach(c => {
+            const lastVisit = c.last_visit ? now - new Date(c.last_visit).getTime() : Infinity;
+            const item = { id: c.id, nom: c.nom, telephone: c.telephone, tampons: c.tampons, recompenses: c.recompenses, total_historique: c.total_historique || 0, derniere_visite: c.last_visit };
+            
+            if (vipIds.has(c.id)) vip.push(item);
+            if (lastVisit < jour14) reguliers.push(item);
+            if (lastVisit > jour30 && lastVisit !== Infinity) dormants.push(item);
+        });
+
+        res.json({ vip, reguliers, dormants, total: clients.length });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.get('/boutiques/:id/push-history', verifyAuthOwner, async (req, res) => {

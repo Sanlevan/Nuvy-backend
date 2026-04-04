@@ -65,6 +65,11 @@
           </button>
         </li>
         <li>
+          <button onclick="switchView('view-segments', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
+            <i data-lucide="target" class="w-5 h-5"></i><span>Segments</span>
+          </button>
+        </li>
+        <li>
           <button onclick="switchView('view-push', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
             <i data-lucide="bell" class="w-5 h-5"></i><span>Notifications</span>
           </button>
@@ -96,6 +101,9 @@
       </button>
       <button onclick="switchView('view-analytics', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
         <i data-lucide="bar-chart-3" class="w-6 h-6"></i><span class="text-xs font-medium">Stats</span>
+      </button>
+      <button onclick="switchView('view-segments', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
+        <i data-lucide="target" class="w-6 h-6"></i><span class="text-xs font-medium">Segments</span>
       </button>
       <button onclick="switchView('view-push', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
         <i data-lucide="bell" class="w-6 h-6"></i><span class="text-xs font-medium">Notifs</span>
@@ -155,6 +163,28 @@
           <div id="activity-feed" class="space-y-2 lg:space-y-3">
               <div id="empty-feed" class="p-6 text-center text-gray-400 border border-dashed border-gray-200 rounded-xl">Aucun passage enregistré aujourd'hui.</div>
           </div>
+      </div>
+    </section>
+
+    <section id="view-segments" class="view space-y-4 lg:space-y-6 w-full max-w-5xl mx-auto">
+      <h2 class="text-xl lg:text-2xl font-bold text-gray-900">Segments Clients</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 cursor-pointer hover:border-nuvy/50 transition-all" onclick="afficherSegment('vip')">
+          <p class="text-sm font-semibold text-gray-500">🏆 VIP (Top 10%)</p>
+          <p id="seg-vip-count" class="text-3xl font-extrabold text-yellow-600 mt-2">0</p>
+        </div>
+        <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 cursor-pointer hover:border-nuvy/50 transition-all" onclick="afficherSegment('reguliers')">
+          <p class="text-sm font-semibold text-gray-500">✅ Réguliers (< 14j)</p>
+          <p id="seg-reg-count" class="text-3xl font-extrabold text-green-600 mt-2">0</p>
+        </div>
+        <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6 cursor-pointer hover:border-nuvy/50 transition-all" onclick="afficherSegment('dormants')">
+          <p class="text-sm font-semibold text-gray-500">😴 Dormants (30j+)</p>
+          <p id="seg-dorm-count" class="text-3xl font-extrabold text-red-500 mt-2">0</p>
+        </div>
+      </div>
+      <div id="segment-detail" class="bg-white shadow-sm border border-gray-100 rounded-2xl p-6" style="display:none;">
+        <h3 id="segment-title" class="text-lg font-bold text-gray-900 mb-4"></h3>
+        <div id="segment-list" class="space-y-2"></div>
       </div>
     </section>
 
@@ -404,11 +434,17 @@
 
     document.getElementById('shop-name').innerText = boutiqueNom;
 
-    window.addEventListener('DOMContentLoaded', () => {
-      // Gating par plan
-        if (plan === 'essentiel') {
-            document.querySelectorAll('[onclick*="view-push"]').forEach(el => el.remove());
-        }
+    window.addEventListener('DOMContentLoaded', async () => {
+        // Sync du plan depuis le serveur (source de vérité)
+        try {
+            const planRes = await fetch(`/boutiques/${boutiqueId}/plan`, { headers: AUTH_HEADERS });
+            if (planRes.ok) {
+                const planData = await planRes.json();
+                localStorage.setItem('nuvy_plan', planData.plan);
+                applyPlanGating(planData.plan, planData.limits);
+            }
+        } catch (e) { console.error("Erreur sync plan:", e); }
+
         const goalElem = document.getElementById('goal-val');
         if (goalElem) goalElem.innerText = dailyGoal;
         rafraichirCompteurJournalier();
@@ -467,6 +503,7 @@
         if (viewId === 'view-analytics' || viewId === 'view-clients') loadAnalyticsData(); 
         if (viewId === 'view-account') loadAccountData();
         if (viewId === 'view-push') chargerHistoriquePush();
+        if (viewId === 'view-segments') chargerSegments();
 
         // Mise à jour de l'URL sans rechargement
         const hashMap = { 'view-home': 'accueil', 'view-clients': 'clients', 'view-analytics': 'stats', 'view-push': 'notifications', 'view-account': 'compte' };
@@ -897,6 +934,49 @@ async function changerMotDePasse() {
                 document.getElementById('roi-visites').innerText = r.visitesCount;
             }
         } catch (e) { console.error('Erreur ROI:', e); }
+    }
+    function applyPlanGating(plan, limits) {
+        // Push notifications
+        if (!limits.push_notifications) {
+            document.querySelectorAll('[onclick*="view-push"]').forEach(el => el.remove());
+            const pushSection = document.getElementById('view-push');
+            if (pushSection) pushSection.remove();
+        }
+        // Analytics avancés (heures de pointe, distribution) — masquer pour essentiel
+        if (!limits.analytics_avances) {
+            document.querySelectorAll('#view-analytics .bg-white').forEach((card, i) => {
+                // Garder les 3 KPI cards (index 0,1,2) + évolution, masquer heures de pointe et distribution
+                if (i === 3 || i === 4) card.style.display = 'none'; // peak + distri
+            });
+        }
+    }
+    let segmentsData = null;
+    async function chargerSegments() {
+        try {
+            const res = await fetch(`/boutiques/${boutiqueId}/segments`, { headers: AUTH_HEADERS });
+            if (!res.ok) return;
+            segmentsData = await res.json();
+            document.getElementById('seg-vip-count').innerText = segmentsData.vip.length;
+            document.getElementById('seg-reg-count').innerText = segmentsData.reguliers.length;
+            document.getElementById('seg-dorm-count').innerText = segmentsData.dormants.length;
+        } catch (e) { console.error("Erreur segments:", e); }
+    }
+
+    function afficherSegment(type) {
+        if (!segmentsData) return;
+        const labels = { vip: '🏆 Clients VIP', reguliers: '✅ Clients Réguliers', dormants: '😴 Clients Dormants' };
+        const clients = segmentsData[type] || [];
+        document.getElementById('segment-title').innerText = `${labels[type]} (${clients.length})`;
+        document.getElementById('segment-detail').style.display = 'block';
+        document.getElementById('segment-list').innerHTML = clients.length === 0
+            ? '<p class="text-sm text-gray-400 text-center py-4">Aucun client dans ce segment.</p>'
+            : clients.map(c => {
+                const jours = c.derniere_visite ? Math.round((Date.now() - new Date(c.derniere_visite).getTime()) / 86400000) : '?';
+                return `<div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div><span class="font-bold text-gray-900">${c.nom}</span><span class="text-xs text-gray-400 ml-2">${c.total_historique} pts</span></div>
+                    <span class="text-xs font-bold text-gray-500">il y a ${jours}j</span>
+                </div>`;
+            }).join('');
     }
     function deconnexion() { localStorage.clear(); window.location.href = '/'; }
   </script>
