@@ -171,13 +171,13 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
                 "label": "DONNEZ-NOUS VOTRE AVIS ⭐",
                 "value": boutique.google_review_url,
                 "dataDetectorTypes": ["PKDataDetectorTypeLink"]
-            },
+            }] : []),
             {
                 "key": "compte",
                 "label": "MON ESPACE NUVY",
                 "value": `https://nuvy.pro/mon-compte/${client.token}`,
                 "dataDetectorTypes": ["PKDataDetectorTypeLink"]
-            }] : [])
+            }
         ]
     };
     // 🎁 CONDITION : On ajoute le champ Cadeaux SEULEMENT s'il y en a au moins 1
@@ -266,11 +266,12 @@ function generateGoogleWalletLink(client, boutique) {
                             uri: boutique.google_review_url,
                             description: "⭐ Laisser un avis Google",
                             id: "link-avis"
-                        },{
+                        }] : []),
+                        {
                             uri: `https://nuvy.pro/mon-compte/${client.token}`,
                             description: "Mon espace Nuvy",
                             id: "link-compte"
-                        }] : [])
+                        }
                     ]
                 },
                 secondaryLoyaltyPoints: {
@@ -793,7 +794,8 @@ app.post('/boutiques/:id/clients-manuels', verifyAuthOwner, async (req, res) => 
             return res.status(400).json({ error: "Ce numéro est déjà enregistré dans votre boutique." });
         }
 
-        // 2. On insère le nouveau client
+        // 2. On insère le nouveau client (avec tous les champs nécessaires pour Wallet)
+        const token = require('crypto').randomUUID();
         const { data, error } = await supabase
             .from('clients')
             .insert([{ 
@@ -801,6 +803,11 @@ app.post('/boutiques/:id/clients-manuels', verifyAuthOwner, async (req, res) => 
                 telephone, 
                 boutique_id, 
                 tampons: 0,
+                recompenses: 0,
+                total_historique: 0,
+                token,
+                serial_number: `NUVY-${token.split('-')[0].toUpperCase()}`,
+                device_type: 'other',
                 last_visit: new Date().toISOString() 
             }])
             .select()
@@ -1206,7 +1213,7 @@ app.post('/clients/:id/tampon', verifyAuth, async (req, res) => {
         // On récupère le client ET les infos de sa boutique associée
         const { data: client } = await supabase
             .from('clients')
-            .select('*, boutiques(max_tampons)')
+            .select('*, boutiques(max_tampons, expiration_jours)')
             .eq('id', req.params.id)
             .single();
         
@@ -1451,12 +1458,20 @@ app.post('/tap/:slug/notify', limiterStrict, async (req, res) => {
             return res.status(404).send();
         }
         if (clientData) {
+            // ⏱️ COOLDOWN SERVEUR : bloquer si dernier passage < 3 minutes
+            if (clientData.last_visit) {
+                const ecart = Date.now() - new Date(clientData.last_visit).getTime();
+                if (ecart < 1 * 60 * 1000) {
+                    return res.json({ success: true, already: true });
+                }
+            }
+
             // 🌟 1. On met à jour l'heure de visite pour remonter le client dans la liste du Dashboard !
             await supabase.from('clients').update({ last_visit: new Date().toISOString() }).eq('id', clientData.id);
 
             // Rattacher au user si pas encore fait
             if (!clientData.user_id) {
-                const { data: u } = await supabase.from('users').select('id').eq('telephone', telephone).maybeSingle();
+                const { data: u } = await supabase.from('users').select('id').eq('telephone', clientData.telephone).maybeSingle();
                 if (u) await supabase.from('clients').update({ user_id: u.id }).eq('id', clientData.id);
             }
             
