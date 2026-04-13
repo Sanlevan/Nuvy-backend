@@ -394,6 +394,9 @@
                           <button onclick="gererBoutique(${b.id})" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-nuvy/10 hover:text-nuvy flex items-center gap-2 transition-colors">
                             <i data-lucide="layout-dashboard" class="h-4 w-4"></i> Accéder au dashboard
                           </button>
+                          <button onclick="overrideCouleurs(${b.id}, '${b.nom.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-nuvy/10 hover:text-nuvy flex items-center gap-2 transition-colors border-t border-gray-100">
+                            <i data-lucide="palette" class="h-4 w-4"></i> Modifier les couleurs
+                          </button>
                           <button onclick="resetPassword(${b.id}, '${b.nom.replace(/'/g, "\\'")}')" class="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 transition-colors border-t border-gray-100">
                             <i data-lucide="key" class="h-4 w-4"></i> Réinitialiser le mot de passe
                           </button>
@@ -744,6 +747,34 @@
     function exportCSV() {
         window.location.href = '/admin/export-csv?key=' + encodeURIComponent(CEO_KEY);
     }
+
+    async function overrideCouleurs(boutiqueId, nomBoutique) {
+        const bg = prompt(`Couleur FOND pour "${nomBoutique}" (hex, ex #FAF8F5) — laisser vide pour ne pas modifier :`);
+        if (bg === null) return;
+        const text = prompt("Couleur TEXTE (hex) — laisser vide pour ne pas modifier :");
+        if (text === null) return;
+        const label = prompt("Couleur LIBELLÉS (hex) — laisser vide pour ne pas modifier :");
+        if (label === null) return;
+
+        const body = { ceoKey: CEO_KEY };
+        if (bg.trim()) body.color_bg = bg.trim();
+        if (text.trim()) body.color_text = text.trim();
+        if (label.trim()) body.color_label = label.trim();
+
+        try {
+            const res = await fetch(`/admin/boutique/${boutiqueId}/appearance`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const d = await res.json();
+            if (res.ok) alert(`✅ Couleurs mises à jour pour ${nomBoutique}. Les cartes de tous les clients vont être rafraîchies.`);
+            else alert("❌ " + (d.error || "Erreur"));
+        } catch (e) {
+            alert("❌ Erreur réseau.");
+        }
+    }
+    
     function deconnexion() { window.location.href = '/admin-login'; }
   </script>
 </body>

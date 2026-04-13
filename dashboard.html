@@ -75,6 +75,11 @@
           </button>
         </li>
         <li>
+          <button onclick="switchView('view-appearance', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
+            <i data-lucide="palette" class="w-5 h-5"></i><span>Apparence</span>
+          </button>
+        </li>
+        <li>
           <button onclick="switchView('view-account', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-gray-700 hover:bg-gray-100">
             <i data-lucide="user" class="w-5 h-5"></i><span>Mon Compte</span>
           </button>
@@ -107,6 +112,9 @@
       </button>
       <button onclick="switchView('view-push', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
         <i data-lucide="bell" class="w-6 h-6"></i><span class="text-xs font-medium">Notifs</span>
+      </button>
+      <button onclick="switchView('view-appearance', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
+        <i data-lucide="palette" class="w-6 h-6"></i><span class="text-xs font-medium">Style</span>
       </button>
       <button onclick="switchView('view-account', this)" class="nav-item flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-gray-500">
         <i data-lucide="user" class="w-6 h-6"></i><span class="text-xs font-medium">Compte</span>
@@ -297,6 +305,80 @@
         <h3 class="text-base font-bold text-gray-900 mb-4">Historique des envois</h3>
         <div id="push-history" class="space-y-2">
           <p class="text-sm text-gray-400 text-center py-4">Aucune notification envoyée.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-appearance" class="view space-y-4 lg:space-y-6 w-full max-w-5xl mx-auto">
+      <h2 class="text-xl lg:text-2xl font-bold text-gray-900">Apparence de la carte</h2>
+
+      <div id="appearance-locked" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+        <p class="text-amber-800 font-semibold">🔒 La personnalisation est réservée aux plans <strong>Pro</strong> et <strong>Multi-site</strong>.</p>
+        <p class="text-sm text-amber-700 mt-2">Passez au plan supérieur pour personnaliser couleurs et bandeau image.</p>
+      </div>
+
+      <div id="appearance-unlocked" class="hidden grid lg:grid-cols-2 gap-6">
+        <div class="space-y-6">
+          <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="text-base font-bold text-gray-900 mb-4">Couleurs</h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <label class="text-sm font-semibold text-gray-700">Fond de la carte</label>
+                <input type="color" id="color-bg" class="h-10 w-20 rounded cursor-pointer border border-gray-200">
+              </div>
+              <div class="flex items-center justify-between">
+                <label class="text-sm font-semibold text-gray-700">Texte principal</label>
+                <input type="color" id="color-text" class="h-10 w-20 rounded cursor-pointer border border-gray-200">
+              </div>
+              <div class="flex items-center justify-between">
+                <label class="text-sm font-semibold text-gray-700">Libellés</label>
+                <input type="color" id="color-label" class="h-10 w-20 rounded cursor-pointer border border-gray-200">
+              </div>
+            </div>
+            <div class="flex gap-2 mt-5">
+              <button onclick="saveColors()" class="flex-1 h-11 bg-nuvy hover:bg-nuvy-dark text-white font-bold rounded-xl transition">Enregistrer</button>
+              <button onclick="resetColors()" class="h-11 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition">Réinitialiser</button>
+            </div>
+          </div>
+
+          <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="text-base font-bold text-gray-900 mb-2">Bandeau image</h3>
+            <p class="text-xs text-gray-500 mb-4">Photo de votre devanture, vitrine ou produit signature. Format paysage recommandé.</p>
+            <input type="file" id="strip-file" accept="image/png,image/jpeg,image/webp" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-nuvy file:text-white file:font-semibold cursor-pointer">
+            <button onclick="uploadStripFile()" class="w-full h-11 mt-4 bg-nuvy text-white font-bold rounded-xl">Uploader le bandeau</button>
+            <div class="flex items-center justify-between mt-5 pt-5 border-t border-gray-100">
+              <label class="text-sm font-semibold text-gray-700">Afficher le bandeau</label>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="strip-toggle" class="sr-only peer" onchange="toggleStrip()">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-nuvy"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:sticky lg:top-6 self-start">
+          <p class="text-sm font-semibold text-gray-500 mb-3 text-center">Aperçu Apple Wallet</p>
+          <div id="card-preview" class="mx-auto rounded-2xl shadow-2xl overflow-hidden" style="width: 320px; min-height: 420px; background: #FAF8F5; transition: background 0.3s;">
+            <div id="preview-strip" class="hidden h-32 w-full bg-cover bg-center"></div>
+            <div class="p-5 flex flex-col">
+              <div class="flex justify-between items-start mb-6">
+                <span id="preview-org" class="text-xs font-bold uppercase tracking-wider" style="color: #2A8C9C;">Ma Boutique</span>
+                <span id="preview-org-2" class="text-xs opacity-60" style="color: #2A8C9C;">FIDÉLITÉ</span>
+              </div>
+              <div class="mb-5">
+                <div id="preview-label-1" class="text-[10px] font-bold uppercase tracking-wide" style="color: #AFE3E0;">MEMBRE</div>
+                <div id="preview-value-1" class="text-lg font-bold" style="color: #2A8C9C;">Tristan LE VAN</div>
+              </div>
+              <div class="mb-5">
+                <div id="preview-label-2" class="text-[10px] font-bold uppercase tracking-wide text-center" style="color: #AFE3E0;">VOTRE FIDÉLITÉ</div>
+                <div id="preview-value-2" class="text-lg font-bold text-center tracking-widest" style="color: #2A8C9C;">● ● ● ○ ○ ○ ○ ○ ○ ○</div>
+              </div>
+              <div>
+                <div id="preview-label-3" class="text-[10px] font-bold uppercase tracking-wide" style="color: #AFE3E0;">PROGRESSION</div>
+                <div id="preview-value-3" class="text-base font-bold" style="color: #2A8C9C;">3 / 10 TAMPONS</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -504,14 +586,15 @@
         if (viewId === 'view-account') loadAccountData();
         if (viewId === 'view-push') chargerHistoriquePush();
         if (viewId === 'view-segments') chargerSegments();
+        if (viewId === 'view-appearance') loadAppearance();
 
         // Mise à jour de l'URL sans rechargement
-        const hashMap = { 'view-home': 'accueil', 'view-clients': 'clients', 'view-analytics': 'stats', 'view-push': 'notifications', 'view-account': 'compte' };
+        const hashMap = { 'view-home': 'accueil', 'view-clients': 'clients', 'view-analytics': 'stats', 'view-push': 'notifications', 'view-appearance': 'apparence', 'view-account': 'compte' };
         window.location.hash = hashMap[viewId] || 'accueil';
     }
     // Au chargement : lire le hash et ouvrir la bonne page
     (function() {
-        const hashToView = { 'accueil': 'view-home', 'clients': 'view-clients', 'stats': 'view-analytics', 'notifications': 'view-push', 'compte': 'view-account' };
+        const hashToView = { 'accueil': 'view-home', 'clients': 'view-clients', 'stats': 'view-analytics', 'notifications': 'view-push', 'apparence': 'view-appearance', 'compte': 'view-account' };
         const hash = window.location.hash.replace('#', '');
         const targetView = hashToView[hash];
         if (targetView) {
@@ -978,6 +1061,111 @@ async function changerMotDePasse() {
                 </div>`;
             }).join('');
     }
+
+    // ============================================================
+// 🎨 APPARENCE
+// ============================================================
+async function loadAppearance() {
+    try {
+        const r = await fetch(`/boutiques/${boutiqueId}/appearance`, { headers: AUTH_HEADERS });
+        const data = await r.json();
+        if (!data.canPersonalize) {
+            document.getElementById('appearance-locked').classList.remove('hidden');
+            document.getElementById('appearance-unlocked').classList.add('hidden');
+            return;
+        }
+        document.getElementById('appearance-locked').classList.add('hidden');
+        document.getElementById('appearance-unlocked').classList.remove('hidden');
+        document.getElementById('appearance-unlocked').classList.add('grid');
+
+        document.getElementById('color-bg').value = data.colors.bg;
+        document.getElementById('color-text').value = data.colors.text;
+        document.getElementById('color-label').value = data.colors.label;
+        document.getElementById('strip-toggle').checked = data.strip.enabled;
+        const stripEl = document.getElementById('preview-strip');
+        if (data.strip.url) {
+            stripEl.style.backgroundImage = `url(${data.strip.url})`;
+            if (data.strip.enabled) stripEl.classList.remove('hidden');
+            else stripEl.classList.add('hidden');
+        } else {
+            stripEl.classList.add('hidden');
+        }
+        // Nom boutique dans l'aperçu
+        document.getElementById('preview-org').innerText = (boutiqueNom || 'Ma Boutique').toUpperCase();
+        updatePreview();
+    } catch (e) { console.error(e); }
+}
+
+function updatePreview() {
+    const bg = document.getElementById('color-bg').value;
+    const text = document.getElementById('color-text').value;
+    const label = document.getElementById('color-label').value;
+    document.getElementById('card-preview').style.background = bg;
+    ['preview-org', 'preview-org-2', 'preview-value-1', 'preview-value-2', 'preview-value-3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.color = text;
+    });
+    ['preview-label-1', 'preview-label-2', 'preview-label-3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.color = label;
+    });
+}
+
+['color-bg', 'color-text', 'color-label'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updatePreview);
+});
+
+async function saveColors() {
+    const body = {
+        color_bg: document.getElementById('color-bg').value,
+        color_text: document.getElementById('color-text').value,
+        color_label: document.getElementById('color-label').value
+    };
+    const r = await fetch(`/boutiques/${boutiqueId}/colors`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+        body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    alert(d.message || d.error || 'OK');
+}
+
+async function resetColors() {
+    if (!confirm("Réinitialiser aux couleurs par défaut de votre catégorie ?")) return;
+    await fetch(`/boutiques/${boutiqueId}/colors`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+        body: JSON.stringify({ color_bg: null, color_text: null, color_label: null })
+    });
+    loadAppearance();
+}
+
+async function uploadStripFile() {
+    const file = document.getElementById('strip-file').files[0];
+    if (!file) return alert("Sélectionnez un fichier.");
+    const fd = new FormData();
+    fd.append('strip', file);
+    const r = await fetch(`/boutiques/${boutiqueId}/strip`, {
+        method: 'POST',
+        headers: AUTH_HEADERS,
+        body: fd
+    });
+    const d = await r.json();
+    alert(d.message || d.error || 'OK');
+    if (d.success) loadAppearance();
+}
+
+async function toggleStrip() {
+    const enabled = document.getElementById('strip-toggle').checked;
+    await fetch(`/boutiques/${boutiqueId}/strip/toggle`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+        body: JSON.stringify({ enabled })
+    });
+    document.getElementById('preview-strip').classList.toggle('hidden', !enabled);
+}
+
     function deconnexion() { localStorage.clear(); window.location.href = '/'; }
   </script>
 </body>

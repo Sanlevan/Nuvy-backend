@@ -924,6 +924,203 @@ app.put('/admin/boutique/:id/plan', async (req, res) => {
     res.json(data);
 });
 
+// ============================================================
+// 🎨 PERSONNALISATION VISUELLE (couleurs + bandeau image)
+// ============================================================
+
+// Helper : push silencieux pour rafraîchir les cartes Apple Wallet
+async function refreshAllPasses(boutiqueId) {
+    try {
+        const { data: clients } = await supabase
+            .from('clients')
+            .select('serial_number')
+            .eq('boutique_id', boutiqueId);
+        if (!clients || clients.length === 0) return { sent: 0 };
+
+        const serials = clients.map(c => c.serial_number).filter(Boolean);
+        if (serials.length === 0) return { sent: 0 };
+
+        const { data: devices } = await supabase
+            .from('devices')
+            .select('push_token')
+            .in('serial_number', serials);
+        if (!devices || devices.length === 0) return { sent: 0 };
+
+        const p8Key = process.env.APN_KEY
+            ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8')
+            : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
+        const provider = new apn.Provider({
+            token: {
+                key: p8Key,
+                keyId: process.env.APPLE_KEY_ID || 'RM6P22PX7A',
+                teamId: process.env.APPLE_TEAM_ID || 'Q762BTBA98'
+            },
+            production: true
+        });
+        const notification = new apn.Notification();
+        notification.topic = 'pass.pro.nuvy.loyalty';
+        notification.payload = { action: "update_pass" };
+
+        let sent = 0;
+        for (const d of devices) {
+            try {
+                await provider.send(notification, d.push_token);
+                sent++;
+            } catch (_) {}
+        }
+        provider.shutdown();
+        console.log(`🎨 [REFRESH] ${sent} cartes rafraîchies pour boutique ${boutiqueId}`);
+        return { sent };
+    } catch (e) {
+        console.error("Erreur refresh passes:", e.message);
+        return { sent: 0, error: e.message };
+    }
+}
+
+// 1. GET — récupérer les paramètres visuels actuels
+app.get('/boutiques/:id/appearance', verifyAuthOwner, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('boutiques')
+            .select('color_bg, color_text, color_label, strip_image_url, strip_enabled, categorie, plan')
+            .eq('id', req.params.id)
+            .single();
+        if (error) throw error;
+        const defaults = STEREOTYPES[data.categorie] || STEREOTYPES.default;
+        const plan = data.plan || 'essentiel';
+        res.json({
+            colors: {
+                bg: data.color_bg || defaults.bg,
+                text: data.color_text || defaults.text,
+                label: data.color_label || defaults.label
+            },
+            strip: {
+                url: data.strip_image_url,
+                enabled: data.strip_enabled
+            },
+            plan,
+            canPersonalize: PLAN_LIMITS[plan]?.personnalisation || false
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 2. PATCH — mettre à jour les couleurs
+app.patch('/boutiques/:id/colors', verifyAuthOwner, async (req, res) => {
+    const allowed = await requireFeature(req, res, 'personnalisation');
+    if (allowed !== true) return;
+    try {
+        const { color_bg, color_text, color_label } = req.body;
+        const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+        if (color_bg && !hexRegex.test(color_bg)) return res.status(400).json({ error: "Format couleur fond invalide." });
+        if (color_text && !hexRegex.test(color_text)) return res.status(400).json({ error: "Format couleur texte invalide." });
+        if (color_label && !hexRegex.test(color_label)) return res.status(400).json({ error: "Format couleur libellé invalide." });
+
+        const { error } = await supabase
+            .from('boutiques')
+            .update({ color_bg, color_text, color_label })
+            .eq('id', req.params.id);
+        if (error) throw error;
+
+        refreshAllPasses(req.params.id);
+        res.json({ success: true, message: "Couleurs mises à jour. Vos clients recevront la mise à jour visuelle dans quelques instants." });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 3. POST — uploader/remplacer le bandeau
+app.post('/boutiques/:id/strip', verifyAuthOwner, uploadStrip.single('strip'), async (req, res) => {
+    const allowed = await requireFeature(req, res, 'personnalisation');
+    if (allowed !== true) return;
+    try {
+        if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu." });
+
+        const baseImage = sharp(req.file.buffer)
+            .resize(1125, 369, { fit: 'cover', position: 'attention' });
+
+        const gradientSvg = Buffer.from(`
+            <svg width="1125" height="369" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+                        <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+                        <stop offset="100%" stop-color="#000000" stop-opacity="0.45"/>
+                    </linearGradient>
+                </defs>
+                <rect width="1125" height="369" fill="url(#grad)"/>
+            </svg>
+        `);
+
+        const finalBuffer = await baseImage
+            .composite([{ input: gradientSvg, blend: 'over' }])
+            .png({ quality: 90 })
+            .toBuffer();
+
+        const fileName = `boutique_${req.params.id}_${Date.now()}.png`;
+        const { error: upErr } = await supabase.storage
+            .from('pass-strips')
+            .upload(fileName, finalBuffer, { contentType: 'image/png', upsert: true });
+        if (upErr) throw upErr;
+
+        const { data: pub } = supabase.storage.from('pass-strips').getPublicUrl(fileName);
+        const publicUrl = pub.publicUrl;
+
+        const { error: dbErr } = await supabase
+            .from('boutiques')
+            .update({ strip_image_url: publicUrl, strip_enabled: true })
+            .eq('id', req.params.id);
+        if (dbErr) throw dbErr;
+
+        refreshAllPasses(req.params.id);
+        res.json({ success: true, url: publicUrl, message: "Bandeau ajouté. Mise à jour envoyée à vos clients." });
+    } catch (e) {
+        console.error("Erreur upload strip:", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 4. PATCH — toggle on/off du bandeau
+app.patch('/boutiques/:id/strip/toggle', verifyAuthOwner, async (req, res) => {
+    const allowed = await requireFeature(req, res, 'personnalisation');
+    if (allowed !== true) return;
+    try {
+        const { enabled } = req.body;
+        const { error } = await supabase
+            .from('boutiques')
+            .update({ strip_enabled: !!enabled })
+            .eq('id', req.params.id);
+        if (error) throw error;
+        refreshAllPasses(req.params.id);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 5. PATCH — override CEO (couleurs + toggle strip pour n'importe quelle boutique)
+app.patch('/admin/boutique/:id/appearance', async (req, res) => {
+    if (req.body.ceoKey !== MASTER_CEO_KEY && req.headers['x-ceo-key'] !== MASTER_CEO_KEY) {
+        return res.status(403).json({ error: "Clé CEO invalide." });
+    }
+    try {
+        const { color_bg, color_text, color_label, strip_enabled } = req.body;
+        const update = {};
+        if (color_bg !== undefined) update.color_bg = color_bg;
+        if (color_text !== undefined) update.color_text = color_text;
+        if (color_label !== undefined) update.color_label = color_label;
+        if (strip_enabled !== undefined) update.strip_enabled = !!strip_enabled;
+
+        const { error } = await supabase.from('boutiques').update(update).eq('id', req.params.id);
+        if (error) throw error;
+        refreshAllPasses(req.params.id);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.get('/boutiques/:id/plan', verifyAuthOwner, async (req, res) => {
     const { data } = await supabase.from('boutiques').select('plan').eq('id', req.params.id).single();
     const plan = data?.plan || 'essentiel';
