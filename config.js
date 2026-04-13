@@ -38,7 +38,7 @@ const STEREOTYPES = {
     boulangerie: { bg: "#ffcb9b", text: "#8B4513", label: "#CD853F" },
     pizza:       { bg: "#ff8080", text: "#CD5C5C", label: "#FFA07A" },
     onglerie:    { bg: "#fbadc7", text: "#C71585", label: "#FFB6C1" },
-    coiffeur:    { bg: "#8a8a8a", text: "#2727b4", label: "#B0C4DE" },
+    coiffeur:    { bg: "#e4e4e4", text: "#2727b4", label: "#B0C4DE" },
     cafe:        { bg: "#F5F5DC", text: "#4B3621", label: "#A0522D" }
 };
 
