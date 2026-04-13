@@ -69,7 +69,20 @@ const PLAN_LIMITS = {
     },
 };
 
+// ── UPLOAD MULTER (mémoire, pas disque) ───────────────────
+const multer = require('multer');
+const uploadStrip = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+        if (allowed.includes(file.mimetype)) cb(null, true);
+        else cb(new Error('Format non supporté (PNG/JPEG/WEBP uniquement)'));
+    }
+});
+
 module.exports = {
     logger, jwt, MASTER_CEO_KEY, JWT_SECRET, googleCredentials,
-    GOOGLE_ISSUER_ID, supabase, STEREOTYPES, SYMBOLS, PLAN_LIMITS
+    GOOGLE_ISSUER_ID, supabase, STEREOTYPES, SYMBOLS, PLAN_LIMITS,
+    uploadStrip
 };

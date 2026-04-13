@@ -11,6 +11,7 @@ const { Server } = require('socket.io');
 const http = require('http');
 const sharp = require('sharp');
 const rateLimit = require('express-rate-limit');
+const { uploadStrip } = require('./config');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -86,8 +87,29 @@ async function generatePassBuffer(client, boutique, clientRank, hostUrl) {
     delete passJson.barcodes;
     
     passJson.backgroundColor = boutique.color_bg || "#FAF8F5";
-    passJson.foregroundColor = boutique.color_text || "#2A8C9C";
-    passJson.labelColor = (STEREOTYPES[boutique.categorie] || STEREOTYPES.default).label;
+passJson.foregroundColor = boutique.color_text || "#2A8C9C";
+passJson.labelColor = boutique.color_label
+    || (STEREOTYPES[boutique.categorie] || STEREOTYPES.default).label;
+
+// 🎨 BANDEAU IMAGE (strip) — uniquement si activé et URL présente
+if (boutique.strip_enabled && boutique.strip_image_url) {
+    try {
+        const stripResp = await fetch(boutique.strip_image_url);
+        if (stripResp.ok) {
+            const stripBuf = Buffer.from(await stripResp.arrayBuffer());
+            // Les 3 résolutions Apple
+            const strip3x = await sharp(stripBuf).resize(1125, 369, { fit: 'cover', position: 'attention' }).png().toBuffer();
+            const strip2x = await sharp(stripBuf).resize(750, 246, { fit: 'cover', position: 'attention' }).png().toBuffer();
+            const strip1x = await sharp(stripBuf).resize(375, 123, { fit: 'cover', position: 'attention' }).png().toBuffer();
+            fs.writeFileSync(path.join(tmpDir, 'strip@3x.png'), strip3x);
+            fs.writeFileSync(path.join(tmpDir, 'strip@2x.png'), strip2x);
+            fs.writeFileSync(path.join(tmpDir, 'strip.png'), strip1x);
+            console.log(`✅ Strip ajouté pour ${boutique.nom}`);
+        }
+    } catch (e) {
+        console.error("⚠️ Erreur traitement strip:", e.message);
+    }
+}
 
     // 🚨 CORRECTIONS CRITIQUES APPLE WALLET (Empêche l'erreur Safari) 🚨
     passJson.serialNumber = client.serial_number;
