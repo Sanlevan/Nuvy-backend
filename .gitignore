@@ -18,3 +18,4 @@ build
 *.csr
 
 .vscode/google-credentials.json
+.claude/
