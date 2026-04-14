@@ -37,7 +37,7 @@
 </head>
 <body class="font-sans antialiased text-gray-900 min-h-screen flex">
 
-  <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-slate-300 flex flex-col shadow-xl">
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-slate-300 flex flex-col shadow-xl transition-transform duration-300 -translate-x-full md:translate-x-0">
     <div class="h-16 flex items-center px-6 border-b border-slate-800">
       <div class="flex items-center gap-3">
         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-nuvy">
@@ -79,24 +79,29 @@
 </div>
   </aside>
 
-  <main class="ml-64 flex-1 flex flex-col min-h-screen">
+  <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
+  <main class="md:ml-64 flex-1 flex flex-col min-h-screen">
     
-    <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-8 shadow-sm">
-      <h1 id="page-title" class="text-lg font-bold text-gray-900">Vue d'ensemble</h1>
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-4">
-          <button onclick="exportCSV()" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all">
-            <i data-lucide="download" class="h-4 w-4"></i> Export CSV
-          </button>
-          <div class="flex items-center gap-2 text-sm text-gray-500">
-            <i data-lucide="clock" class="h-4 w-4"></i>
-            <span>Dernière mise à jour : <span class="font-bold text-gray-900">À l'instant</span></span>
-          </div>
+    <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8 shadow-sm">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleSidebar()" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <i data-lucide="menu" class="h-5 w-5 text-gray-600"></i>
+        </button>
+        <h1 id="page-title" class="text-lg font-bold text-gray-900">Vue d'ensemble</h1>
+      </div>
+      <div class="flex items-center gap-2 md:gap-4">
+        <button onclick="exportCSV()" class="flex items-center gap-2 px-3 py-2 md:px-4 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all">
+          <i data-lucide="download" class="h-4 w-4"></i><span class="hidden sm:inline"> Export CSV</span>
+        </button>
+        <div class="hidden md:flex items-center gap-2 text-sm text-gray-500">
+          <i data-lucide="clock" class="h-4 w-4"></i>
+          <span>Dernière mise à jour : <span class="font-bold text-gray-900">À l'instant</span></span>
         </div>
       </div>
     </header>
 
-    <div class="flex-1 p-8">
+    <div class="flex-1 p-4 md:p-8">
 
       <section id="overview" class="view active max-w-6xl mx-auto space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -124,8 +129,8 @@
       </section>
 
       <section id="fleet" class="view max-w-6xl mx-auto space-y-6">
-        <div class="flex justify-between items-center">
-          <div class="relative w-96">
+        <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+          <div class="relative w-full sm:w-96">
             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"></i>
             <input type="text" oninput="filtrerBoutiques(this.value)" placeholder="Rechercher une boutique..." class="w-full pl-10 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-nuvy/50 transition-all">
           </div>
@@ -134,7 +139,7 @@
           </button>
         </div>
 
-        <div class="grid grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
             <p class="text-xs font-bold text-gray-400 uppercase">Total Boutiques</p>
             <p id="kpi-total-boutiques" class="text-2xl font-extrabold text-gray-900 mt-1">...</p>
@@ -153,8 +158,8 @@
           </div>
         </div>
 
-        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
-          <table class="w-full text-left">
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
+          <table class="w-full min-w-[640px] text-left">
             <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-bold uppercase tracking-wider">
               <tr><th class="py-4 px-6">Statut</th><th class="py-4 px-6">Boutique</th><th class="py-4 px-6">Plan</th><th class="py-4 px-6 text-right">Inscrit le</th><th class="py-4 px-6 text-right">Actions</th></tr>
             </thead>
@@ -405,6 +410,21 @@
 
   <script>
     lucide.createIcons();
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const isOpen = !sidebar.classList.contains('-translate-x-full');
+      if (isOpen) { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
+      else { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.add('-translate-x-full');
+      document.getElementById('sidebar-overlay').classList.add('hidden');
+    }
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => { if (window.innerWidth < 768) closeSidebar(); });
+    });
 
     function openModalCreate() { document.getElementById('modal-create').classList.remove('hidden'); }
     function closeModalCreate() { document.getElementById('modal-create').classList.add('hidden'); }
