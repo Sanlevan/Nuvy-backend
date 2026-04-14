@@ -284,6 +284,70 @@
     </div>
   </main>
 
+  <div id="modal-colors" class="hidden fixed inset-0 z-[100] bg-sidebar/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+        <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+            <div>
+                <h3 class="font-extrabold text-lg">🎨 Personnalisation visuelle</h3>
+                <p id="modal-colors-boutique" class="text-sm text-gray-500 mt-1">—</p>
+            </div>
+            <button onclick="closeModalColors()" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div class="p-6 grid lg:grid-cols-2 gap-6">
+            <div class="space-y-5">
+                <div>
+                    <label class="text-xs font-bold uppercase text-gray-500">Fond de la carte</label>
+                    <div class="flex items-center gap-3 mt-2">
+                        <input type="color" id="override-bg" class="h-12 w-16 rounded-lg cursor-pointer border border-gray-200" value="#FAF8F5">
+                        <input type="text" id="override-bg-hex" class="flex-1 h-12 border rounded-xl px-3 text-sm font-mono outline-none focus:ring-2 focus:ring-nuvy/30" value="#FAF8F5">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold uppercase text-gray-500">Texte principal</label>
+                    <div class="flex items-center gap-3 mt-2">
+                        <input type="color" id="override-text" class="h-12 w-16 rounded-lg cursor-pointer border border-gray-200" value="#2A8C9C">
+                        <input type="text" id="override-text-hex" class="flex-1 h-12 border rounded-xl px-3 text-sm font-mono outline-none focus:ring-2 focus:ring-nuvy/30" value="#2A8C9C">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold uppercase text-gray-500">Libellés</label>
+                    <div class="flex items-center gap-3 mt-2">
+                        <input type="color" id="override-label" class="h-12 w-16 rounded-lg cursor-pointer border border-gray-200" value="#AFE3E0">
+                        <input type="text" id="override-label-hex" class="flex-1 h-12 border rounded-xl px-3 text-sm font-mono outline-none focus:ring-2 focus:ring-nuvy/30" value="#AFE3E0">
+                    </div>
+                </div>
+            </div>
+            <div>
+                <p class="text-xs font-bold uppercase text-gray-500 mb-2 text-center">Aperçu</p>
+                <div id="override-preview" class="rounded-2xl shadow-lg overflow-hidden mx-auto" style="width: 240px; height: 300px; background: #FAF8F5;">
+                    <div class="p-4 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <span id="ov-org" class="text-[10px] font-bold uppercase tracking-wider" style="color: #2A8C9C;">Boutique</span>
+                            <span id="ov-org-2" class="text-[10px] opacity-60" style="color: #2A8C9C;">FIDÉLITÉ</span>
+                        </div>
+                        <div class="mb-4">
+                            <div id="ov-label-1" class="text-[8px] font-bold uppercase tracking-wide" style="color: #AFE3E0;">MEMBRE</div>
+                            <div id="ov-val-1" class="text-sm font-bold" style="color: #2A8C9C;">Client</div>
+                        </div>
+                        <div class="mb-4">
+                            <div id="ov-label-2" class="text-[8px] font-bold uppercase tracking-wide text-center" style="color: #AFE3E0;">FIDÉLITÉ</div>
+                            <div id="ov-val-2" class="text-sm font-bold text-center tracking-widest" style="color: #2A8C9C;">● ● ● ○ ○ ○ ○ ○ ○ ○</div>
+                        </div>
+                        <div>
+                            <div id="ov-label-3" class="text-[8px] font-bold uppercase tracking-wide" style="color: #AFE3E0;">PROGRESSION</div>
+                            <div id="ov-val-3" class="text-xs font-bold" style="color: #2A8C9C;">3 / 10</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="p-6 border-t bg-gray-50 flex gap-3">
+            <button onclick="closeModalColors()" class="flex-1 h-11 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl">Annuler</button>
+            <button onclick="sauvegarderCouleurs()" class="flex-1 h-11 bg-nuvy hover:bg-nuvy-dark text-white font-bold rounded-xl">Appliquer</button>
+        </div>
+    </div>
+</div>
+
   <div id="modal-create" class="hidden fixed inset-0 z-[100] bg-sidebar/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
           <div class="p-6 border-b flex justify-between items-center bg-gray-50">
@@ -748,33 +812,96 @@
         window.location.href = '/admin/export-csv?key=' + encodeURIComponent(CEO_KEY);
     }
 
+    let currentOverrideBoutiqueId = null;
+
     async function overrideCouleurs(boutiqueId, nomBoutique) {
-        const bg = prompt(`Couleur FOND pour "${nomBoutique}" (hex, ex #FAF8F5) — laisser vide pour ne pas modifier :`);
-        if (bg === null) return;
-        const text = prompt("Couleur TEXTE (hex) — laisser vide pour ne pas modifier :");
-        if (text === null) return;
-        const label = prompt("Couleur LIBELLÉS (hex) — laisser vide pour ne pas modifier :");
-        if (label === null) return;
+        currentOverrideBoutiqueId = boutiqueId;
+        document.getElementById('modal-colors-boutique').innerText = nomBoutique;
+        
+        // Ferme le menu de gestion
+        if (openMenuId) { document.getElementById('menu-' + openMenuId)?.classList.add('hidden'); openMenuId = null; }
 
-        const body = { ceoKey: CEO_KEY };
-        if (bg.trim()) body.color_bg = bg.trim();
-        if (text.trim()) body.color_text = text.trim();
-        if (label.trim()) body.color_label = label.trim();
-
+        // Pré-remplir avec les couleurs actuelles
         try {
-            const res = await fetch(`/admin/boutique/${boutiqueId}/appearance`, {
+            const res = await fetch(`/admin/boutique/${boutiqueId}/appearance-current`, { headers: { 'x-ceo-key': CEO_KEY } });
+            if (res.ok) {
+                const data = await res.json();
+                setColorValues(data.color_bg || '#FAF8F5', data.color_text || '#2A8C9C', data.color_label || '#AFE3E0');
+            }
+        } catch (e) { /* fallback valeurs par défaut */ }
+
+        updateOverridePreview();
+        document.getElementById('modal-colors').classList.remove('hidden');
+    }
+
+    function closeModalColors() {
+        document.getElementById('modal-colors').classList.add('hidden');
+        currentOverrideBoutiqueId = null;
+    }
+
+    function setColorValues(bg, text, label) {
+        document.getElementById('override-bg').value = bg;
+        document.getElementById('override-bg-hex').value = bg;
+        document.getElementById('override-text').value = text;
+        document.getElementById('override-text-hex').value = text;
+        document.getElementById('override-label').value = label;
+        document.getElementById('override-label-hex').value = label;
+    }
+
+    function updateOverridePreview() {
+        const bg = document.getElementById('override-bg').value;
+        const text = document.getElementById('override-text').value;
+        const label = document.getElementById('override-label').value;
+        document.getElementById('override-preview').style.background = bg;
+        ['ov-org', 'ov-org-2', 'ov-val-1', 'ov-val-2', 'ov-val-3'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.color = text;
+        });
+        ['ov-label-1', 'ov-label-2', 'ov-label-3'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.color = label;
+        });
+    }
+
+    // Sync bidirectionnelle color picker <-> input hex
+    ['bg', 'text', 'label'].forEach(key => {
+        const picker = document.getElementById(`override-${key}`);
+        const hex = document.getElementById(`override-${key}-hex`);
+        if (picker && hex) {
+            picker.addEventListener('input', () => { hex.value = picker.value; updateOverridePreview(); });
+            hex.addEventListener('input', () => {
+                if (/^#[0-9A-Fa-f]{6}$/.test(hex.value)) {
+                    picker.value = hex.value;
+                    updateOverridePreview();
+                }
+            });
+        }
+    });
+
+    async function sauvegarderCouleurs() {
+        if (!currentOverrideBoutiqueId) return;
+        const body = {
+            ceoKey: CEO_KEY,
+            color_bg: document.getElementById('override-bg').value,
+            color_text: document.getElementById('override-text').value,
+            color_label: document.getElementById('override-label').value
+        };
+        try {
+            const res = await fetch(`/admin/boutique/${currentOverrideBoutiqueId}/appearance`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
             const d = await res.json();
-            if (res.ok) alert(`✅ Couleurs mises à jour pour ${nomBoutique}. Les cartes de tous les clients vont être rafraîchies.`);
-            else alert("❌ " + (d.error || "Erreur"));
-        } catch (e) {
-            alert("❌ Erreur réseau.");
-        }
+            if (res.ok) {
+                alert("✅ Couleurs mises à jour. Les cartes clients seront rafraîchies.");
+                closeModalColors();
+            } else {
+                alert("❌ " + (d.error || "Erreur"));
+            }
+        } catch (e) { alert("❌ Erreur réseau."); }
     }
-    
+
     function deconnexion() { window.location.href = '/admin-login'; }
   </script>
 </body>

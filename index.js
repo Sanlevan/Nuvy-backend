@@ -1099,6 +1099,27 @@ app.patch('/boutiques/:id/strip/toggle', verifyAuthOwner, async (req, res) => {
     }
 });
 
+// GET couleurs actuelles (CEO)
+app.get('/admin/boutique/:id/appearance-current', async (req, res) => {
+    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
+    try {
+        const { data, error } = await supabase
+            .from('boutiques')
+            .select('color_bg, color_text, color_label, categorie')
+            .eq('id', req.params.id)
+            .single();
+        if (error) throw error;
+        const defaults = STEREOTYPES[data.categorie] || STEREOTYPES.default;
+        res.json({
+            color_bg: data.color_bg || defaults.bg,
+            color_text: data.color_text || defaults.text,
+            color_label: data.color_label || defaults.label
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // 5. PATCH — override CEO (couleurs + toggle strip pour n'importe quelle boutique)
 app.patch('/admin/boutique/:id/appearance', async (req, res) => {
     if (req.body.ceoKey !== MASTER_CEO_KEY && req.headers['x-ceo-key'] !== MASTER_CEO_KEY) {
