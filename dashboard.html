@@ -354,6 +354,24 @@
               </label>
             </div>
           </div>
+
+          <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h3 class="text-base font-bold text-gray-900 mb-2">Emojis de la carte</h3>
+            <p class="text-xs text-gray-500 mb-4">Choisissez l'emoji qui remplit (tampon validé) et celui qui reste vide (à remplir).</p>
+            
+            <div class="space-y-5">
+              <div>
+                <label class="text-xs font-bold uppercase text-gray-500 mb-2 block">Tampon rempli</label>
+                <div id="emoji-full-grid" class="grid grid-cols-6 gap-2"></div>
+              </div>
+              <div>
+                <label class="text-xs font-bold uppercase text-gray-500 mb-2 block">Tampon vide</label>
+                <div id="emoji-empty-grid" class="grid grid-cols-6 gap-2"></div>
+              </div>
+            </div>
+
+            <button onclick="saveEmojis()" class="w-full h-11 mt-5 bg-nuvy text-white font-bold rounded-xl">Enregistrer les emojis</button>
+          </div>
         </div>
 
         <div class="lg:sticky lg:top-6 self-start">
@@ -1126,6 +1144,13 @@ async function loadAppearance() {
         document.getElementById('preview-org').innerText = nom.toUpperCase();
         document.getElementById('preview-logo-initial').innerText = nom.charAt(0).toUpperCase();
 
+        // Emojis
+        boutiqueCategorie = data.categorie || 'default';
+        selectedEmojiFull = data.emojis.full;
+        selectedEmojiEmpty = data.emojis.empty;
+        refreshEmojiGrids();
+        updatePreviewFidelite();
+
         updatePreview();
     } catch (e) { console.error(e); }
 }
@@ -1177,6 +1202,96 @@ function updatePreview() {
 
 // Re-déclencher updatePreview quand on change le toggle (pour voir le layout shift en live)
 document.getElementById('strip-toggle')?.addEventListener('change', updatePreview);
+
+// ============================================================
+// 🎯 EMOJIS
+// ============================================================
+
+// Palette d'emojis par catégorie. 'default' s'affiche en fallback.
+const EMOJI_PALETTES = {
+    boulangerie: {
+        full:  ['🥐', '🍞', '🥖', '🧁', '🍪', '⭐', '❤️', '🌟'],
+        empty: ['◽', '▫️', '⚪', '○', '⬜', '◻️']
+    },
+    pizza: {
+        full:  ['🍕', '🍅', '🧀', '🌶️', '⭐', '❤️', '🔥', '🇮🇹'],
+        empty: ['◽', '▫️', '⚪', '○', '⬜', '◻️']
+    },
+    onglerie: {
+        full:  ['💅', '💖', '🌸', '✨', '👑', '💎', '🌺', '🦋'],
+        empty: ['⚪', '○', '◯', '◽', '▫️', '💭']
+    },
+    coiffeur: {
+        full:  ['✂️', '👑', '💈', '💇', '💆', '✨', '💎', '⭐'],
+        empty: ['▫️', '◽', '⚪', '○', '◻️', '⬜']
+    },
+    cafe: {
+        full:  ['☕', '🫖', '🍵', '🥐', '🍰', '⭐', '❤️', '🌟'],
+        empty: ['▫️', '◽', '⚪', '○', '◻️', '⬜']
+    },
+    default: {
+        full:  ['⭐', '❤️', '✨', '🌟', '💎', '👑', '🎁', '🔥', '💯', '⚡', '🏆', '🎯'],
+        empty: ['○', '⚪', '◯', '◽', '▫️', '⬜', '◻️', '💭']
+    }
+};
+
+let selectedEmojiFull = null;
+let selectedEmojiEmpty = null;
+let boutiqueCategorie = 'default';
+
+function renderEmojiGrid(gridId, palette, selected, onSelect) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    // Si l'emoji sélectionné n'est pas dans la palette, on l'ajoute en tête
+    const emojis = [...palette];
+    if (selected && !emojis.includes(selected)) emojis.unshift(selected);
+
+    grid.innerHTML = emojis.map(e => `
+        <button type="button" data-emoji="${e}" class="emoji-btn h-11 w-full flex items-center justify-center text-xl rounded-lg border-2 transition-all ${e === selected ? 'border-nuvy bg-nuvy/10 scale-105' : 'border-gray-200 hover:border-nuvy/50 hover:bg-gray-50'}">${e}</button>
+    `).join('');
+
+    grid.querySelectorAll('.emoji-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            onSelect(btn.dataset.emoji);
+        });
+    });
+}
+
+function refreshEmojiGrids() {
+    const palette = EMOJI_PALETTES[boutiqueCategorie] || EMOJI_PALETTES.default;
+    renderEmojiGrid('emoji-full-grid', palette.full, selectedEmojiFull, (e) => {
+        selectedEmojiFull = e;
+        refreshEmojiGrids();
+        updatePreviewFidelite();
+    });
+    renderEmojiGrid('emoji-empty-grid', palette.empty, selectedEmojiEmpty, (e) => {
+        selectedEmojiEmpty = e;
+        refreshEmojiGrids();
+        updatePreviewFidelite();
+    });
+}
+
+function updatePreviewFidelite() {
+    // Met à jour la barre de fidélité de l'aperçu avec 3 pleins + 7 vides
+    const fidEl = document.getElementById('preview-value-fid');
+    if (!fidEl || !selectedEmojiFull || !selectedEmojiEmpty) return;
+    let texte = '';
+    for (let i = 0; i < 10; i++) {
+        texte += (i < 3 ? selectedEmojiFull : selectedEmojiEmpty) + ' ';
+    }
+    fidEl.innerText = texte.trim();
+}
+
+async function saveEmojis() {
+    if (!selectedEmojiFull || !selectedEmojiEmpty) return alert("Sélectionnez les deux emojis.");
+    const r = await fetch(`/boutiques/${boutiqueId}/emojis`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+        body: JSON.stringify({ emoji_full: selectedEmojiFull, emoji_empty: selectedEmojiEmpty })
+    });
+    const d = await r.json();
+    alert(d.message || d.error || 'OK');
+}
 
 ['color-bg', 'color-text', 'color-label'].forEach(id => {
     const el = document.getElementById(id);

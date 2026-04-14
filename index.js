@@ -143,8 +143,10 @@ if (boutique.strip_enabled && boutique.strip_image_url) {
     
     const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
     const suffixe = (vraiRang === 1) ? "er" : "ème";
-    const symbolePlein = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].full : "⭐";
-    const symboleVide = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].empty : "⚪";
+    // Emojis : priorité à la personnalisation boutique, sinon défaut catégorie
+    const defaultSymbols = SYMBOLS[boutique.categorie] || SYMBOLS.default;
+    const symbolePlein = boutique.emoji_full || defaultSymbols.full || "⭐";
+    const symboleVide = boutique.emoji_empty || defaultSymbols.empty || "⚪";
     let fideliteTexte = "";
     for(let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
@@ -274,8 +276,9 @@ function generateGoogleWalletLink(client, boutique) {
     };
     const bgColor = GOOGLE_COLORS[boutique.categorie] || GOOGLE_COLORS.default;
 
-    const symbolePlein = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].full : "⭐";
-    const symboleVide = SYMBOLS[boutique.categorie] ? SYMBOLS[boutique.categorie].empty : "⚪";
+    const defaultSymbols = SYMBOLS[boutique.categorie] || SYMBOLS.default;
+    const symbolePlein = boutique.emoji_full || defaultSymbols.full || "⭐";
+    const symboleVide = boutique.emoji_empty || defaultSymbols.empty || "⚪";
     let fideliteTexte = "";
     for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
@@ -364,13 +367,14 @@ async function updateGoogleWalletPass(client) {
         const objectId = `${GOOGLE_ISSUER_ID}.${client.id}`;
         
         // 1. Récupérer les infos boutique pour les emojis
-        const { data: boutique } = await supabase.from('boutiques').select('max_tampons, categorie').eq('id', client.boutique_id).single();
+        const { data: boutique } = await supabase.from('boutiques').select('max_tampons, categorie, emoji_full, emoji_empty').eq('id', client.boutique_id).single();
         const maxT = boutique?.max_tampons || 10;
         const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
         
         // Barre de fidélité
-        const symbolePlein = SYMBOLS[boutique?.categorie] ? SYMBOLS[boutique.categorie].full : "⭐";
-        const symboleVide = SYMBOLS[boutique?.categorie] ? SYMBOLS[boutique.categorie].empty : "⚪";
+        const defaultSymbols = SYMBOLS[boutique?.categorie] || SYMBOLS.default;
+        const symbolePlein = boutique?.emoji_full || defaultSymbols.full || "⭐";
+        const symboleVide = boutique?.emoji_empty || defaultSymbols.empty || "⚪";
         let fideliteTexte = "";
         for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
@@ -709,7 +713,7 @@ app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) =
             try {
                 const { data: allClients } = await supabase.from('clients').select('id, nom, tampons, recompenses, boutique_id').eq('boutique_id', req.params.id);
                 if (allClients && allClients.length > 0) {
-                    const { data: bout } = await supabase.from('boutiques').select('max_tampons, categorie').eq('id', req.params.id).single();
+                    const { data: bout } = await supabase.from('boutiques').select('max_tampons, categorie, emoji_full, emoji_empty').eq('id', req.params.id).single();
                     const maxT = bout?.max_tampons || 10;
 
                     const authClaim = {
@@ -731,8 +735,9 @@ app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) =
                         try {
                             const objectId = `${GOOGLE_ISSUER_ID}.${c.id}`;
                             const prenom = c.nom ? c.nom.split(' ')[0] : 'Client';
-                            const symbolePlein = SYMBOLS[bout?.categorie] ? SYMBOLS[bout.categorie].full : "⭐";
-                            const symboleVide = SYMBOLS[bout?.categorie] ? SYMBOLS[bout.categorie].empty : "⚪";
+                            const defaultSymbols = SYMBOLS[bout?.categorie] || SYMBOLS.default;
+                            const symbolePlein = bout?.emoji_full || defaultSymbols.full || "⭐";
+                            const symboleVide = bout?.emoji_empty || defaultSymbols.empty || "⚪";
                             let fideliteTexte = "";
                             for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (c.tampons || 0)) ? symbolePlein : symboleVide; }
 
@@ -1017,11 +1022,12 @@ app.get('/boutiques/:id/appearance', verifyAuthOwner, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('boutiques')
-            .select('color_bg, color_text, color_label, strip_image_url, strip_enabled, categorie, plan')
+            .select('color_bg, color_text, color_label, strip_image_url, strip_enabled, emoji_full, emoji_empty, categorie, plan')
             .eq('id', req.params.id)
             .single();
         if (error) throw error;
         const defaults = STEREOTYPES[data.categorie] || STEREOTYPES.default;
+        const defaultSymbols = SYMBOLS[data.categorie] || SYMBOLS.default;
         const plan = data.plan || 'essentiel';
         res.json({
             colors: {
@@ -1033,6 +1039,11 @@ app.get('/boutiques/:id/appearance', verifyAuthOwner, async (req, res) => {
                 url: data.strip_image_url,
                 enabled: data.strip_enabled
             },
+            emojis: {
+                full: data.emoji_full || defaultSymbols.full,
+                empty: data.emoji_empty || defaultSymbols.empty
+            },
+            categorie: data.categorie,
             plan,
             canPersonalize: PLAN_LIMITS[plan]?.personnalisation || false
         });
@@ -1129,6 +1140,29 @@ app.patch('/boutiques/:id/strip/toggle', verifyAuthOwner, async (req, res) => {
         if (error) throw error;
         refreshAllPasses(req.params.id);
         res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// PATCH emojis (Pro / Multi-site uniquement)
+app.patch('/boutiques/:id/emojis', verifyAuthOwner, async (req, res) => {
+    const allowed = await requireFeature(req, res, 'personnalisation');
+    if (allowed !== true) return;
+    try {
+        const { emoji_full, emoji_empty } = req.body;
+        // Validation légère : chaîne courte ≤ 8 caractères (1 emoji = 1 à 4 code units UTF-16)
+        if (emoji_full && emoji_full.length > 8) return res.status(400).json({ error: "Emoji plein invalide." });
+        if (emoji_empty && emoji_empty.length > 8) return res.status(400).json({ error: "Emoji vide invalide." });
+
+        const { error } = await supabase
+            .from('boutiques')
+            .update({ emoji_full, emoji_empty })
+            .eq('id', req.params.id);
+        if (error) throw error;
+
+        refreshAllPasses(req.params.id);
+        res.json({ success: true, message: "Emojis mis à jour. Vos clients recevront la mise à jour dans quelques instants." });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
