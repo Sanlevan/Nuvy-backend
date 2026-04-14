@@ -187,16 +187,17 @@ if (boutique.strip_enabled && boutique.strip_image_url) {
     let layout;
     if (hasStrip) {
         // === LAYOUT AVEC BANDEAU ===
-        // On retire le "Bonjour X 👋" et le classement : on laisse la photo parler
-        // On garde le solde en primary (affiché en gros par-dessus le bandeau)
+        // Bandeau image en haut, compteur X/10 en header à droite, barre de fidélité sous le bandeau
+        // On retire "Bonjour X 👋" et le classement : la photo parle
         layout = {
-            "headerFields": [],
-            "primaryFields": [{
-                "key": "solde",
+            "headerFields": [{
+                "key": "score_header",
                 "label": "TAMPONS",
                 "value": `${client.tampons || 0} / ${maxT}`,
+                "textAlignment": "PKTextAlignmentRight",
                 "changeMessage": "Nouveau solde : %@ ✨"
             }],
+            "primaryFields": [],
             "secondaryFields": [
                 {
                     "key": "fidelite",
