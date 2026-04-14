@@ -148,60 +148,94 @@ if (boutique.strip_enabled && boutique.strip_image_url) {
     let fideliteTexte = "";
     for(let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
 
-    const layout = {
-        "headerFields": [{
-            "key": "score_header",
-            "label": "TAMPONS",
-            "value": `${client.tampons || 0} / ${maxT}`,
-            "textAlignment": "PKTextAlignmentRight",
-            "changeMessage": "Nouveau solde : %@ ✨" 
-        }],
-        "primaryFields": [{
-            "key": "bienvenue",
-            "label": `${vraiRang}${suffixe} meilleur client 🏆`,
-            "value": `${prenom} 👋`
-        }],
-        "secondaryFields": [
-            {
-                "key": "fidelite",
-                "label": "VOTRE FIDÉLITÉ",
-                "value": fideliteTexte,
-                "textAlignment": "PKTextAlignmentLeft"
-            }
-        ],
-        "auxiliaryFields": [], 
-        "backFields": [
-            {
-                "key": "promo",
-                "label": "DERNIÈRE INFO DE LA BOUTIQUE",
-                "value": boutique.last_push_message || "Aucune actualité pour le moment.",
-                "changeMessage": "%@"
-            },
-            {
-                "key": "adresse",
-                "label": "ADRESSE DE LA BOUTIQUE",
-                "value": boutique.adresse || "Adresse non renseignée"
-            },
-            {
-                "key": "telephone",
-                "label": "CONTACT",
-                "value": boutique.telephone || "Non renseigné",
-                "dataDetectorTypes": ["PKDataDetectorTypePhoneNumber"]
-            },
-            ...(boutique.google_review_url ? [{
-                "key": "avis",
-                "label": "DONNEZ-NOUS VOTRE AVIS ⭐",
-                "value": boutique.google_review_url,
-                "dataDetectorTypes": ["PKDataDetectorTypeLink"]
-            }] : []),
-            {
-                "key": "compte",
-                "label": "MON ESPACE NUVY",
-                "value": `https://nuvy.pro/mon-compte/${client.token}`,
-                "dataDetectorTypes": ["PKDataDetectorTypeLink"]
-            }
-        ]
-    };
+    // 🎨 Layout conditionnel : avec ou sans bandeau image
+    const hasStrip = boutique.strip_enabled && boutique.strip_image_url;
+
+    // Champs du dos (communs aux deux layouts)
+    const backFields = [
+        {
+            "key": "promo",
+            "label": "DERNIÈRE INFO DE LA BOUTIQUE",
+            "value": boutique.last_push_message || "Aucune actualité pour le moment.",
+            "changeMessage": "%@"
+        },
+        {
+            "key": "adresse",
+            "label": "ADRESSE DE LA BOUTIQUE",
+            "value": boutique.adresse || "Adresse non renseignée"
+        },
+        {
+            "key": "telephone",
+            "label": "CONTACT",
+            "value": boutique.telephone || "Non renseigné",
+            "dataDetectorTypes": ["PKDataDetectorTypePhoneNumber"]
+        },
+        ...(boutique.google_review_url ? [{
+            "key": "avis",
+            "label": "DONNEZ-NOUS VOTRE AVIS ⭐",
+            "value": boutique.google_review_url,
+            "dataDetectorTypes": ["PKDataDetectorTypeLink"]
+        }] : []),
+        {
+            "key": "compte",
+            "label": "MON ESPACE NUVY",
+            "value": `https://nuvy.pro/mon-compte/${client.token}`,
+            "dataDetectorTypes": ["PKDataDetectorTypeLink"]
+        }
+    ];
+
+    let layout;
+    if (hasStrip) {
+        // === LAYOUT AVEC BANDEAU ===
+        // On retire le "Bonjour X 👋" et le classement : on laisse la photo parler
+        // On garde le solde en primary (affiché en gros par-dessus le bandeau)
+        layout = {
+            "headerFields": [],
+            "primaryFields": [{
+                "key": "solde",
+                "label": "TAMPONS",
+                "value": `${client.tampons || 0} / ${maxT}`,
+                "changeMessage": "Nouveau solde : %@ ✨"
+            }],
+            "secondaryFields": [
+                {
+                    "key": "fidelite",
+                    "label": "VOTRE FIDÉLITÉ",
+                    "value": fideliteTexte,
+                    "textAlignment": "PKTextAlignmentLeft"
+                }
+            ],
+            "auxiliaryFields": [],
+            "backFields": backFields
+        };
+    } else {
+        // === LAYOUT SANS BANDEAU (classique) ===
+        layout = {
+            "headerFields": [{
+                "key": "score_header",
+                "label": "TAMPONS",
+                "value": `${client.tampons || 0} / ${maxT}`,
+                "textAlignment": "PKTextAlignmentRight",
+                "changeMessage": "Nouveau solde : %@ ✨"
+            }],
+            "primaryFields": [{
+                "key": "bienvenue",
+                "label": `${vraiRang}${suffixe} meilleur client 🏆`,
+                "value": `${prenom} 👋`
+            }],
+            "secondaryFields": [
+                {
+                    "key": "fidelite",
+                    "label": "VOTRE FIDÉLITÉ",
+                    "value": fideliteTexte,
+                    "textAlignment": "PKTextAlignmentLeft"
+                }
+            ],
+            "auxiliaryFields": [],
+            "backFields": backFields
+        };
+    }
+
     // 🎁 CONDITION : On ajoute le champ Cadeaux SEULEMENT s'il y en a au moins 1
     if (client.recompenses && client.recompenses > 0) {
         layout.secondaryFields.push({
