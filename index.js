@@ -16,7 +16,7 @@ const { uploadStrip } = require('./config');
 const app = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: ["https://www.nuvy.pro", "https://nuvy-production.up.railway.app"] } });
+const io = new Server(server, { cors: { origin: ["https://nuvy.pro", "https://nuvy-production.up.railway.app"] } });
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -181,7 +181,7 @@ if (boutique.strip_enabled && boutique.strip_image_url) {
         {
             "key": "compte",
             "label": "MON ESPACE NUVY",
-            "value": `https://www.nuvy.pro/mon-compte/${client.token}`,
+            "value": `https://nuvy.pro/mon-compte/${client.token}`,
             "dataDetectorTypes": ["PKDataDetectorTypeLink"]
         }
     ];
@@ -318,7 +318,7 @@ function generateGoogleWalletLink(client, boutique) {
                 linksModuleData: {
                     uris: [
                         {
-                            uri: `https://www.nuvy.pro/join/${boutique.slug}`,
+                            uri: `https://nuvy.pro/join/${boutique.slug}`,
                             description: "Carte de fidélité",
                             id: "link-fidelite"
                         },
@@ -328,7 +328,7 @@ function generateGoogleWalletLink(client, boutique) {
                             id: "link-avis"
                         }] : []),
                         {
-                            uri: `https://www.nuvy.pro/mon-compte/${client.token}`,
+                            uri: `https://nuvy.pro/mon-compte/${client.token}`,
                             description: "Mon espace Nuvy",
                             id: "link-compte"
                         }
@@ -482,7 +482,7 @@ app.post('/admin/create-boutique', async (req, res) => {
         
         const slug = nom.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '');
         const da = STEREOTYPES[categorie] || STEREOTYPES.default;
-        const join_url = `www.nuvy.pro/tap/${slug}`;
+        const join_url = `nuvy.pro/tap/${slug}`;
         const finalMaxTampons = parseInt(max_tampons) || 10;
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -1932,7 +1932,7 @@ app.get('/mon-compte/:token', async (req, res) => {
         </div>
         <div class="section-title">Mes cartes de fidélité</div>
         ${cartesHtml || '<div class="empty">Aucune carte de fidélité pour le moment.</div>'}
-        <div class="footer">Propulsé par <a href="https://www.nuvy.pro">Nuvy</a></div>
+        <div class="footer">Propulsé par <a href="https://nuvy.pro">Nuvy</a></div>
     </div>
 </body>
 </html>`;
