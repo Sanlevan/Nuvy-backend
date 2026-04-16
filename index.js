@@ -440,6 +440,13 @@ const { verifyAuth, verifyAuthOwner, requireFeature } = require('./middleware/au
 // ==========================================
 app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.resolve(__dirname, 'dashboard.html')));
+// ==========================================
+// ROUTES LÉGALES (RGPD / LCEN)
+// ==========================================
+app.get('/cgv', (req, res) => res.sendFile(path.resolve(__dirname, 'legal', 'cgv.html')));
+app.get('/cgu', (req, res) => res.sendFile(path.resolve(__dirname, 'legal', 'cgu.html')));
+app.get('/confidentialite', (req, res) => res.sendFile(path.resolve(__dirname, 'legal', 'confidentialite.html')));
+app.get('/mentions-legales', (req, res) => res.sendFile(path.resolve(__dirname, 'legal', 'mentions-legales.html')));
 app.get('/join/:slug', async (req, res) => {
     const { data: boutique } = await supabase.from('boutiques').select('nom, slug, categorie, logo_url, color_bg, color_text').eq('slug', req.params.slug).single();
     if (!boutique) return res.status(404).send('Boutique introuvable');
@@ -1958,8 +1965,11 @@ app.post('/join/:slug/create', limiterStrict, async (req, res) => {
         const prenom = cleanString(req.body.prenom, 50);
         const nom = cleanString(req.body.nom, 50);
         const telephone = cleanString(req.body.telephone, 20);
+        const consentVersion = cleanString(req.body.consent_version, 20);
+        const consentGivenAt = req.body.consent_given_at;
         if (!prenom || !nom || !telephone) return res.status(400).json({ error: "Tous les champs sont obligatoires." });
         if (!isValidPhone(telephone)) return res.status(400).json({ error: "Numéro de téléphone invalide." });
+        if (!consentVersion || !consentGivenAt) return res.status(400).json({ error: "Consentement RGPD requis." });
         const { data: b } = await supabase.from('boutiques').select('id, plan').eq('slug', req.params.slug).single();
         
         // Guard : limite de clients par plan
@@ -2018,6 +2028,8 @@ app.post('/join/:slug/create', limiterStrict, async (req, res) => {
             user_id: userId,
             last_visit: new Date().toISOString(),
             device_type,
+            consent_given_at: consentGivenAt,
+            consent_version: consentVersion,
         }]).select().single();
         
         // 🌟 MAGIE : Le nouveau client fait sonner le dashboard immédiatement !

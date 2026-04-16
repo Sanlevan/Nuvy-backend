@@ -27,6 +27,12 @@
         <button onclick="authentifier()">SE CONNECTER</button>
         <div id="error-msg" class="error-message">Identifiants incorrects. Veuillez réessayer.</div>
     </div>
+    <div style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 11px; color: #999; font-weight: 600;">
+        <a href="/mentions-legales" style="color: #999; text-decoration: none; margin: 0 8px;">Mentions légales</a> ·
+        <a href="/cgv" style="color: #999; text-decoration: none; margin: 0 8px;">CGV</a> ·
+        <a href="/cgu" style="color: #999; text-decoration: none; margin: 0 8px;">CGU</a> ·
+        <a href="/confidentialite" style="color: #999; text-decoration: none; margin: 0 8px;">Confidentialité</a>
+    </div>
     <script>
         async function authentifier() {
             const user = document.getElementById('username').value; const pass = document.getElementById('password').value; const errorDiv = document.getElementById('error-msg'); const btn = document.querySelector('button');

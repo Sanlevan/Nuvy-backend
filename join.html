@@ -33,7 +33,15 @@
             <input type="text" id="prenom" placeholder="Votre prénom">
             <input type="text" id="nom" placeholder="Votre nom">
             <input type="tel" id="telephone" placeholder="Numéro de téléphone">
-            <button class="btn-submit" onclick="creerCarte()">CRÉER MA CARTE</button>
+            
+            <div style="display: flex; align-items: flex-start; gap: 10px; text-align: left; margin: 20px 0 10px; padding: 0 4px;">
+                <input type="checkbox" id="consent-check" style="margin-top: 4px; width: 18px; height: 18px; accent-color: #2A8C9C; cursor: pointer; flex-shrink: 0;">
+                <label for="consent-check" style="font-size: 12px; color: #666; line-height: 1.5; cursor: pointer;">
+                    J'accepte les <a href="/cgu" target="_blank" style="color: #2A8C9C; font-weight: 700; text-decoration: underline;">Conditions Générales d'Utilisation</a> et la <a href="/confidentialite" target="_blank" style="color: #2A8C9C; font-weight: 700; text-decoration: underline;">Politique de confidentialité</a> de Nuvy, ainsi que les conditions du programme de fidélité du commerçant.
+                </label>
+            </div>
+            
+            <button class="btn-submit" id="btn-submit" onclick="creerCarte()" disabled style="opacity: 0.4; cursor: not-allowed;">CRÉER MA CARTE</button>
             <div style="margin-top: 20px; text-align: center;">
                 <a href="#" onclick="dejaClient(); return false;" style="font-size: 13px; color: #2A8C9C; font-weight: 600; text-decoration: none;">Déjà inscrit dans une boutique Nuvy ?</a>
             </div>
@@ -55,6 +63,20 @@
     <script>
         const urlSlug = window.location.pathname.split('/').pop();
         const boutique = window.__BOUTIQUE__ || {};
+        
+        // 🛡️ RGPD : activation du bouton uniquement si consentement coché
+        document.getElementById('consent-check').addEventListener('change', function() {
+            const btn = document.getElementById('btn-submit');
+            if (this.checked) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.4';
+                btn.style.cursor = 'not-allowed';
+            }
+        });
         document.getElementById('shop-display').innerText = boutique.nom || urlSlug.replace(/-/g, ' ');
         
         // Personnalisation visuelle
@@ -111,6 +133,12 @@
                 return; 
             }
 
+            // 🛡️ Double sécurité côté client : vérifier que la case est bien cochée
+            if (!document.getElementById('consent-check').checked) {
+                alert("Vous devez accepter les CGU et la Politique de confidentialité pour continuer.");
+                return;
+            }
+
             // 🛡️ Nettoyage du numéro
             const telephone = formaterTelephone(telephoneBrut);
             if (!telephone) {
@@ -125,7 +153,13 @@
                 const res = await fetch(`/join/${urlSlug}/create`, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ prenom, nom, telephone }) 
+                    body: JSON.stringify({ 
+                        prenom, 
+                        nom, 
+                        telephone,
+                        consent_version: 'v1.0',
+                        consent_given_at: new Date().toISOString()
+                    }) 
                 });
 
                 if (res.ok) {
