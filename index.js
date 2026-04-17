@@ -1630,7 +1630,7 @@ app.get('/tap/:slug', async (req, res) => {
     <head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <title>Nuvy Tap</title>
-        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Manrope:wght@600;800&display=swap" rel="stylesheet">
         <style>
             body { background: #FAF8F5; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Manrope', sans-serif; margin: 0; overflow: hidden; }
             .c { background: white; padding: 40px 30px; border-radius: 35px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.06); border: 1px solid #E0DEDA; max-width: 360px; width: 90%; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -1890,7 +1890,7 @@ app.get('/mon-compte/:token', async (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mon Compte Nuvy</title>
     <link rel="icon" type="image/png" href="/favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Manrope', sans-serif; background: #FAF8F5; min-height: 100vh; padding: 20px; }
@@ -1923,7 +1923,7 @@ app.get('/mon-compte/:token', async (req, res) => {
 <body>
     <div class="container">
         <div class="header">
-            <div class="brand">Nuvy</div>
+            <div class="brand" style="font-family: 'Bagel Fat One', cursive;">Nuvy</div>
             <div class="greeting">Bonjour ${prenom} 👋</div>
             <div class="subtitle">Votre espace fidélité</div>
         </div>
