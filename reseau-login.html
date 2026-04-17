@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuvy | Espace Réseau</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Manrope', sans-serif; background: #FAF8F5; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        .card { background: white; padding: 50px 40px; border-radius: 30px; text-align: center; width: 100%; max-width: 380px; border: 1px solid #E0DEDA; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
+        .brand { font-size: 40px; color: #2A8C9C; font-family: 'Bagel Fat One', cursive; margin-bottom: 4px; line-height: 1; }
+        .subtitle { font-size: 13px; color: #888; font-weight: 600; margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge { display: inline-block; background: #2A8C9C18; color: #2A8C9C; font-size: 11px; font-weight: 800; padding: 5px 14px; border-radius: 100px; margin-bottom: 32px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input { width: 100%; padding: 16px; margin-bottom: 14px; border-radius: 14px; border: 1px solid #E0DEDA; box-sizing: border-box; font-size: 15px; font-family: inherit; background: #FCFCFC; outline: none; transition: border-color 0.2s, background 0.2s; }
+        input:focus { border-color: #2A8C9C; background: #fff; }
+        button { width: 100%; padding: 18px; background: #2A8C9C; color: white; border: none; border-radius: 14px; cursor: pointer; font-weight: 800; font-size: 14px; font-family: inherit; margin-top: 8px; transition: 0.2s; letter-spacing: 0.5px; }
+        button:hover:not(:disabled) { background: #238391; transform: translateY(-1px); }
+        button:disabled { opacity: 0.6; cursor: wait; }
+        .error { color: #C62828; font-size: 13px; font-weight: 700; margin-top: 14px; display: none; }
+        .link { margin-top: 28px; font-size: 13px; color: #aaa; }
+        .link a { color: #2A8C9C; font-weight: 700; text-decoration: none; }
+        .link a:hover { text-decoration: underline; }
+        .footer { position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 11px; color: #999; font-weight: 600; }
+        .footer a { color: #999; text-decoration: none; margin: 0 8px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="brand">Nuvy</div>
+        <div class="subtitle">Espace commerçant</div>
+        <div class="badge">Accès réseau multi-site</div>
+        <input type="text" id="username" placeholder="Identifiant réseau" autocomplete="username">
+        <input type="password" id="password" placeholder="Mot de passe" autocomplete="current-password">
+        <button id="login-btn" onclick="login()">ACCÉDER AU RÉSEAU</button>
+        <div id="error" class="error">Identifiants incorrects.</div>
+        <div class="link"><a href="/">← Connexion boutique individuelle</a></div>
+    </div>
+    <div class="footer">
+        <a href="/mentions-legales">Mentions légales</a> ·
+        <a href="/cgv">CGV</a> ·
+        <a href="/cgu">CGU</a> ·
+        <a href="/confidentialite">Confidentialité</a>
+    </div>
+    <script>
+        async function login() {
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value;
+            const btn = document.getElementById('login-btn');
+            const err = document.getElementById('error');
+
+            if (!user || !pass) {
+                err.innerText = "Veuillez remplir tous les champs.";
+                err.style.display = 'block';
+                return;
+            }
+
+            btn.innerText = "CONNEXION...";
+            btn.disabled = true;
+            err.style.display = 'none';
+
+            try {
+                const res = await fetch('/auth/login-reseau', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user, pass })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem('nuvy_reseau_id', data.reseauId);
+                    localStorage.setItem('nuvy_reseau_nom', data.nom);
+                    localStorage.setItem('nuvy_reseau_slug', data.slug);
+                    localStorage.setItem('nuvy_reseau_jwt', data.token);
+                    window.location.href = '/reseau-dashboard';
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    err.innerText = data.error || "Identifiants incorrects.";
+                    err.style.display = 'block';
+                    btn.innerText = "ACCÉDER AU RÉSEAU";
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                err.innerText = "Erreur réseau. Réessayez.";
+                err.style.display = 'block';
+                btn.innerText = "ACCÉDER AU RÉSEAU";
+                btn.disabled = false;
+            }
+        }
+        document.addEventListener('keypress', e => {
+            if (e.key === 'Enter') login();
+        });
+    </script>
+</body>
+</html>

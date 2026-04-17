@@ -135,9 +135,14 @@
             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"></i>
             <input type="text" oninput="filtrerBoutiques(this.value)" placeholder="Rechercher une boutique..." class="w-full pl-10 pr-4 h-11 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-nuvy/50 transition-all">
           </div>
-          <button onclick="openModalCreate()" class="h-11 px-5 bg-nuvy hover:bg-nuvy-dark text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 transition-all active:scale-95">
-            <i data-lucide="plus" class="h-4 w-4"></i> Ajouter une boutique
-          </button>
+          <div class="flex gap-2">
+            <button onclick="openModalCreateReseau()" class="h-11 px-5 bg-white border border-nuvy text-nuvy hover:bg-nuvy/5 text-sm font-bold rounded-xl flex items-center gap-2 transition-all active:scale-95">
+              <i data-lucide="layers" class="h-4 w-4"></i> Créer un réseau
+            </button>
+            <button onclick="openModalCreate()" class="h-11 px-5 bg-nuvy hover:bg-nuvy-dark text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 transition-all active:scale-95">
+              <i data-lucide="plus" class="h-4 w-4"></i> Ajouter une boutique
+            </button>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -162,7 +167,7 @@
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
           <table class="w-full min-w-[640px] text-left">
             <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-bold uppercase tracking-wider">
-              <tr><th class="py-4 px-6">Statut</th><th class="py-4 px-6">Boutique</th><th class="py-4 px-6">Plan</th><th class="py-4 px-6 text-right">Inscrit le</th><th class="py-4 px-6 text-right">Actions</th></tr>
+              <tr><th class="py-4 px-6">Statut</th><th class="py-4 px-6">Boutique</th><th class="py-4 px-6">Plan</th><th class="py-4 px-6">Réseau</th><th class="py-4 px-6 text-right">Inscrit le</th><th class="py-4 px-6 text-right">Actions</th></tr>
             </thead>
             <tbody id="fleet-tbody" class="divide-y divide-gray-100"></tbody>
           </table>
@@ -477,7 +482,17 @@
                           <option value="multi-site" ${b.plan==='multi-site'?'selected':''}>Multi-Site</option>
                         </select>
                       </td>
+                    <td class="py-4 px-6">
+                        <select data-boutique-id="${b.id}" onchange="rattacherReseau(${b.id}, this.value)" class="reseau-select bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium outline-none focus:ring-2 focus:ring-nuvy/30 cursor-pointer" data-current="${b.reseau_id || ''}">
+                            <option value="">— Aucun —</option>
+                        </select>
+                    </td>
                     <td class="py-4 px-6 text-right text-sm text-gray-500">${dateCreation}</td>
+<td class="py-4 px-6">
+    <select onchange="rattacherReseau(${b.id}, this.value)" class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-nuvy/30 cursor-pointer">
+        <option value="">— Aucun réseau —</option>
+    </select>
+</td>
                     <td class="py-4 px-6 text-right">
                       <div class="relative inline-block ml-auto">
                         <button onclick="toggleMenu(${b.id})" class="bg-white border border-gray-200 text-nuvy hover:bg-nuvy hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
@@ -501,6 +516,22 @@
                     </td>`;
                 tbody.appendChild(tr);
             });
+
+            // Charger les réseaux dans les selects
+            try {
+                const reseauxRes = await fetch('/admin/reseaux', { headers: { 'x-ceo-key': CEO_KEY } });
+                const reseaux = await reseauxRes.json();
+                document.querySelectorAll('.reseau-select').forEach(select => {
+                    const currentId = select.dataset.current;
+                    reseaux.forEach(r => {
+                        const opt = document.createElement('option');
+                        opt.value = r.id;
+                        opt.text = r.nom;
+                        if (String(currentId) === String(r.id)) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                });
+            } catch (e) { console.error("Erreur chargement réseaux:", e); }
 
             document.getElementById('kpi-total-boutiques').innerText = totalBoutiques;
             document.getElementById('overview-kpi-actives').innerText = countActives;
@@ -930,6 +961,36 @@
                 alert("❌ " + (d.error || "Erreur"));
             }
         } catch (e) { alert("❌ Erreur réseau."); }
+    }
+
+    async function rattacherReseau(boutiqueId, reseauId) {
+        try {
+            await fetch(`/admin/boutique/${boutiqueId}/reseau`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'x-ceo-key': CEO_KEY },
+                body: JSON.stringify({ reseau_id: reseauId || null })
+            });
+        } catch (e) { alert("❌ Erreur rattachement réseau."); }
+    }
+
+    async function openModalCreateReseau() {
+        const nom = prompt("Nom du réseau (ex: Vecchio Forno)");
+        if (!nom) return;
+        const username = prompt("Identifiant super admin (ex: vecchio-forno)");
+        if (!username) return;
+        const password = prompt("Mot de passe super admin (min 8 caractères)");
+        if (!password || password.length < 8) { alert("Mot de passe trop court."); return; }
+        try {
+            const res = await fetch('/admin/create-reseau', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nom, username, password, ceoKey: CEO_KEY })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            alert(`✅ Réseau "${nom}" créé.\n\nLogin : ${username}\nURL : nuvy.pro/reseau-login`);
+            chargerFlotteCommercants();
+        } catch (e) { alert("❌ " + e.message); }
     }
 
     function deconnexion() { window.location.href = '/admin-login'; }

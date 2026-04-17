@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuvy | Dashboard Réseau</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Manrope', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        'nuvy': '#2A8C9C',
+                        'nuvy-dark': '#238391',
+                        'nuvy-bg': '#FAF8F5',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: #FAF8F5; }
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .safe-area-inset-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+    </style>
+</head>
+<body class="font-sans antialiased text-gray-900 min-h-screen">
+
+    <!-- SIDEBAR DESKTOP -->
+    <aside class="hidden lg:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col shadow-sm z-40">
+        <div class="p-6 border-b border-gray-200">
+            <h1 style="font-family: 'Bagel Fat One', cursive;" class="text-3xl text-nuvy leading-none">Nuvy</h1>
+            <p id="reseau-nom" class="text-sm text-gray-500 mt-1 font-bold uppercase tracking-wide truncate">Réseau</p>
+            <span class="inline-block mt-2 text-[10px] font-bold text-nuvy bg-nuvy/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Super admin</span>
+        </div>
+        <nav class="flex-1 p-4 space-y-1">
+            <button onclick="switchView('vue-overview', this)" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium bg-nuvy/10 text-nuvy">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Vue d'ensemble
+            </button>
+            <button onclick="switchView('vue-boutiques', this)" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium text-gray-600 hover:bg-gray-100">
+                <i data-lucide="store" class="w-4 h-4"></i> Mes boutiques
+            </button>
+            <button onclick="switchView('vue-clients', this)" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium text-gray-600 hover:bg-gray-100">
+                <i data-lucide="users" class="w-4 h-4"></i> Clients réseau
+            </button>
+        </nav>
+        <div class="p-4 border-t border-gray-200">
+            <button onclick="deconnexion()" class="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors text-sm font-semibold">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Déconnexion
+            </button>
+        </div>
+    </aside>
+
+    <!-- NAV MOBILE -->
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-area-inset-bottom">
+        <div class="flex items-center justify-around py-2 px-4">
+            <button onclick="switchView('vue-overview', this)" class="nav-btn flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-nuvy">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-xs font-semibold">Vue</span>
+            </button>
+            <button onclick="switchView('vue-boutiques', this)" class="nav-btn flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-500">
+                <i data-lucide="store" class="w-5 h-5"></i>
+                <span class="text-xs font-medium">Boutiques</span>
+            </button>
+            <button onclick="switchView('vue-clients', this)" class="nav-btn flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-500">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                <span class="text-xs font-medium">Clients</span>
+            </button>
+            <button onclick="deconnexion()" class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl text-gray-400">
+                <i data-lucide="log-out" class="w-5 h-5"></i>
+                <span class="text-xs font-medium">Quitter</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- HEADER MOBILE -->
+    <header class="lg:hidden sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
+        <h1 style="font-family: 'Bagel Fat One', cursive;" class="text-2xl text-nuvy leading-none">Nuvy</h1>
+        <p id="reseau-nom-mobile" class="text-xs text-gray-500 font-bold uppercase tracking-wide mt-0.5">Réseau</p>
+    </header>
+
+    <main class="lg:ml-64 p-4 lg:p-8 pb-24 lg:pb-8">
+
+        <!-- VUE 1 : OVERVIEW -->
+        <section id="vue-overview" class="view active max-w-5xl mx-auto space-y-5">
+            <div>
+                <h2 class="text-2xl font-extrabold text-gray-900">Vue d'ensemble</h2>
+                <p class="text-sm text-gray-500 mt-1">Activité consolidée de votre réseau.</p>
+            </div>
+
+            <!-- KPIs -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+                <div class="bg-white rounded-2xl border border-gray-200 p-4 lg:p-5 shadow-sm">
+                    <p class="text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-wider">Boutiques</p>
+                    <p id="kpi-boutiques" class="text-2xl lg:text-3xl font-extrabold text-gray-900 mt-2">—</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-gray-200 p-4 lg:p-5 shadow-sm">
+                    <p class="text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-wider">Clients réseau</p>
+                    <p id="kpi-clients" class="text-2xl lg:text-3xl font-extrabold text-nuvy mt-2">—</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-gray-200 p-4 lg:p-5 shadow-sm">
+                    <p class="text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-wider">Scans 30j</p>
+                    <p id="kpi-scans" class="text-2xl lg:text-3xl font-extrabold text-gray-900 mt-2">—</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-gray-200 p-4 lg:p-5 shadow-sm">
+                    <p class="text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-wider">Actives 7j</p>
+                    <p id="kpi-actives" class="text-2xl lg:text-3xl font-extrabold text-green-600 mt-2">—</p>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-5 lg:p-6 shadow-sm">
+                <h3 class="font-bold text-gray-900 mb-4">Activité réseau (30 jours)</h3>
+                <div class="h-56 lg:h-64"><canvas id="chart-reseau"></canvas></div>
+            </div>
+
+            <!-- Scans par boutique -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-5 lg:p-6 shadow-sm">
+                <h3 class="font-bold text-gray-900 mb-4">Scans par boutique (30 jours)</h3>
+                <div id="scans-par-boutique" class="space-y-3">
+                    <p class="text-sm text-gray-400 text-center py-4">Chargement...</p>
+                </div>
+            </div>
+
+            <!-- Top clients réseau -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-5 lg:p-6 shadow-sm">
+                <h3 class="font-bold text-gray-900 mb-4">Top clients du réseau</h3>
+                <div id="top-clients" class="space-y-2">
+                    <p class="text-sm text-gray-400 text-center py-4">Chargement...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VUE 2 : BOUTIQUES -->
+        <section id="vue-boutiques" class="view max-w-5xl mx-auto space-y-5">
+            <div>
+                <h2 class="text-2xl font-extrabold text-gray-900">Mes boutiques</h2>
+                <p class="text-sm text-gray-500 mt-1">Accédez au dashboard individuel de chaque boutique.</p>
+            </div>
+            <div id="liste-boutiques" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="col-span-full text-sm text-gray-400 text-center py-12">Chargement...</p>
+            </div>
+        </section>
+
+        <!-- VUE 3 : CLIENTS -->
+        <section id="vue-clients" class="view max-w-5xl mx-auto space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-gray-900">Clients réseau</h2>
+                    <p class="text-sm text-gray-500 mt-1">Points cumulés sur toutes les boutiques, dédupliqués par téléphone.</p>
+                </div>
+                <span id="total-clients-tag" class="text-xs font-bold text-nuvy bg-nuvy/10 px-3 py-1.5 rounded-full uppercase tracking-wider self-start sm:self-auto">—</span>
+            </div>
+
+            <!-- Version mobile : cartes -->
+            <div id="clients-mobile" class="lg:hidden space-y-2">
+                <p class="text-sm text-gray-400 text-center py-12">Chargement...</p>
+            </div>
+
+            <!-- Version desktop : table -->
+            <div class="hidden lg:block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="py-3 px-6 text-xs font-bold uppercase text-gray-400 tracking-wider">Rang</th>
+                            <th class="py-3 px-6 text-xs font-bold uppercase text-gray-400 tracking-wider">Client</th>
+                            <th class="py-3 px-6 text-xs font-bold uppercase text-gray-400 tracking-wider">Points réseau</th>
+                            <th class="py-3 px-6 text-xs font-bold uppercase text-gray-400 tracking-wider">Boutiques</th>
+                            <th class="py-3 px-6 text-xs font-bold uppercase text-gray-400 tracking-wider">Dernière visite</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-clients" class="divide-y divide-gray-50">
+                        <tr><td colspan="5" class="py-12 text-center text-gray-400 text-sm">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        const reseauId = localStorage.getItem('nuvy_reseau_id');
+        const reseauNom = localStorage.getItem('nuvy_reseau_nom');
+        const authToken = localStorage.getItem('nuvy_reseau_jwt');
+        const AUTH = { 'Authorization': 'Bearer ' + authToken };
+
+        if (!reseauId || !authToken) {
+            window.location.href = '/reseau-login';
+        }
+
+        // Intercepteur 401 → retour login
+        const _originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            const res = await _originalFetch.apply(this, args);
+            if (res.status === 401) {
+                ['nuvy_reseau_id', 'nuvy_reseau_nom', 'nuvy_reseau_slug', 'nuvy_reseau_jwt'].forEach(k => localStorage.removeItem(k));
+                window.location.href = '/reseau-login';
+            }
+            return res;
+        };
+
+        const nomAffiche = reseauNom || 'Réseau';
+        document.getElementById('reseau-nom').innerText = nomAffiche;
+        const mobileEl = document.getElementById('reseau-nom-mobile');
+        if (mobileEl) mobileEl.innerText = nomAffiche;
+
+        let chartReseau = null;
+        let loadedViews = { overview: false, boutiques: false, clients: false };
+
+        function switchView(viewId, btn) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+
+            // Desktop nav
+            document.querySelectorAll('aside .nav-btn').forEach(b => {
+                b.classList.remove('bg-nuvy/10', 'text-nuvy');
+                b.classList.add('text-gray-600', 'hover:bg-gray-100');
+            });
+            // Mobile nav
+            document.querySelectorAll('nav.lg\\:hidden .nav-btn').forEach(b => {
+                b.classList.remove('text-nuvy');
+                b.classList.add('text-gray-500');
+            });
+
+            if (btn) {
+                if (btn.closest('aside')) {
+                    btn.classList.add('bg-nuvy/10', 'text-nuvy');
+                    btn.classList.remove('text-gray-600', 'hover:bg-gray-100');
+                } else {
+                    btn.classList.add('text-nuvy');
+                    btn.classList.remove('text-gray-500');
+                }
+            }
+
+            // Sync les deux barres de nav par viewId
+            document.querySelectorAll(`[onclick*="${viewId}"]`).forEach(b => {
+                if (b.closest('aside')) {
+                    b.classList.add('bg-nuvy/10', 'text-nuvy');
+                    b.classList.remove('text-gray-600', 'hover:bg-gray-100');
+                } else {
+                    b.classList.add('text-nuvy');
+                    b.classList.remove('text-gray-500');
+                }
+            });
+
+            if (viewId === 'vue-boutiques' && !loadedViews.boutiques) { chargerBoutiques(); loadedViews.boutiques = true; }
+            if (viewId === 'vue-clients' && !loadedViews.clients) { chargerClientsReseau(); loadedViews.clients = true; }
+        }
+
+        async function chargerStats() {
+            try {
+                const res = await fetch(`/reseau/${reseauId}/stats`, { headers: AUTH });
+                if (!res.ok) throw new Error();
+                const s = await res.json();
+
+                document.getElementById('kpi-boutiques').innerText = s.totalBoutiques || 0;
+                document.getElementById('kpi-clients').innerText = (s.totalClients || 0).toLocaleString('fr-FR');
+                document.getElementById('kpi-scans').innerText = (s.totalScans30j || 0).toLocaleString('fr-FR');
+                document.getElementById('kpi-actives').innerText = `${s.boutiquesActives || 0} / ${s.totalBoutiques || 0}`;
+
+                // Graphe 30j
+                const ctx = document.getElementById('chart-reseau');
+                if (ctx) {
+                    if (chartReseau) chartReseau.destroy();
+                    chartReseau = new Chart(ctx.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: s.chartLabels || [],
+                            datasets: [{
+                                data: s.chartData || [],
+                                borderColor: '#2A8C9C',
+                                backgroundColor: 'rgba(42,140,156,0.05)',
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 0,
+                                pointHoverRadius: 4,
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 }, maxTicksLimit: 8 } },
+                                y: { grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 }, stepSize: 1, callback: v => Number.isInteger(v) ? v : '' } }
+                            }
+                        }
+                    });
+                }
+
+                // Scans par boutique
+                const el = document.getElementById('scans-par-boutique');
+                if (!s.scansParBoutique || s.scansParBoutique.length === 0) {
+                    el.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Aucune boutique rattachée.</p>';
+                } else {
+                    const max = s.scansParBoutique[0]?.scans || 1;
+                    el.innerHTML = s.scansParBoutique.map(b => `
+                        <div class="flex items-center gap-3 lg:gap-4">
+                            <span class="text-sm font-semibold text-gray-700 w-28 lg:w-40 truncate">${b.nom}</span>
+                            <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-nuvy rounded-full transition-all duration-500" style="width: ${Math.round((b.scans / max) * 100)}%"></div>
+                            </div>
+                            <span class="text-sm font-bold text-gray-900 w-16 text-right">${b.scans}</span>
+                        </div>
+                    `).join('');
+                }
+
+                // Top clients
+                const topEl = document.getElementById('top-clients');
+                if (!s.topClients || s.topClients.length === 0) {
+                    topEl.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Aucun client pour l\'instant.</p>';
+                } else {
+                    topEl.innerHTML = s.topClients.map((c, i) => {
+                        const badge = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+                        return `
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="text-lg flex-shrink-0">${badge}</span>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-gray-900 truncate">${c.nom}</div>
+                                        <div class="text-xs text-gray-500">${c.boutiques} boutique${c.boutiques > 1 ? 's' : ''} visitée${c.boutiques > 1 ? 's' : ''}</div>
+                                    </div>
+                                </div>
+                                <span class="text-sm font-bold text-nuvy flex-shrink-0 ml-2">${c.total} pts</span>
+                            </div>`;
+                    }).join('');
+                }
+
+            } catch (e) {
+                console.error("Erreur stats:", e);
+            }
+        }
+
+        async function chargerBoutiques() {
+            try {
+                const res = await fetch(`/reseau/${reseauId}/boutiques`, { headers: AUTH });
+                if (!res.ok) throw new Error();
+                const boutiques = await res.json();
+                const el = document.getElementById('liste-boutiques');
+                if (!boutiques || boutiques.length === 0) {
+                    el.innerHTML = '<p class="col-span-full text-sm text-gray-400 text-center py-12">Aucune boutique rattachée à ce réseau.</p>';
+                    return;
+                }
+                el.innerHTML = boutiques.map(b => {
+                    const color = b.color_text || '#2A8C9C';
+                    const plan = b.plan || 'essentiel';
+                    return `
+                        <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-nuvy/30 transition-all flex flex-col">
+                            <div class="flex items-start justify-between mb-3">
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full" style="background: ${color}22; color: ${color}">${plan}</span>
+                            </div>
+                            <h3 class="font-extrabold text-gray-900 text-lg leading-tight">${b.nom}</h3>
+                            <p class="text-sm text-gray-500 mt-1 flex-1 line-clamp-2">${b.adresse || 'Adresse non renseignée'}</p>
+                            <button onclick="loginAsBoutique(${b.id})" class="mt-4 w-full h-10 bg-nuvy hover:bg-nuvy-dark text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                                Accéder au dashboard
+                            </button>
+                        </div>`;
+                }).join('');
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Erreur boutiques:", e);
+            }
+        }
+
+        async function loginAsBoutique(boutiqueId) {
+            try {
+                const res = await fetch('/reseau/login-as-boutique', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...AUTH },
+                    body: JSON.stringify({ boutiqueId, reseauId: parseInt(reseauId) })
+                });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                // On pose les clés que dashboard.html attend
+                localStorage.setItem('nuvy_boutique_id', data.boutiqueId);
+                localStorage.setItem('nuvy_boutique_slug', data.slug);
+                localStorage.setItem('nuvy_boutique_nom', data.nom);
+                localStorage.setItem('nuvy_max_tampons', data.maxTampons);
+                localStorage.setItem('nuvy_jwt', data.token);
+                localStorage.setItem('nuvy_plan', data.plan || 'essentiel');
+                // On préserve les clés réseau pour qu'il puisse revenir
+                window.location.href = '/dashboard';
+            } catch (e) {
+                alert("Impossible d'accéder à cette boutique.");
+            }
+        }
+
+        async function chargerClientsReseau() {
+            try {
+                const res = await fetch(`/reseau/${reseauId}/clients`, { headers: AUTH });
+                if (!res.ok) throw new Error();
+                const clients = await res.json();
+
+                document.getElementById('total-clients-tag').innerText = `${clients.length} client${clients.length > 1 ? 's' : ''}`;
+
+                const tbody = document.getElementById('tbody-clients');
+                const mobile = document.getElementById('clients-mobile');
+
+                if (!clients || clients.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-12 text-center text-gray-400 text-sm">Aucun client pour l\'instant.</td></tr>';
+                    mobile.innerHTML = '<p class="text-sm text-gray-400 text-center py-12">Aucun client pour l\'instant.</p>';
+                    return;
+                }
+
+                // Desktop (table)
+                tbody.innerHTML = clients.map((c, i) => {
+                    const badge = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+                    const date = c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+                    const boutiques = [...new Set(c.boutiques_visitees)];
+                    return `
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="py-3 px-6 text-lg font-bold text-gray-300">${badge}</td>
+                            <td class="py-3 px-6">
+                                <div class="font-bold text-gray-900">${c.nom}</div>
+                                <div class="text-xs text-gray-400">${c.telephone}</div>
+                            </td>
+                            <td class="py-3 px-6 font-bold text-nuvy">${c.total_reseau} pts</td>
+                            <td class="py-3 px-6 text-sm text-gray-500">${boutiques.join(', ')}</td>
+                            <td class="py-3 px-6 text-sm text-gray-500">${date}</td>
+                        </tr>`;
+                }).join('');
+
+                // Mobile (cartes)
+                mobile.innerHTML = clients.map((c, i) => {
+                    const badge = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+                    const date = c.derniere_visite ? new Date(c.derniere_visite).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '—';
+                    const boutiques = [...new Set(c.boutiques_visitees)];
+                    return `
+                        <div class="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-base">${badge}</span>
+                                        <span class="font-extrabold text-gray-900 truncate">${c.nom}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-0.5 ml-7">${c.telephone}</div>
+                                </div>
+                                <span class="text-sm font-bold text-nuvy flex-shrink-0">${c.total_reseau} pts</span>
+                            </div>
+                            <div class="flex justify-between items-end mt-3 pt-3 border-t border-gray-100 text-xs">
+                                <span class="text-gray-500 truncate mr-2">${boutiques.join(', ')}</span>
+                                <span class="text-gray-400 flex-shrink-0">${date}</span>
+                            </div>
+                        </div>`;
+                }).join('');
+            } catch (e) {
+                console.error("Erreur clients:", e);
+            }
+        }
+
+        function deconnexion() {
+            ['nuvy_reseau_id', 'nuvy_reseau_nom', 'nuvy_reseau_slug', 'nuvy_reseau_jwt'].forEach(k => localStorage.removeItem(k));
+            window.location.href = '/reseau-login';
+        }
+
+        // Chargement initial : vue overview
+        chargerStats();
+        loadedViews.overview = true;
+    </script>
+</body>
+</html>
