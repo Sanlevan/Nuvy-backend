@@ -482,7 +482,7 @@ app.get('/nuvy-ceo-portal', (req, res) => {
 // CRÉER UNE BOUTIQUE
 app.post('/admin/create-boutique', async (req, res) => {
     try {
-        const { nom, username, password, ceoKey, categorie, logo_url, max_tampons } = req.body;
+        const { nom, username, password, ceoKey, categorie, logo_url, max_tampons, plan } = req.body;
         
         // 🛡️ CORRECTION ICI
         if (ceoKey !== MASTER_CEO_KEY) return res.status(403).json({ message: "Clé CEO invalide." });
@@ -494,9 +494,13 @@ app.post('/admin/create-boutique', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const finalExpiration = parseInt(req.body.expiration_jours) || 0;
+        const plansValides = ['essentiel', 'pro', 'multi-site'];
+        const finalPlan = plansValides.includes(plan) ? plan : 'essentiel';
+
         const { data, error } = await supabase.from('boutiques').insert([{ 
             nom, slug, username, password: hashedPassword, categorie, logo_url, join_url, 
-            color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons, expiration_jours: finalExpiration
+            color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons, expiration_jours: finalExpiration,
+            plan: finalPlan
         }]).select().single();
         
         if (error) throw error;
