@@ -488,11 +488,6 @@
                         </select>
                     </td>
                     <td class="py-4 px-6 text-right text-sm text-gray-500">${dateCreation}</td>
-<td class="py-4 px-6">
-    <select onchange="rattacherReseau(${b.id}, this.value)" class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-nuvy/30 cursor-pointer">
-        <option value="">— Aucun réseau —</option>
-    </select>
-</td>
                     <td class="py-4 px-6 text-right">
                       <div class="relative inline-block ml-auto">
                         <button onclick="toggleMenu(${b.id})" class="bg-white border border-gray-200 text-nuvy hover:bg-nuvy hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
@@ -965,12 +960,18 @@
 
     async function rattacherReseau(boutiqueId, reseauId) {
         try {
-            await fetch(`/admin/boutique/${boutiqueId}/reseau`, {
+            const res = await fetch(`/admin/boutique/${boutiqueId}/reseau`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-ceo-key': CEO_KEY },
                 body: JSON.stringify({ reseau_id: reseauId || null })
             });
-        } catch (e) { alert("❌ Erreur rattachement réseau."); }
+            if (!res.ok) throw new Error("Erreur serveur");
+            const data = await res.json();
+            console.log("✅ Rattachement OK:", data);
+        } catch (e) { 
+            alert("❌ Erreur rattachement réseau.");
+            chargerFlotteCommercants(); // resync l'UI si ça a foiré
+        }
     }
 
     async function openModalCreateReseau() {
