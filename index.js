@@ -1,5 +1,7 @@
 const { logger, jwt, MASTER_CEO_KEY, JWT_SECRET, googleCredentials, GOOGLE_ISSUER_ID, supabase, STEREOTYPES, SYMBOLS, PLAN_LIMITS } = require('./config');
 const { generatePassBuffer, refreshAllPasses, sendPushToDevices } = require('./services/applePass');
+const { generateGoogleWalletLink, updateGoogleWalletPass, pushMessageToAllGoogleCards } = require('./services/googleWallet');
+const adminRouter = require('./routes/admin');
 const express = require('express');
 const { PKPass } = require('passkit-generator');
 const apn = require('@parse/node-apn');
@@ -20,6 +22,7 @@ const io = new Server(server, { cors: { origin: ["https://nuvy.pro", "https://nu
 
 app.use(express.json());
 app.use(express.static('public'));
+app.use('/admin', adminRouter);
 
 const limiterStrict = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -32,173 +35,7 @@ const limiterLogin = rateLimit({
     message: { error: "Trop de tentatives. Réessayez dans 15 minutes." }
 });
 
-// 🤖 GÉNÉRATEUR DE CARTE GOOGLE WALLET
-function generateGoogleWalletLink(client, boutique) {
-    const classId = `${GOOGLE_ISSUER_ID}.${boutique.slug}`;
-    const objectId = `${GOOGLE_ISSUER_ID}.${client.id}`;
-    const maxT = boutique.max_tampons || 10;
-    const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
 
-    const GOOGLE_COLORS = {
-        default:     "#2A8C9C",
-        boulangerie: "#8B4513",
-        pizza:       "#CD5C5C",
-        onglerie:    "#C71585",
-        coiffeur:    "#191970",
-        cafe:        "#4B3621"
-    };
-    const bgColor = GOOGLE_COLORS[boutique.categorie] || GOOGLE_COLORS.default;
-
-    const defaultSymbols = SYMBOLS[boutique.categorie] || SYMBOLS.default;
-    const symbolePlein = boutique.emoji_full || defaultSymbols.full || "⭐";
-    const symboleVide = boutique.emoji_empty || defaultSymbols.empty || "⚪";
-    let fideliteTexte = "";
-    for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
-
-    // Rang du client
-    const rang = client._rang || 1;
-    const suffixe = rang === 1 ? "er" : "ème";
-
-    // Modules texte détaillés
-    const textModules = [];
-    textModules.push({ header: "Votre fidélité", body: fideliteTexte, id: "fidelite" });
-    textModules.push({ header: "Classement", body: `${rang}${suffixe} meilleur client 🏆`, id: "rang" });
-    if ((client.recompenses || 0) > 0) {
-        textModules.push({ header: "Cadeaux disponibles 🎁", body: `${client.recompenses} cadeau${client.recompenses > 1 ? 'x' : ''} à récupérer !`, id: "cadeaux" });
-    }
-    if (boutique.adresse) {
-        textModules.push({ header: "Adresse", body: boutique.adresse, id: "adresse" });
-    }
-    if (boutique.telephone) {
-        textModules.push({ header: "Contact", body: boutique.telephone, id: "telephone" });
-    }
-
-    const payload = {
-        iss: googleCredentials.client_email,
-        aud: 'google',
-        typ: 'savetowallet',
-        origins: [],
-        payload: {
-            loyaltyClasses: [{
-                id: classId,
-                issuerName: "Nuvy",
-                programName: boutique.nom || "Fidélité",
-                programLogo: boutique.logo_url ? { sourceUri: { uri: boutique.logo_url } } : undefined,
-                reviewStatus: "APPROVED",
-                hexBackgroundColor: bgColor,
-                localizedIssuerName: { defaultValue: { language: "fr", value: boutique.nom || "Nuvy" } },
-                locations: boutique.latitude && boutique.longitude ? [{ latitude: parseFloat(boutique.latitude), longitude: parseFloat(boutique.longitude) }] : [],
-                linksModuleData: {
-                    uris: [
-                        {
-                            uri: `https://nuvy.pro/join/${boutique.slug}`,
-                            description: "Carte de fidélité",
-                            id: "link-fidelite"
-                        },
-                        ...(boutique.google_review_url ? [{
-                            uri: boutique.google_review_url,
-                            description: "⭐ Laisser un avis Google",
-                            id: "link-avis"
-                        }] : []),
-                        {
-                            uri: `https://nuvy.pro/mon-compte/${client.token}`,
-                            description: "Mon espace Nuvy",
-                            id: "link-compte"
-                        }
-                    ]
-                },
-                secondaryLoyaltyPoints: {
-                    label: "Cadeaux 🎁",
-                    balance: { int: client.recompenses || 0 }
-                }
-            }],
-            loyaltyObjects: [{
-                id: objectId,
-                classId: classId,
-                state: "ACTIVE",
-                accountId: client.id.toString(),
-                accountName: `${client.nom} — ${rang}${suffixe} meilleur client`,
-                header: { defaultValue: { language: "fr", value: `Bonjour ${prenom} ! 👋` } },
-                loyaltyPoints: {
-                    label: "Tampons",
-                    balance: { string: fideliteTexte }
-                },
-                textModulesData: textModules
-            }]
-        }
-    };
-
-    const token = jwt.sign(payload, googleCredentials.private_key, { algorithm: 'RS256' });
-    return `https://pay.google.com/gp/v/save/${token}`;
-}
-
-// 🔄 MISE À JOUR EN TEMPS RÉEL (GOOGLE WALLET REST API)
-async function updateGoogleWalletPass(client) {
-    if (!googleCredentials) return;
-    
-    try {
-        const objectId = `${GOOGLE_ISSUER_ID}.${client.id}`;
-        
-        // 1. Récupérer les infos boutique pour les emojis
-        const { data: boutique } = await supabase.from('boutiques').select('max_tampons, categorie, emoji_full, emoji_empty').eq('id', client.boutique_id).single();
-        const maxT = boutique?.max_tampons || 10;
-        const prenom = client.nom ? client.nom.split(' ')[0] : 'Client';
-        
-        // Barre de fidélité
-        const defaultSymbols = SYMBOLS[boutique?.categorie] || SYMBOLS.default;
-        const symbolePlein = boutique?.emoji_full || defaultSymbols.full || "⭐";
-        const symboleVide = boutique?.emoji_empty || defaultSymbols.empty || "⚪";
-        let fideliteTexte = "";
-        for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (client.tampons || 0)) ? symbolePlein : symboleVide; }
-
-        // Messages mis à jour
-        const messages = [{
-            header: `Bonjour ${prenom} ! 👋`,
-            body: fideliteTexte,
-            id: "fidelite"
-        }];
-        if ((client.recompenses || 0) > 0) {
-            messages.push({
-                header: "Cadeaux disponibles 🎁",
-                body: `${client.recompenses} cadeau${client.recompenses > 1 ? 'x' : ''} à récupérer !`,
-                id: "cadeaux"
-            });
-        }
-
-        // 2. Auth Google
-        const authClaim = {
-            iss: googleCredentials.client_email,
-            scope: "https://www.googleapis.com/auth/wallet_object.issuer",
-            aud: "https://oauth2.googleapis.com/token",
-            exp: Math.floor(Date.now() / 1000) + 3600,
-            iat: Math.floor(Date.now() / 1000)
-        };
-        const authToken = jwt.sign(authClaim, googleCredentials.private_key, { algorithm: 'RS256' });
-        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: authToken })
-        });
-        const { access_token } = await tokenRes.json();
-
-        // 3. Mise à jour complète
-        await fetch(`https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${objectId}`, {
-            method: 'PATCH',
-            headers: { 
-                'Authorization': `Bearer ${access_token}`, 
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify({
-                loyaltyPoints: { label: "Tampons", balance: { string: `${client.tampons || 0} / ${maxT}` } },
-                textModulesData: messages
-            })
-        });
-        
-        console.log(`✅ [GOOGLE WALLET] Carte mise à jour pour ${client.nom} (${client.tampons} pts)`);
-    } catch (e) {
-        console.error("⚠️ [GOOGLE WALLET] Erreur de synchronisation:", e.message);
-    }
-}
 // ==========================================
 // 🛡️ UTILITAIRES DE VALIDATION
 // ==========================================
@@ -252,34 +89,7 @@ app.get('/nuvy-ceo-portal', (req, res) => {
 // API CEO & COMMERÇANT
 // ==========================================
 
-// CRÉER UNE BOUTIQUE
-app.post('/admin/create-boutique', async (req, res) => {
-    try {
-        const { nom, username, password, ceoKey, categorie, logo_url, max_tampons, plan } = req.body;
-        
-        // 🛡️ CORRECTION ICI
-        if (ceoKey !== MASTER_CEO_KEY) return res.status(403).json({ message: "Clé CEO invalide." });
-        
-        const slug = nom.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '');
-        const da = STEREOTYPES[categorie] || STEREOTYPES.default;
-        const join_url = `nuvy.pro/tap/${slug}`;
-        const finalMaxTampons = parseInt(max_tampons) || 10;
-        const hashedPassword = await bcrypt.hash(password, 10);
 
-        const finalExpiration = parseInt(req.body.expiration_jours) || 0;
-        const plansValides = ['essentiel', 'pro', 'multi-site'];
-        const finalPlan = plansValides.includes(plan) ? plan : 'essentiel';
-
-        const { data, error } = await supabase.from('boutiques').insert([{ 
-            nom, slug, username, password: hashedPassword, categorie, logo_url, join_url, 
-            color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons, expiration_jours: finalExpiration,
-            plan: finalPlan
-        }]).select().single();
-        
-        if (error) throw error;
-        res.json({ success: true, boutique: data });
-    } catch (e) { res.status(400).json({ message: e.message }); }
-});
 app.post('/auth/login', limiterLogin, async (req, res) => {
     const { user, pass } = req.body;
     
@@ -338,150 +148,34 @@ app.post('/auth/change-password', verifyAuth, async (req, res) => {
         res.status(500).json({ error: "Erreur lors du changement de mot de passe." });
     }
 });
-// 🛡️ ROUTE DE SECOURS CEO : RÉINITIALISATION FORCEE
-app.post('/admin/force-reset-password', async (req, res) => {
-    const { boutiqueId, newPassword, ceoKey } = req.body;
-
-    // 1. Vérification de ta clé secrète
-    if (ceoKey !== MASTER_CEO_KEY) {
-        return res.status(403).json({ message: "Accès refusé. Clé CEO invalide." });
-    }
-
-    try {
-        // 2. On hache le nouveau mot de passe
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-        // 3. On écrase l'ancien en base
-        const { error } = await supabase
-            .from('boutiques')
-            .update({ password: hashedPassword })
-            .eq('id', boutiqueId);
-
-        if (error) throw error;
-        res.json({ success: true, message: "Mot de passe réinitialisé avec succès." });
-    } catch (e) {
-        res.status(500).json({ message: "Erreur lors de la réinitialisation." });
-    }
-});
-// CEO : SE CONNECTER AU DASHBOARD D'UNE BOUTIQUE
-app.post('/admin/login-as', async (req, res) => {
-    const { boutiqueId, ceoKey } = req.body;
-    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
-    
-    const { data: boutique, error } = await supabase.from('boutiques').select('id, slug, nom, max_tampons').eq('id', boutiqueId).single();
-    if (error || !boutique) return res.status(404).json({ error: "Boutique introuvable" });
-    
-    const authToken = jwt.sign(
-        { boutiqueId: boutique.id, slug: boutique.slug, nom: boutique.nom },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-    );
-    
-    res.json({
-        boutiqueId: boutique.id,
-        slug: boutique.slug,
-        nom: boutique.nom,
-        maxTampons: boutique.max_tampons,
-        token: authToken
-    });
-});
-
-// CEO : SUPPRIMER UNE BOUTIQUE
-app.delete('/admin/boutique/:id', async (req, res) => {
-    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
-    
-    try {
-        const boutiqueId = req.params.id;
-        
-        // Supprimer dans l'ordre : devices → visites → clients → boutique
-        const { data: clients } = await supabase.from('clients').select('serial_number').eq('boutique_id', boutiqueId);
-        if (clients && clients.length > 0) {
-            const serials = clients.map(c => c.serial_number).filter(Boolean);
-            if (serials.length > 0) await supabase.from('devices').delete().in('serial_number', serials);
-        }
-        await supabase.from('visites').delete().eq('boutique_id', boutiqueId);
-        await supabase.from('clients').delete().eq('boutique_id', boutiqueId);
-        const { error } = await supabase.from('boutiques').delete().eq('id', boutiqueId);
-        if (error) throw error;
-        
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: "Erreur lors de la suppression : " + e.message });
-    }
-});
-
-// CEO : EXPORT CSV DE TOUTES LES DONNÉES
-app.get('/admin/export-csv', async (req, res) => {
-    if (req.query.key !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
-    
-    try {
-        const { data: boutiques } = await supabase.from('boutiques').select('id, nom, slug, categorie, created_at');
-        const { data: clients } = await supabase.from('clients').select('id, nom, telephone, tampons, recompenses, total_historique, boutique_id, device_type, created_at');
-        
-        // Créer un index boutique
-        const boutiqueMap = {};
-        boutiques?.forEach(b => { boutiqueMap[b.id] = b.nom; });
-        
-        // Header CSV
-        let csv = 'Boutique,Nom Client,Téléphone,Tampons,Récompenses,Points Totaux,Appareil,Inscrit le\n';
-        
-        clients?.forEach(c => {
-            const boutNom = (boutiqueMap[c.boutique_id] || 'Inconnue').replace(/,/g, ' ');
-            const nom = (c.nom || '').replace(/,/g, ' ');
-            const tel = (c.telephone || '').replace(/,/g, ' ');
-            const date = new Date(c.created_at).toLocaleDateString('fr-FR');
-            csv += `${boutNom},${nom},${tel},${c.tampons || 0},${c.recompenses || 0},${c.total_historique || 0},${c.device_type || 'inconnu'},${date}\n`;
-        });
-        
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename=nuvy-export-' + new Date().toISOString().split('T')[0] + '.csv');
-        res.send('\uFEFF' + csv); // BOM pour Excel
-    } catch (e) {
-        res.status(500).send("Erreur export : " + e.message);
-    }
-});
 
 // NOTIFICATION PUSH MARKETING (COMMERÇANT)
 app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) => {
     const allowed = await requireFeature(req, res, 'push_notifications');
     if (allowed !== true) return; // La réponse 403 a déjà été envoyée
+    
     const { message } = req.body;
     if (!message || message.trim() === '') return res.status(400).json({ error: "Message vide." });
     
     try {
-        // 1. Récupérer tous les devices de cette boutique
-        const { data: clients } = await supabase.from('clients').select('serial_number').eq('boutique_id', req.params.id);
-        if (!clients || clients.length === 0) return res.json({ sent: 0 });
-        
-        const serials = clients.map(c => c.serial_number).filter(Boolean);
-        const { data: devices } = await supabase.from('devices').select('push_token').in('serial_number', serials);
-        
-        if (!devices || devices.length === 0) return res.json({ sent: 0, message: "Aucun appareil Apple enregistré." });
-        
-        // 2. Envoyer la notification push Apple
-        const p8Key = process.env.APN_KEY ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8') : fs.readFileSync(path.resolve(__dirname, 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
-        const provider = new apn.Provider({ token: { key: p8Key, keyId: process.env.APPLE_KEY_ID || 'RM6P22PX7A', teamId: process.env.APPLE_TEAM_ID || 'Q762BTBA98' }, production: true });
-        
-        // 1.5 Sauvegarder le message sur la boutique AVANT d'envoyer le push
-        // (comme ça, quand l'iPhone rappelle le serveur, la carte contiendra le message)
+        // 1. Sauvegarder le message sur la boutique AVANT d'envoyer le push
         await supabase.from('boutiques').update({ 
             last_push_message: message, 
             last_push_date: new Date().toISOString() 
         }).eq('id', req.params.id);
 
-        // 2. Envoyer le push avec un payload (sinon Apple ignore)
-        const notification = new apn.Notification();
-        notification.topic = 'pass.pro.nuvy.loyalty';
-        notification.payload = { action: "update_pass" };
-        
+        // 2. Récupérer les clients et envoyer le push Apple via le NOUVEAU service
+        const { data: clients } = await supabase.from('clients').select('serial_number').eq('boutique_id', req.params.id);
         let sent = 0;
-        for (const d of devices) {
-            try {
-                await provider.send(notification, d.push_token);
-                sent++;
-            } catch (e) { console.error("Push error:", e.message); }
+        let total = 0;
+
+        if (clients && clients.length > 0) {
+            const serials = clients.map(c => c.serial_number).filter(Boolean);
+            // On utilise la fonction sendPushToDevices que tu as importée à l'étape 2
+            const pushResult = await sendPushToDevices(serials);
+            sent = pushResult.sent || 0;
+            total = pushResult.total || 0;
         }
-        provider.shutdown();
         
         // 3. Sauvegarder la notification en base
         await supabase.from('notifications').insert([{
@@ -491,114 +185,20 @@ app.post('/boutiques/:id/push-notification', verifyAuthOwner, async (req, res) =
             created_at: new Date().toISOString()
         }]);
         
-        // 4. Mise à jour des cartes Google Wallet (clients Android)
+        // 4. Mise à jour des cartes Google Wallet via le NOUVEAU service
         let googleUpdated = 0;
         if (googleCredentials) {
-            try {
-                const { data: allClients } = await supabase.from('clients').select('id, nom, tampons, recompenses, boutique_id').eq('boutique_id', req.params.id);
-                if (allClients && allClients.length > 0) {
-                    const { data: bout } = await supabase.from('boutiques').select('max_tampons, categorie, emoji_full, emoji_empty').eq('id', req.params.id).single();
-                    const maxT = bout?.max_tampons || 10;
+            googleUpdated = await pushMessageToAllGoogleCards(req.params.id, message);
+        } // <-- Le bug était ici, il n'y a plus qu'une seule accolade maintenant !
 
-                    const authClaim = {
-                        iss: googleCredentials.client_email,
-                        scope: "https://www.googleapis.com/auth/wallet_object.issuer",
-                        aud: "https://oauth2.googleapis.com/token",
-                        exp: Math.floor(Date.now() / 1000) + 3600,
-                        iat: Math.floor(Date.now() / 1000)
-                    };
-                    const authToken = jwt.sign(authClaim, googleCredentials.private_key, { algorithm: 'RS256' });
-                    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: authToken })
-                    });
-                    const { access_token } = await tokenRes.json();
-
-                    for (const c of allClients) {
-                        try {
-                            const objectId = `${GOOGLE_ISSUER_ID}.${c.id}`;
-                            const prenom = c.nom ? c.nom.split(' ')[0] : 'Client';
-                            const defaultSymbols = SYMBOLS[bout?.categorie] || SYMBOLS.default;
-                            const symbolePlein = bout?.emoji_full || defaultSymbols.full || "⭐";
-                            const symboleVide = bout?.emoji_empty || defaultSymbols.empty || "⚪";
-                            let fideliteTexte = "";
-                            for (let i = 0; i < maxT; i++) { fideliteTexte += (i < (c.tampons || 0)) ? symbolePlein : symboleVide; }
-
-                            const msgs = [
-                                { header: `Bonjour ${prenom} ! 👋`, body: fideliteTexte, id: "fidelite" },
-                                { header: "📢 Message de la boutique", body: message, id: "promo" }
-                            ];
-                            if ((c.recompenses || 0) > 0) {
-                                msgs.push({ header: "Cadeaux disponibles 🎁", body: `${c.recompenses} cadeau${c.recompenses > 1 ? 'x' : ''} à récupérer !`, id: "cadeaux" });
-                            }
-
-                            await fetch(`https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${objectId}`, {
-                                method: 'PATCH',
-                                headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ textModulesData: msgs })
-                            });
-                            googleUpdated++;
-                        } catch (e) { /* objet inexistant = client n'a jamais ajouté la carte */ }
-                    }
-                }
-            } catch (e) { console.error("⚠️ [GOOGLE PUSH] Erreur:", e.message); }
-        }
-
-        res.json({ sent, total: devices.length, googleUpdated });
+        res.json({ sent, total: total, googleUpdated });
+        
     } catch (e) {
         console.error("Erreur push:", e);
         res.status(500).json({ error: "Erreur lors de l'envoi." });
     }
 });
 
-// VOIR TOUTES LES BOUTIQUES (AVEC INTELLIGENCE DES STATUTS)
-app.get('/admin/boutiques', async (req, res) => {
-    const ceoKey = req.headers['x-ceo-key'];
-    if (ceoKey !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
-
-    try {
-        // 1. Récupérer toutes les boutiques
-        const { data: boutiques, error } = await supabase.from('boutiques').select('id, nom, username, slug, plan, created_at, reseau_id');
-        if (error) throw error;
-
-        // 2. Analyse temporelle : Qui a scanné récemment ?
-        const septJours = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const trenteJours = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-        // On interroge la table des visites en parallèle pour aller très vite
-        const [visites7j, visites30j] = await Promise.all([
-            supabase.from('visites').select('boutique_id').gte('created_at', septJours),
-            supabase.from('visites').select('boutique_id').gte('created_at', trenteJours)
-        ]);
-
-        // On crée des "Sets" (listes uniques) pour trier ultra-rapidement
-        const actives7jIds = new Set(visites7j.data?.map(v => v.boutique_id) || []);
-        const actives30jIds = new Set(visites30j.data?.map(v => v.boutique_id) || []);
-
-        // 3. Jugement de chaque boutique
-        const boutiquesAnalysees = boutiques.map(b => {
-            let statut = 'inactif'; // Pire scénario par défaut
-            
-            if (actives7jIds.has(b.id)) {
-                statut = 'actif'; // Scan récent = tout va bien
-            } else if (actives30jIds.has(b.id)) {
-                statut = 'attention'; // Actif ce mois-ci, mais rien cette semaine = Churn Risk
-            } else {
-                // Tolérance "Cold Start" : Créée il y a moins de 7 jours = Attention, pas Inactif
-                if (new Date(b.created_at) > new Date(septJours)) {
-                    statut = 'attention';
-                }
-            }
-            return { ...b, statut }; // On fusionne les données de la boutique avec son nouveau statut
-        });
-
-        res.json(boutiquesAnalysees);
-    } catch (error) {
-        console.error("Erreur API Boutiques:", error);
-        res.status(500).json({ error: "Erreur lors de l'analyse de la flotte" });
-    }
-});
 
 app.get('/boutiques/:id/clients', verifyAuthOwner, async (req, res) => {
     const { data, error } = await supabase.from('clients').select('*').eq('boutique_id', req.params.id).order('last_visit', { ascending: false });
@@ -737,17 +337,6 @@ app.put('/boutiques/:id', verifyAuthOwner, async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 });
-
-app.put('/admin/boutique/:id/plan', async (req, res) => {
-    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
-    const { plan } = req.body;
-    const plansValides = ['essentiel', 'pro', 'multi-site'];
-    if (!plansValides.includes(plan)) return res.status(400).json({ error: "Plan invalide." });
-    const { data, error } = await supabase.from('boutiques').update({ plan }).eq('id', req.params.id).select('id, nom, plan').single();
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
-});
-
 
 // 1. GET — récupérer les paramètres visuels actuels
 app.get('/boutiques/:id/appearance', verifyAuthOwner, async (req, res) => {
@@ -895,49 +484,6 @@ app.patch('/boutiques/:id/emojis', verifyAuthOwner, async (req, res) => {
 
         refreshAllPasses(req.params.id);
         res.json({ success: true, message: "Emojis mis à jour. Vos clients recevront la mise à jour dans quelques instants." });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// GET couleurs actuelles (CEO)
-app.get('/admin/boutique/:id/appearance-current', async (req, res) => {
-    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).json({ error: "Accès refusé" });
-    try {
-        const { data, error } = await supabase
-            .from('boutiques')
-            .select('color_bg, color_text, color_label, categorie')
-            .eq('id', req.params.id)
-            .single();
-        if (error) throw error;
-        const defaults = STEREOTYPES[data.categorie] || STEREOTYPES.default;
-        res.json({
-            color_bg: data.color_bg || defaults.bg,
-            color_text: data.color_text || defaults.text,
-            color_label: data.color_label || defaults.label
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// 5. PATCH — override CEO (couleurs + toggle strip pour n'importe quelle boutique)
-app.patch('/admin/boutique/:id/appearance', async (req, res) => {
-    if (req.body.ceoKey !== MASTER_CEO_KEY && req.headers['x-ceo-key'] !== MASTER_CEO_KEY) {
-        return res.status(403).json({ error: "Clé CEO invalide." });
-    }
-    try {
-        const { color_bg, color_text, color_label, strip_enabled } = req.body;
-        const update = {};
-        if (color_bg !== undefined) update.color_bg = color_bg;
-        if (color_text !== undefined) update.color_text = color_text;
-        if (color_label !== undefined) update.color_label = color_label;
-        if (strip_enabled !== undefined) update.strip_enabled = !!strip_enabled;
-
-        const { error } = await supabase.from('boutiques').update(update).eq('id', req.params.id);
-        if (error) throw error;
-        refreshAllPasses(req.params.id);
-        res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -1354,155 +900,6 @@ app.get('/boutiques/:id/stats', verifyAuthOwner, async (req, res) => {
         const caParTampon = tamponsMois * valeurTampon;
 
         res.json({ avgFrequency, peakHours, distribution, evolutionLabels, evolutionData, totalClients: allClients?.length || 0, roi: { visitesCount, tamponsMois, panierMoyen, valeurTampon, roiMode, caParPanier, caParTampon } });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-app.get('/admin/global-stats', async (req, res) => {
-    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
-    try {
-        const trenteJours = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        const septJours  = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000).toISOString();
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-
-        const [
-            { data: visites30j },
-            { count: totalClients },
-            { data: visitesAujourd },
-            { data: boutiques },
-            { data: devices },
-        ] = await Promise.all([
-            supabase.from('visites').select('created_at, client_id, boutique_id').gte('created_at', trenteJours),
-            supabase.from('clients').select('*', { count: 'exact', head: true }),
-            supabase.from('visites').select('id').gte('created_at', today.toISOString()),
-            supabase.from('boutiques').select('id, categorie, adresse'),
-            supabase.from('devices').select('serial_number'),
-        ]);
-
-        // --- Scans par jour (30j pour le graphique principal) ---
-        const scansParJour = {};
-        for (let i = 29; i >= 0; i--) {
-            const d = new Date(Date.now() - i * 86400000);
-            scansParJour[d.toISOString().split('T')[0]] = 0;
-        }
-        visites30j?.forEach(v => { const j = v.created_at.split('T')[0]; if (scansParJour[j] !== undefined) scansParJour[j]++; });
-
-        // --- Scans par jour de semaine (Lun–Dim) ---
-        const joursLabels = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-        const scansParSemaine = Array(7).fill(0);
-        visites30j?.forEach(v => { scansParSemaine[new Date(v.created_at).getDay()]++; });
-        const weeklyData = joursLabels.map((day, i) => ({ day, scans: scansParSemaine[i] }));
-        const weeklyOrdered = [...weeklyData.slice(1), weeklyData[0]];
-
-        // --- Utilisateurs uniques 30j ---
-        const uniqueUsers30j = new Set(visites30j?.map(v => v.client_id)).size;
-
-        // --- Cartes Apple Wallet ---
-        const cartesWallet = new Set(devices?.map(d => d.serial_number)).size;
-
-        // --- Taux de rétention ---
-        const comptageParClient = {};
-        visites30j?.forEach(v => { comptageParClient[v.client_id] = (comptageParClient[v.client_id] || 0) + 1; });
-        const clientsFideles = Object.values(comptageParClient).filter(n => n > 1).length;
-        const totalVisiteurs = Object.keys(comptageParClient).length;
-        const tauxRetention = totalVisiteurs > 0 ? Math.round((clientsFideles / totalVisiteurs) * 100) : 0;
-
-        // --- Health Score ---
-        const totalBoutiques = boutiques?.length || 0;
-        const { data: actives7j } = await supabase.from('visites').select('boutique_id').gte('created_at', septJours);
-        const activesIds = new Set(actives7j?.map(v => v.boutique_id) || []);
-        const healthScore = totalBoutiques > 0 ? Math.round((activesIds.size / totalBoutiques) * 100) : 0;
-
-        // --- Secteurs ---
-        const secteurs = {};
-        boutiques?.forEach(b => { const c = b.categorie || 'default'; secteurs[c] = (secteurs[c] || 0) + 1; });
-
-        // --- Répartition appareils ---
-        const { data: deviceTypes } = await supabase.from('clients').select('device_type');
-        const totalD = deviceTypes?.length || 1;
-        const iosCount     = deviceTypes?.filter(c => c.device_type === 'ios').length     || 0;
-        const androidCount = deviceTypes?.filter(c => c.device_type === 'android').length || 0;
-        const otherCount   = deviceTypes?.filter(c => !c.device_type || c.device_type === 'other').length || 0;
-        const deviceData = {
-            iphone:  Math.round((iosCount     / totalD) * 100),
-            android: Math.round((androidCount / totalD) * 100),
-            autre:   Math.round((otherCount   / totalD) * 100),
-        };
-
-        // --- Top 5 Villes ---
-        const villeScans = {};
-        const boutiqueVille = {};
-        boutiques?.forEach(b => {
-            if (b.adresse) {
-                const parts = b.adresse.split(',');
-                let cityRaw = parts[parts.length - 1].trim();
-                
-                // Si la dernière partie est "France", on prend la partie d'avant
-                if (cityRaw.toLowerCase().includes('france') && parts.length > 1) {
-                    cityRaw = parts[parts.length - 2].trim();
-                }
-                
-                cityRaw = cityRaw.replace(/^\d{5}\s*/, '').trim();
-                if (cityRaw) boutiqueVille[b.id] = cityRaw;
-            }
-        });
-        
-        visites30j?.forEach(v => {
-            const ville = boutiqueVille[v.boutique_id];
-            if (ville) villeScans[ville] = (villeScans[ville] || 0) + 1;
-        });
-        
-        const totalScansVilles = Object.values(villeScans).reduce((a, b) => a + b, 0) || 1;
-        const topVilles = Object.entries(villeScans)
-            .sort((a, b) => b[1] - a[1]).slice(0, 5)
-            .map(([city, scans]) => ({ city, scans, percentage: Math.round((scans / totalScansVilles) * 100) }));
-
-        // 🚨 C'EST CETTE PARTIE QUI AVAIT DÛ ÊTRE EFFACÉE ! 🚨
-        res.json({
-            scansAujourdhui: visitesAujourd?.length || 0,
-            scans30j: visites30j?.length || 0,
-            totalClients: totalClients || 0,
-            uniqueUsers30j,
-            cartesWallet,
-            tauxRetention,
-            healthScore,
-            secteurs,
-            deviceData,
-            weeklyData: weeklyOrdered,
-            topVilles,
-            chartLabels: Object.keys(scansParJour).map(d => d.slice(5)),
-            chartData: Object.values(scansParJour),
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-app.get('/admin/radar', async (req, res) => {
-    if (req.headers['x-ceo-key'] !== MASTER_CEO_KEY) return res.status(403).send("Accès refusé");
-    try {
-        const sept = new Date(Date.now() - 7 * 86400000).toISOString();
-        const trente = new Date(Date.now() - 30 * 86400000).toISOString();
-
-        const [{ data: boutiques }, { data: v7j }, { data: v30j }] = await Promise.all([
-            supabase.from('boutiques').select('id, nom'),
-            supabase.from('visites').select('boutique_id').gte('created_at', sept),
-            supabase.from('visites').select('boutique_id').gte('created_at', trente)
-        ]);
-
-        const ids7j = new Set(v7j?.map(v => v.boutique_id));
-        const compte7j = {};
-        v7j?.forEach(v => { compte7j[v.boutique_id] = (compte7j[v.boutique_id] || 0) + 1; });
-
-        const churn = boutiques?.filter(b => !ids7j.has(b.id) && v30j?.some(v => v.boutique_id === b.id)) || [];
-        const top = boutiques
-            ?.filter(b => ids7j.has(b.id))
-            .map(b => ({ ...b, scans: compte7j[b.id] || 0 }))
-            .sort((a, b) => b.scans - a.scans)
-            .slice(0, 5) || [];
-
-        res.json({ churn, top });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
