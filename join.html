@@ -5,50 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Votre Carte de Fidélité</title>
     <link rel="icon" type="image/png" href="/favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Manrope', sans-serif; background: #FAF8F5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-        .onboarding-card { background: white; padding: 45px 35px; border-radius: 35px; text-align: center; max-width: 400px; width: 100%; border: 1px solid #E0DEDA; box-shadow: 0 15px 35px rgba(0,0,0,0.03); }
+        .onboarding-card { background: white; padding: 45px 35px; border-radius: 35px; text-align: center; max-width: 400px; width: 100%; border: 1px solid #E0DEDA; box-shadow: 0 15px 35px rgba(0,0,0,0.03); transition: background 0.3s; }
         .cobranding { font-weight: 800; font-size: 18px; margin-bottom: 35px; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .nuvy-text { color: #2A8C9C; font-family: 'Bagel Fat One', cursive; } .shop-text { color: #888; text-transform: uppercase; } .divider { color: #DDD; }
         h1 { font-size: 28px; font-weight: 800; color: #333; margin-bottom: 10px; letter-spacing: -0.5px; }
         p { color: #666; font-size: 15px; line-height: 1.5; margin-bottom: 30px; }
-        input { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 16px; border: 1px solid #E0DEDA; box-sizing: border-box; font-size: 16px; font-family: inherit; background: #FCFCFC; outline: none; transition: 0.2s; }
+        input { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 16px; border: 1px solid #E0DEDA; box-sizing: border-box; font-size: 16px; font-family: inherit; background: #FCFCFC; outline: none; transition: 0.2s; color: #333; }
         input:focus { border-color: #2A8C9C; background: #FFF; }
         .btn-submit { width: 100%; padding: 22px; background: #2A8C9C; color: white; border: none; border-radius: 18px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(42, 140, 156, 0.2); }
         #success-view { display: none; }
         .wallet-btn { display: inline-block; margin-top: 25px; }
         .wallet-btn img { height: 50px; }
-        .spinner { border: 4px solid rgba(42, 140, 156, 0.1); border-left-color: #2A8C9C; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .deja-inscrit { margin-top: 20px; text-align: center; padding: 15px; background: rgba(0,0,0,0.03); border-radius: 15px; cursor: pointer; transition: 0.2s; }
+        .deja-inscrit:hover { background: rgba(0,0,0,0.06); }
+        .deja-inscrit span { font-size: 14px; font-weight: 700; color: #2A8C9C; }
     </style>
 </head>
 <body>
-    <div class="onboarding-card">
-        <div class="cobranding"><span class="nuvy-text" style="font-family: 'Bagel Fat One', cursive;">Nuvy</span><span class="divider">×</span><span id="shop-display" class="shop-text">BOUTIQUE</span></div>
+    <div class="onboarding-card" id="main-card">
+        <div class="cobranding"><span class="nuvy-text">Nuvy</span><span class="divider">×</span><span id="shop-display" class="shop-text">BOUTIQUE</span></div>
         <div id="form-view">
             <h1>Bienvenue</h1>
-            <p>Créez votre carte de fidélité digitale en quelques secondes et commencez à cumuler vos avantages.</p>
+            <p>Créez votre carte de fidélité ou validez votre passage en entrant vos informations.</p>
             <input type="text" id="prenom" placeholder="Votre prénom">
             <input type="text" id="nom" placeholder="Votre nom">
             <input type="tel" id="telephone" placeholder="Numéro de téléphone">
             
             <div style="display: flex; align-items: flex-start; gap: 10px; text-align: left; margin: 20px 0 10px; padding: 0 4px;">
                 <input type="checkbox" id="consent-check" style="margin-top: 4px; width: 18px; height: 18px; accent-color: #2A8C9C; cursor: pointer; flex-shrink: 0;">
-                <label for="consent-check" style="font-size: 12px; color: #666; line-height: 1.5; cursor: pointer;">
-                    J'accepte les <a href="/cgu" target="_blank" style="color: #2A8C9C; font-weight: 700; text-decoration: underline;">Conditions Générales d'Utilisation</a> et la <a href="/confidentialite" target="_blank" style="color: #2A8C9C; font-weight: 700; text-decoration: underline;">Politique de confidentialité</a> de Nuvy, ainsi que les conditions du programme de fidélité du commerçant.
+                <label for="consent-check" id="consent-label" style="font-size: 12px; color: #666; line-height: 1.5; cursor: pointer;">
+                    J'accepte les <a href="/cgu" target="_blank" style="color: #2A8C9C; font-weight: 700; text-decoration: underline;">CGU</a> et la <a href="/confidentialite" target="_blank" style="color: #2A8C9C; font-weight: 700; text-decoration: underline;">Confidentialité</a> de Nuvy.
                 </label>
             </div>
             
-            <button class="btn-submit" id="btn-submit" onclick="creerCarte()" disabled style="opacity: 0.4; cursor: not-allowed;">CRÉER MA CARTE</button>
-            <div style="margin-top: 20px; text-align: center;">
-                <a href="#" onclick="dejaClient(); return false;" style="font-size: 13px; color: #2A8C9C; font-weight: 600; text-decoration: none;">Déjà inscrit dans une boutique Nuvy ?</a>
+            <button class="btn-submit" id="btn-submit" onclick="creerCarte()" disabled style="opacity: 0.4; cursor: not-allowed;">REJOINDRE / VALIDER</button>
+            
+            <div class="deja-inscrit" onclick="dejaClient()">
+                <span id="deja-text">Déjà inscrit ? Retrouver ma carte</span>
             </div>
         </div>
         <div id="success-view">
-            <h1 style="color: #2A8C9C;">Carte prête !</h1>
-            <p>Votre carte s'ouvre automatiquement...</p>
+            <h1 id="success-title" style="color: #2A8C9C;">C'est validé ! ✅</h1>
+            <p id="success-desc">Le commerçant a bien reçu votre passage.</p>
             
             <button id="btn-apple" onclick="telechargerApple()" style="display: none; background: #000; color: white; padding: 18px 25px; border-radius: 18px; border: none; font-weight: 800; font-size: 16px; margin-top: 10px; cursor: pointer; width: 100%;">
                 OUVRIR MA CARTE 
@@ -61,149 +63,130 @@
         </div>
     </div>
     <script>
-        const urlSlug = window.location.pathname.split('/').pop();
         const boutique = window.__BOUTIQUE__ || {};
         
-        // 🛡️ RGPD : activation du bouton uniquement si consentement coché
+        // 🛠️ FIX 3 : Extraction du slug infaillible (même s'il y a un / à la fin)
+        const urlParts = window.location.pathname.split('/').filter(Boolean);
+        const urlSlug = boutique.slug || urlParts[urlParts.length - 1];
+        
+        // 🛠️ FIX 4 : Sécurité anti-boucle. Si le client a déjà la mémoire activée, 
+        // on l'envoie immédiatement valider son Tap sans lui montrer le formulaire !
+        const existingToken = localStorage.getItem('nuvy_token_' + urlSlug);
+        if (existingToken && !window.location.search.includes('force')) {
+            window.location.replace('/tap/' + urlSlug);
+        }
+
         document.getElementById('consent-check').addEventListener('change', function() {
             const btn = document.getElementById('btn-submit');
             if (this.checked) {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
+                btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
             } else {
-                btn.disabled = true;
-                btn.style.opacity = '0.4';
-                btn.style.cursor = 'not-allowed';
+                btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
             }
         });
+        
         document.getElementById('shop-display').innerText = boutique.nom || urlSlug.replace(/-/g, ' ');
         
-        // Personnalisation visuelle
-        if (boutique.color_text) {
-            document.querySelector('.nuvy-text').style.color = boutique.color_text;
-            document.querySelector('.btn-submit').style.background = boutique.color_text;
-            document.querySelector('h1').style.color = boutique.color_text;
-        }
+        // 🛠️ FIX 2 : Personnalisation visuelle intelligente (évite le blanc sur blanc)
         if (boutique.color_bg) {
             document.body.style.background = boutique.color_bg;
-            document.querySelector('.onboarding-card').style.borderColor = boutique.color_text || '#E0DEDA';
+            document.getElementById('main-card').style.background = boutique.color_bg;
+            document.getElementById('main-card').style.borderColor = boutique.color_text || '#E0DEDA';
         }
-        // Tracking visite
+        if (boutique.color_text) {
+            document.querySelector('.nuvy-text').style.color = boutique.color_text;
+            document.querySelector('.shop-text').style.color = boutique.color_text;
+            document.querySelector('.divider').style.color = boutique.color_text;
+            document.querySelector('h1').style.color = boutique.color_text;
+            document.querySelector('p').style.color = boutique.color_text;
+            document.getElementById('consent-label').style.color = boutique.color_text;
+            
+            document.querySelector('.btn-submit').style.background = boutique.color_text;
+            // Si la couleur du texte est foncée, on met le texte du bouton en blanc, sinon l'inverse
+            document.querySelector('.btn-submit').style.color = boutique.color_bg || '#FFFFFF';
+            
+            document.querySelectorAll('a').forEach(a => a.style.color = boutique.color_text);
+            document.getElementById('deja-text').style.color = boutique.color_text;
+            document.getElementById('success-title').style.color = boutique.color_text;
+            document.getElementById('success-desc').style.color = boutique.color_text;
+        }
+
         fetch('/join/' + urlSlug + '/visit', { method: 'POST' }).catch(() => {});
-        // Multi-langue
-        const lang = (navigator.language || 'fr').slice(0, 2);
-        if (lang !== 'fr') {
-            document.querySelector('h1').innerText = 'Welcome';
-            document.querySelector('p').innerText = 'Create your digital loyalty card in seconds and start earning rewards.';
-            document.getElementById('prenom').placeholder = 'First name';
-            document.getElementById('nom').placeholder = 'Last name';
-            document.getElementById('telephone').placeholder = 'Phone number';
-            document.querySelector('.btn-submit').innerText = 'CREATE MY CARD';
-            document.querySelector('#success-view h1').innerText = 'Card ready!';
-            document.querySelector('#success-view p').innerText = 'Your card is opening automatically...';
-            document.getElementById('btn-apple').innerText = 'OPEN MY CARD';
-        }
+        
         if (boutique.logo_url) {
             const logoEl = document.createElement('img');
             logoEl.src = boutique.logo_url;
             logoEl.style.cssText = 'max-height: 60px; max-width: 200px; margin: 0 auto 20px; display: block; object-fit: contain;';
-            document.querySelector('.onboarding-card').prepend(logoEl);
+            document.getElementById('main-card').prepend(logoEl);
         }
         let passToken = null;
-        // 🛡️ NETTOYEUR DE NUMÉRO INFAILLIBLE
+        
         function formaterTelephone(tel) {
-            // 1. On retire tout ce qui n'est pas un chiffre ou un '+'
             let clean = tel.replace(/[^\d+]/g, '');
-            // 2. Si le client a mis +33 ou 0033, on le transforme en 0
             if (clean.startsWith('+33')) clean = '0' + clean.slice(3);
             if (clean.startsWith('0033')) clean = '0' + clean.slice(4);
-            // 3. On vérifie que c'est bien un numéro français valide (10 chiffres, commence par 01 à 09)
             if (/^0[1-9]\d{8}$/.test(clean)) return clean;
-            return null; // Renvoie null si le numéro est faux
+            return null; 
         }
+
         async function creerCarte() {
             const prenom = document.getElementById('prenom').value.trim(); 
             const nom = document.getElementById('nom').value.trim(); 
             const telephoneBrut = document.getElementById('telephone').value.trim(); 
             const btn = document.querySelector('.btn-submit');
 
-            if (!prenom || !nom || !telephoneBrut) { 
-                alert("Merci de remplir tous les champs."); 
-                return; 
-            }
+            if (!prenom || !nom || !telephoneBrut) { alert("Merci de remplir tous les champs."); return; }
+            if (!document.getElementById('consent-check').checked) { alert("Vous devez accepter les CGU."); return; }
 
-            // 🛡️ Double sécurité côté client : vérifier que la case est bien cochée
-            if (!document.getElementById('consent-check').checked) {
-                alert("Vous devez accepter les CGU et la Politique de confidentialité pour continuer.");
-                return;
-            }
-
-            // 🛡️ Nettoyage du numéro
             const telephone = formaterTelephone(telephoneBrut);
-            if (!telephone) {
-                alert("Le numéro de téléphone n'est pas valide (ex: 06 12 34 56 78).");
-                return;
-            }
+            if (!telephone) { alert("Le numéro de téléphone n'est pas valide (ex: 06 12 34 56 78)."); return; }
 
-            btn.innerText = "CRÉATION EN COURS..."; 
+            btn.innerText = "TRAITEMENT EN COURS..."; 
             btn.disabled = true;
 
             try {
                 const res = await fetch(`/join/${urlSlug}/create`, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ 
-                        prenom, 
-                        nom, 
-                        telephone,
-                        consent_version: 'v1.0',
-                        consent_given_at: new Date().toISOString()
-                    }) 
+                    body: JSON.stringify({ prenom, nom, telephone, consent_version: 'v1.0', consent_given_at: new Date().toISOString() }) 
                 });
 
                 if (res.ok) {
                     const data = await res.json(); 
                     passToken = data.token;
+                    // On enregistre le token pour que le prochain TAP soit direct
                     localStorage.setItem('nuvy_token_' + urlSlug, passToken);
                     
                     document.getElementById('form-view').style.display = 'none';
                     document.getElementById('success-view').style.display = 'block';
 
-                    // 🕵️ Détection du téléphone (iOS ou Android)
                     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-                    
                     if (isIOS) {
-                        // Affichage Apple et redirection Apple
                         document.getElementById('btn-apple').style.display = 'block';
-                        setTimeout(() => { window.location.href = `/pass/${passToken}`; }, 400);
+                        setTimeout(() => { window.location.href = `/pass/${passToken}`; }, 800);
                     } else {
-                        // Affichage Google et redirection Google
                         document.getElementById('btn-google').style.display = 'flex'; 
-                        setTimeout(() => { window.location.href = `/google-pass/${passToken}`; }, 400);
+                        setTimeout(() => { window.location.href = `/google-pass/${passToken}`; }, 800);
                     }
-
                 } else {
-                    alert("Erreur."); 
-                    btn.innerText = "CRÉER MA CARTE"; 
-                    btn.disabled = false; 
+                    alert("Erreur lors de la validation."); 
+                    btn.innerText = "REJOINDRE / VALIDER"; btn.disabled = false; 
                 }
             } catch (error) { 
-                alert("Erreur réseau."); 
-                btn.innerText = "CRÉER MA CARTE"; 
-                btn.disabled = false; 
+                alert("Erreur réseau."); btn.innerText = "REJOINDRE / VALIDER"; btn.disabled = false; 
             }
         }
+
         function dejaClient() {
-            const tel = prompt("Entrez le numéro de téléphone utilisé lors de votre première inscription Nuvy :");
+            const tel = prompt("Entrez le numéro de téléphone utilisé lors de votre inscription :");
             if (!tel) return;
             const clean = formaterTelephone(tel);
             if (!clean) { alert("Numéro invalide."); return; }
-            // On pré-remplit le formulaire
             document.getElementById('telephone').value = clean;
             document.getElementById('telephone').focus();
-            alert("Numéro reconnu ! Remplissez votre prénom et nom puis validez.");
+            alert("Numéro reconnu ! Renseignez simplement votre prénom et nom pour valider votre passage (cela ne recréera pas de compte en double).");
         }
+
         function telechargerApple() { if (passToken) window.location.href = `/pass/${passToken}`; }
         function telechargerGoogle() { if (passToken) window.location.href = `/google-pass/${passToken}`; }
     </script>
