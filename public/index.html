@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nuvy — Vos clients tapent leur téléphone. C'est tout.</title>
+<meta name="description" content="Remplacez vos carnets de stamps par une carte de fidélité dans Wallet. Un tap, zéro app, zéro friction. Pensé pour les commerçants indépendants.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+
+<!-- Fonts: Bagel Fat One (logo, cohérence brand) + Fraunces (display serif) + Plus Jakarta Sans (body) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============ TOKENS ============ */
+  :root {
+    --teal: #2b8c9c;
+    --teal-dark: #1f6b78;
+    --teal-darker: #164d57;
+    --teal-light: #e8f3f5;
+    --teal-bg: #f4f9fa;
+    --ink: #0e1f23;
+    --ink-soft: #3a4a4e;
+    --ink-muted: #6b7a7e;
+    --line: #e3ebed;
+    --cream: #fafbfb;
+    --white: #ffffff;
+    --warm: #fff7ed;
+    --accent: #f59e0b;
+
+    --bagel: 'Bagel Fat One', cursive;
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    --radius-sm: 8px;
+    --radius: 14px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+
+    --shadow-sm: 0 1px 2px rgba(14, 31, 35, 0.04), 0 1px 3px rgba(14, 31, 35, 0.03);
+    --shadow: 0 4px 16px rgba(14, 31, 35, 0.06), 0 2px 6px rgba(14, 31, 35, 0.04);
+    --shadow-lg: 0 24px 48px -12px rgba(14, 31, 35, 0.14), 0 12px 24px -8px rgba(14, 31, 35, 0.08);
+    --shadow-teal: 0 20px 40px -12px rgba(43, 140, 156, 0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--white);
+    line-height: 1.55;
+    font-size: 16px;
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; }
+  img { max-width: 100%; display: block; }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(227, 235, 237, 0.6);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+  }
+  .logo {
+    font-family: var(--bagel);
+    font-size: 30px;
+    color: var(--teal);
+    line-height: 1;
+  }
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+  }
+  .nav-links a {
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--teal); }
+  .nav-login {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    padding: 8px 14px;
+    border-radius: 100px;
+    transition: all 0.2s;
+  }
+  .nav-login:hover { background: var(--teal-light); color: var(--teal); }
+  .nav-cta {
+    background: var(--ink);
+    color: var(--white);
+    padding: 11px 20px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .nav-cta:hover { background: var(--teal); transform: translateY(-1px); }
+  @media (max-width: 768px) {
+    .nav-links .nav-link-text { display: none; }
+  }
+
+  /* ============ HERO ============ */
+  .hero {
+    position: relative;
+    padding: 80px 0 60px;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(43, 140, 156, 0.12), transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 30%, rgba(43, 140, 156, 0.06), transparent 70%);
+    pointer-events: none;
+  }
+  .hero-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(43, 140, 156, 0.15) 1px, transparent 0);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse 60% 60% at 50% 40%, black 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 40%, black 30%, transparent 80%);
+    opacity: 0.4;
+  }
+  .hero-content { position: relative; text-align: center; max-width: 880px; margin: 0 auto; }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: 7px 14px 7px 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+    box-shadow: var(--shadow-sm);
+  }
+  .hero-badge-dot {
+    width: 22px;
+    height: 22px;
+    background: var(--teal-light);
+    color: var(--teal);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(40px, 6vw, 76px);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 24px;
+  }
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--teal);
+  }
+  .hero-sub {
+    font-size: clamp(17px, 1.5vw, 20px);
+    color: var(--ink-soft);
+    max-width: 620px;
+    margin: 0 auto 40px;
+    line-height: 1.55;
+  }
+  .hero-ctas {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 15px 26px;
+    border-radius: 100px;
+    font-size: 15.5px;
+    font-weight: 600;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--teal);
+    color: var(--white);
+    box-shadow: var(--shadow-teal);
+  }
+  .btn-primary:hover {
+    background: var(--teal-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 24px 48px -12px rgba(43, 140, 156, 0.45);
+  }
+  .btn-secondary {
+    background: var(--white);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn-secondary:hover {
+    border-color: var(--ink);
+    transform: translateY(-2px);
+  }
+  .hero-trust {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+
+  /* ============ HERO VISUAL (product showcase) ============ */
+  .hero-visual {
+    position: relative;
+    margin-top: 64px;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 24px;
+  }
+  .hero-visual-wrap {
+    position: relative;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+  /* Wallet card mockup (inspired by CRWN card) */
+  .wallet-card {
+    background: #000;
+    border-radius: 22px;
+    padding: 20px 22px;
+    aspect-ratio: 1.58 / 1;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.05);
+    transform: rotate(-4deg);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2;
+  }
+  .wallet-card:hover { transform: rotate(-2deg) scale(1.02); }
+  .wallet-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 40%);
+    pointer-events: none;
+  }
+  .wallet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    position: relative;
+    z-index: 2;
+  }
+  .wallet-brand-box {
+    background: white;
+    color: black;
+    padding: 4px 6px;
+    border-radius: 3px;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .wallet-brand-sub {
+    font-size: 6px;
+    letter-spacing: 0.18em;
+    margin-top: 1px;
+    opacity: 0.8;
+  }
+  .wallet-brand-name {
+    margin-left: 10px;
+    color: #cfd8da;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+  .wallet-stamps-label {
+    text-align: right;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: white;
+    opacity: 0.9;
+  }
+  .wallet-stamps-count {
+    font-size: 22px;
+    font-weight: 700;
+    margin-top: 2px;
+    letter-spacing: -0.02em;
+  }
+  .wallet-big-logo {
+    font-family: var(--sans);
+    font-weight: 900;
+    font-size: 82px;
+    letter-spacing: -0.05em;
+    text-align: center;
+    line-height: 1;
+    margin: 12px 0 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #9ba7aa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    z-index: 2;
+  }
+  .wallet-loyalty-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: white;
+    font-weight: 600;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 2;
+  }
+  .wallet-crowns {
+    display: flex;
+    gap: 4px;
+    font-size: 18px;
+    position: relative;
+    z-index: 2;
+  }
+  .wallet-crown-empty {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid white;
+    border-radius: 50%;
+  }
+
+  /* Dashboard mockup (inspired by actual Nuvy dashboard) */
+  .dashboard-mockup {
+    background: white;
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    transform: rotate(1.5deg);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--line);
+  }
+  .dashboard-mockup:hover { transform: rotate(0deg) scale(1.01); }
+  .dashboard-bar {
+    background: #f2f4f5;
+    padding: 9px 14px;
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .dashboard-bar-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #d4dadc;
+  }
+  .dashboard-bar-dot:nth-child(1) { background: #ff5f57; }
+  .dashboard-bar-dot:nth-child(2) { background: #febc2e; }
+  .dashboard-bar-dot:nth-child(3) { background: #28c841; }
+  .dashboard-body {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    min-height: 340px;
+  }
+  .dashboard-sidebar {
+    background: #fafbfb;
+    border-right: 1px solid var(--line);
+    padding: 16px 12px;
+    font-size: 12px;
+  }
+  .dashboard-sidebar-logo {
+    font-family: var(--bagel);
+    font-size: 19px;
+    color: var(--teal);
+    margin-bottom: 3px;
+    line-height: 1;
+  }
+  .dashboard-sidebar-sub {
+    font-size: 10px;
+    color: var(--ink-muted);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .dashboard-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: var(--ink-soft);
+    font-weight: 500;
+    margin-bottom: 2px;
+    font-size: 12px;
+  }
+  .dashboard-nav-item.active {
+    background: var(--teal-light);
+    color: var(--teal);
+    font-weight: 600;
+    outline: 1px solid rgba(43,140,156,0.25);
+  }
+  .dashboard-nav-item.active::after {
+    content: 'Live';
+    margin-left: auto;
+    background: var(--teal);
+    color: white;
+    padding: 1px 6px;
+    border-radius: 100px;
+    font-size: 9px;
+  }
+  .dashboard-main { padding: 18px; background: #fafbfb; }
+  .dashboard-card {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--line);
+  }
+  .dashboard-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .dashboard-card-goal { font-weight: 700; font-size: 14px; color: var(--teal); }
+  .dashboard-progress {
+    height: 6px;
+    background: #eef2f3;
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .dashboard-progress-bar {
+    width: 15%;
+    height: 100%;
+    background: var(--teal);
+    border-radius: 100px;
+  }
+  .dashboard-activity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    padding: 8px 10px;
+    background: #f6f9fa;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    border-left: 2px solid var(--teal);
+  }
+  .dashboard-activity-badge {
+    background: var(--teal-light);
+    color: var(--teal);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 100px;
+  }
+  .dashboard-activity-time {
+    margin-left: auto;
+    color: var(--ink-muted);
+    font-size: 10px;
+  }
+  .dashboard-activity-name { font-weight: 600; color: var(--ink); }
+
+  @media (max-width: 768px) {
+    .hero-visual-wrap { grid-template-columns: 1fr; gap: 16px; max-width: 320px; margin: 0 auto; }
+    .wallet-card { transform: rotate(-2deg); }
+    .dashboard-mockup { transform: rotate(0.5deg); }
+  }
+
+  /* ============ FEATURES ============ */
+  .features {
+    padding: 120px 0 80px;
+    background: var(--white);
+  }
+  .section-head {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto 72px;
+  }
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--teal-light);
+    color: var(--teal);
+    padding: 6px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .section-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--teal);
+    border-radius: 50%;
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-size: clamp(32px, 4vw, 52px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 18px;
+  }
+  .section-title em { font-style: italic; color: var(--teal); font-weight: 400; }
+  .section-sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 32px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .feature {
+    padding: 0;
+  }
+  .feature-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--teal);
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .feature-icon svg { width: 20px; height: 20px; }
+  .feature h3 {
+    font-family: var(--sans);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .feature p {
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+
+  /* ============ HOW IT WORKS ============ */
+  .how {
+    padding: 100px 0;
+    background: var(--teal-bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .how::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(43,140,156,0.1) 1px, transparent 0);
+    background-size: 40px 40px;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .how-content { position: relative; }
+  .how-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    margin-top: 56px;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  @media (max-width: 900px) {
+    .how-steps { grid-template-columns: 1fr; }
+  }
+  .step {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    box-shadow: var(--shadow);
+    position: relative;
+    transition: transform 0.3s;
+  }
+  .step:hover { transform: translateY(-4px); }
+  .step-num {
+    font-family: var(--serif);
+    font-size: 48px;
+    font-style: italic;
+    color: var(--teal);
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .step h3 {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+  .step p {
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .step-visual {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--teal-bg);
+    border-radius: 12px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--teal);
+    font-weight: 600;
+    border: 1px dashed rgba(43,140,156,0.3);
+  }
+
+  /* ============ PRODUCT SHOWCASE ============ */
+  .showcase {
+    padding: 120px 0;
+    background: var(--white);
+  }
+  .showcase-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  @media (max-width: 900px) {
+    .showcase-grid { grid-template-columns: 1fr; gap: 48px; }
+  }
+  .showcase-text h2 {
+    font-family: var(--serif);
+    font-size: clamp(28px, 3.5vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  .showcase-text h2 em { font-style: italic; color: var(--teal); }
+  .showcase-text p {
+    font-size: 17px;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+    line-height: 1.65;
+  }
+  .showcase-list {
+    list-style: none;
+    margin-top: 24px;
+  }
+  .showcase-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    font-size: 15px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .showcase-list li::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    background: var(--teal-light);
+    color: var(--teal);
+    border-radius: 50%;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%232b8c9c'><path fill-rule='evenodd' d='M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 011.42-1.42L8.5 12.08l6.79-6.79a1 1 0 011.42 0z' clip-rule='evenodd'/></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 14px;
+    margin-top: 2px;
+  }
+
+  /* ============ PRICING ============ */
+  .pricing {
+    padding: 100px 0;
+    background: var(--teal-bg);
+    position: relative;
+  }
+  .pricing-toggle {
+    display: inline-flex;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: 4px;
+    margin: 0 auto 48px;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+  }
+  .pricing-toggle-wrap {
+    display: flex;
+    justify-content: center;
+  }
+  .toggle-btn {
+    padding: 10px 22px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    transition: all 0.2s;
+    position: relative;
+  }
+  .toggle-btn.active {
+    background: var(--ink);
+    color: white;
+  }
+  .toggle-badge {
+    background: var(--teal);
+    color: white;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 100px;
+    margin-left: 6px;
+    font-weight: 700;
+  }
+  .toggle-btn:not(.active) .toggle-badge {
+    background: var(--teal-light);
+    color: var(--teal);
+  }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  @media (max-width: 900px) {
+    .pricing-grid { grid-template-columns: 1fr; }
+  }
+  .plan {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 36px 32px;
+    border: 1px solid var(--line);
+    transition: all 0.3s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .plan:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  .plan.featured {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+    box-shadow: var(--shadow-lg);
+    transform: scale(1.02);
+  }
+  .plan.featured:hover { transform: scale(1.02) translateY(-4px); }
+  .plan-tag {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--teal);
+    color: white;
+    padding: 4px 14px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .plan-name {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    font-style: italic;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .plan.featured .plan-name { color: #7fd4e0; }
+  .plan:not(.featured) .plan-name { color: var(--teal); }
+  .plan-desc {
+    font-size: 13.5px;
+    color: var(--ink-muted);
+    margin-bottom: 24px;
+    min-height: 40px;
+  }
+  .plan.featured .plan-desc { color: #a5b4b8; }
+  .plan-price {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .plan-price-old {
+    font-size: 17px;
+    color: var(--ink-muted);
+    text-decoration: line-through;
+    margin-right: 6px;
+    display: none;
+  }
+  .plan-price-old.visible { display: inline; }
+  .plan.featured .plan-price-old { color: #6b7a7e; }
+  .plan-amount {
+    font-family: var(--serif);
+    font-size: 48px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .plan-period {
+    font-size: 14px;
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+  .plan.featured .plan-period { color: #a5b4b8; }
+  .plan-extra {
+    font-size: 13px;
+    color: var(--ink-muted);
+    margin-bottom: 24px;
+    min-height: 18px;
+  }
+  .plan.featured .plan-extra { color: #a5b4b8; }
+  .plan-features {
+    list-style: none;
+    margin-bottom: 32px;
+    flex: 1;
+  }
+  .plan-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+  .plan-features li::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%232b8c9c'><path fill-rule='evenodd' d='M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 011.42-1.42L8.5 12.08l6.79-6.79a1 1 0 011.42 0z' clip-rule='evenodd'/></svg>");
+    background-repeat: no-repeat;
+  }
+  .plan.featured .plan-features li::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%237fd4e0'><path fill-rule='evenodd' d='M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 011.42-1.42L8.5 12.08l6.79-6.79a1 1 0 011.42 0z' clip-rule='evenodd'/></svg>");
+  }
+  .plan-features li.muted {
+    color: var(--ink-muted);
+  }
+  .plan-features li.muted::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23c0cccf'><path d='M6 10h8' stroke='%23c0cccf' stroke-width='2' stroke-linecap='round'/></svg>");
+  }
+  .plan-cta {
+    display: block;
+    text-align: center;
+    padding: 13px 20px;
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.2s;
+    background: var(--white);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .plan-cta:hover {
+    background: var(--teal);
+    color: white;
+    border-color: var(--teal);
+  }
+  .plan.featured .plan-cta {
+    background: var(--teal);
+    color: white;
+    border-color: var(--teal);
+  }
+  .plan.featured .plan-cta:hover {
+    background: #7fd4e0;
+    color: var(--ink);
+    border-color: #7fd4e0;
+  }
+
+  .pricing-footer {
+    text-align: center;
+    margin-top: 40px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+
+  /* ============ FAQ ============ */
+  .faq {
+    padding: 100px 0;
+    background: var(--white);
+  }
+  .faq-list {
+    max-width: 780px;
+    margin: 48px auto 0;
+  }
+  .faq-item {
+    background: white;
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    transition: box-shadow 0.2s;
+  }
+  .faq-item[open] { box-shadow: var(--shadow); }
+  .faq-item summary {
+    padding: 22px 26px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+  }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after {
+    content: '+';
+    font-size: 24px;
+    color: var(--teal);
+    font-weight: 300;
+    transition: transform 0.2s;
+  }
+  .faq-item[open] summary::after {
+    transform: rotate(45deg);
+  }
+  .faq-item-body {
+    padding: 0 26px 22px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+  }
+
+  /* ============ FINAL CTA ============ */
+  .final-cta {
+    padding: 120px 0;
+    background: var(--ink);
+    color: white;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .final-cta::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 60% at 50% 50%, rgba(43, 140, 156, 0.25), transparent 70%);
+  }
+  .final-cta-content { position: relative; }
+  .final-cta h2 {
+    font-family: var(--serif);
+    font-size: clamp(36px, 5vw, 64px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  .final-cta h2 em { font-style: italic; color: #7fd4e0; font-weight: 400; }
+  .final-cta p {
+    font-size: 18px;
+    color: #9fb0b4;
+    max-width: 520px;
+    margin: 0 auto 40px;
+  }
+  .final-cta .btn-primary {
+    background: var(--teal);
+    color: white;
+  }
+  .final-cta .btn-primary:hover {
+    background: #7fd4e0;
+    color: var(--ink);
+  }
+
+  /* ============ FOOTER ============ */
+  .footer {
+    background: var(--ink);
+    color: #9fb0b4;
+    padding: 40px 0 32px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 14px;
+  }
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .footer .logo { color: white; }
+  .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+  .footer-links a:hover { color: white; }
+  .footer-copy { font-size: 13px; opacity: 0.7; }
+
+  /* ============ ANIMATIONS ============ */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero-badge, .hero h1, .hero-sub, .hero-ctas, .hero-trust {
+    animation: fadeInUp 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  .hero h1 { animation-delay: 0.1s; }
+  .hero-sub { animation-delay: 0.2s; }
+  .hero-ctas { animation-delay: 0.3s; }
+  .hero-trust { animation-delay: 0.4s; }
+  .hero-visual { animation: fadeInUp 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.4s both; }
+</style>
+</head>
+
+<body>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="logo">Nuvy</a>
+    <div class="nav-links">
+      <a href="#features" class="nav-link-text">Fonctionnalités</a>
+      <a href="#how" class="nav-link-text">Comment ça marche</a>
+      <a href="#pricing" class="nav-link-text">Tarifs</a>
+      <a href="#faq" class="nav-link-text">FAQ</a>
+      <a href="/login" class="nav-login">Se connecter</a>
+      <a href="#demo" class="nav-cta">Demander une démo</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="container hero-content">
+    <div class="hero-badge">
+      <span class="hero-badge-dot">✨</span>
+      <span>Conçu pour les commerçants indépendants</span>
+    </div>
+    <h1>Vos clients tapent leur téléphone.<br><em>C'est tout.</em></h1>
+    <p class="hero-sub">
+      Remplacez vos carnets de stamps par une carte de fidélité dans Wallet.
+      Un tap, zéro app à télécharger, zéro friction. On s'occupe du reste.
+    </p>
+    <div class="hero-ctas">
+      <a href="#demo" class="btn btn-primary">
+        Demander une démo
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h12m0 0L7 1m6 6l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a href="#how" class="btn btn-secondary">Voir comment ça marche</a>
+    </div>
+    <p class="hero-trust">30 jours d'essai gratuit · Sans carte bancaire · Installation en 5 minutes</p>
+  </div>
+
+  <!-- Hero Visual: Wallet + Dashboard -->
+  <div class="hero-visual">
+    <div class="hero-visual-wrap">
+      <!-- Wallet Card -->
+      <div class="wallet-card">
+        <div class="wallet-header">
+          <div style="display: flex; align-items: center;">
+            <div>
+              <div class="wallet-brand-box">CRWN.</div>
+              <div class="wallet-brand-sub">BARBER SHOP</div>
+            </div>
+            <span class="wallet-brand-name">CRWN</span>
+          </div>
+          <div>
+            <div class="wallet-stamps-label">TAMPONS</div>
+            <div class="wallet-stamps-count">5 / 8</div>
+          </div>
+        </div>
+        <div class="wallet-big-logo">CRWN.</div>
+        <div class="wallet-loyalty-label">VOTRE FIDÉLITÉ</div>
+        <div class="wallet-crowns">
+          <span>👑</span><span>👑</span><span>👑</span><span>👑</span><span>👑</span>
+          <span class="wallet-crown-empty"></span>
+          <span class="wallet-crown-empty"></span>
+          <span class="wallet-crown-empty"></span>
+        </div>
+      </div>
+
+      <!-- Dashboard Mockup -->
+      <div class="dashboard-mockup">
+        <div class="dashboard-bar">
+          <span class="dashboard-bar-dot"></span>
+          <span class="dashboard-bar-dot"></span>
+          <span class="dashboard-bar-dot"></span>
+        </div>
+        <div class="dashboard-body">
+          <aside class="dashboard-sidebar">
+            <div class="dashboard-sidebar-logo">Nuvy</div>
+            <div class="dashboard-sidebar-sub">CRWN</div>
+            <div class="dashboard-nav-item active">🏠 Accueil</div>
+            <div class="dashboard-nav-item">👥 Mes Clients</div>
+            <div class="dashboard-nav-item">📊 Statistiques</div>
+            <div class="dashboard-nav-item">🎯 Segments</div>
+            <div class="dashboard-nav-item">🔔 Notifications</div>
+          </aside>
+          <main class="dashboard-main">
+            <div class="dashboard-card">
+              <div class="dashboard-card-head">
+                <span>Objectif du jour</span>
+                <span class="dashboard-card-goal">3 / 20 scans</span>
+              </div>
+              <div class="dashboard-progress"><div class="dashboard-progress-bar"></div></div>
+            </div>
+            <div class="dashboard-card">
+              <div class="dashboard-card-head" style="margin-bottom: 12px;">
+                <span style="font-weight: 700; color: var(--ink); font-size: 13px;">Dernières activités</span>
+              </div>
+              <div class="dashboard-activity">
+                <span class="dashboard-activity-name">Tristan L.</span>
+                <span class="dashboard-activity-badge">+1 pt</span>
+                <span class="dashboard-activity-time">16:03</span>
+              </div>
+              <div class="dashboard-activity">
+                <span class="dashboard-activity-name">Marie D.</span>
+                <span class="dashboard-activity-badge">+1 pt</span>
+                <span class="dashboard-activity-time">15:40</span>
+              </div>
+              <div class="dashboard-activity">
+                <span class="dashboard-activity-name">Xavier L.</span>
+                <span class="dashboard-activity-badge">+1 pt</span>
+                <span class="dashboard-activity-time">15:27</span>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-label">Fonctionnalités</span>
+      <h2 class="section-title">Tout ce qu'il faut<br><em>pour fidéliser</em> — rien de plus.</h2>
+      <p class="section-sub">On a enlevé tout ce qui complique la vie des commerçants. Il reste l'essentiel.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h14" stroke="currentColor" stroke-width="1.6"/></svg>
+        </div>
+        <h3>Wallet natif</h3>
+        <p>Carte directement dans Apple Wallet et Google Wallet. Pas d'app à télécharger — vos clients l'ajoutent en un clic.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2" fill="currentColor"/><path d="M6 10a4 4 0 018 0M4 10a6 6 0 0112 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <h3>NFC simple</h3>
+        <p>Un tap sur votre tag NFC et la fidélité est validée. Pas de QR code, pas de saisie manuelle, pas d'erreur.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 8h14M6 12h3M6 14h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Dashboard temps réel</h3>
+        <p>Vos clients, vos stamps, vos récompenses en direct. Consultable sur mobile, tablette ou ordinateur.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v2m0 10v2m7-7h-2M5 10H3m11.5-4.5l-1.4 1.4M6.9 13.1l-1.4 1.4m0-9l1.4 1.4m6.2 6.2l1.4 1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+        </div>
+        <h3>Push notifications</h3>
+        <p>Annoncez une promo, une fermeture ou une nouveauté directement sur la carte de vos clients, sans spam.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 3l6 2v5c0 4-3 6-6 7-3-1-6-3-6-7V5l6-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 10l1.5 1.5L13 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Sécurisé RGPD</h3>
+        <p>Données hébergées en Europe, chiffrées, conformes. Vos clients gardent le contrôle de leurs informations.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M3 10h14M10 3c2 2 3 4.5 3 7s-1 5-3 7c-2-2-3-4.5-3-7s1-5 3-7z" stroke="currentColor" stroke-width="1.6"/></svg>
+        </div>
+        <h3>Support français</h3>
+        <p>Une équipe basée en France. On répond en quelques heures, en français, par téléphone ou par email.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M7 3v4M13 3v4M3 9h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Essai 30 jours</h3>
+        <p>Testez sans engagement, sans carte bancaire. Si ça ne vous convient pas, on s'arrête là. Tout simplement.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 3l2.5 5 5.5.8-4 3.9 1 5.5L10 15.5 4.9 18.2l1-5.5-4-3.9 5.5-.8L10 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Personnalisation</h3>
+        <p>Vos couleurs, votre logo, vos récompenses. Votre carte ressemble à votre boutique, pas à un template générique.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="how" id="how">
+  <div class="container how-content">
+    <div class="section-head">
+      <span class="section-label">Comment ça marche</span>
+      <h2 class="section-title">Trois étapes,<br><em>pas une de plus.</em></h2>
+      <p class="section-sub">De la réception de votre tag NFC à votre premier client fidélisé : 10 minutes montre en main.</p>
+    </div>
+
+    <div class="how-steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Vous recevez votre tag NFC</h3>
+        <p>On vous envoie un petit tag NFC (ou un sticker) à poser près de votre caisse. Zéro installation technique, zéro configuration compliquée.</p>
+        <div class="step-visual">📦 Livré en 48h · Setup en 5 min</div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Votre client tape son téléphone</h3>
+        <p>Un client arrive, il tape son iPhone ou Android sur le tag. Sa carte de fidélité s'ajoute automatiquement à Wallet. Il n'a rien à télécharger.</p>
+        <div class="step-visual">📱 Un tap · Zéro app · Zéro friction</div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Vous fidélisez pour de vrai</h3>
+        <p>Dashboard temps réel, notifications push, analyses. Tout ce qu'il faut pour comprendre vos clients et les faire revenir.</p>
+        <div class="step-visual">📊 Temps réel · Vu du bon angle</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRODUCT SHOWCASE ============ -->
+<section class="showcase">
+  <div class="container">
+    <div class="showcase-grid">
+      <div class="showcase-text">
+        <span class="section-label">Pourquoi Nuvy</span>
+        <h2>Un carnet de stamps, <em>version 2026.</em></h2>
+        <p>Vos clients perdent leur carte, oublient leurs tampons, ou trouvent ça ringard. Avec Nuvy, leur fidélité vit dans leur téléphone — toujours avec eux, toujours à jour.</p>
+        <ul class="showcase-list">
+          <li>Taux d'adoption 10x supérieur à une app dédiée</li>
+          <li>Aucune perte de carte, aucune friction au comptoir</li>
+          <li>Vos clients reviennent 40% plus souvent en moyenne</li>
+          <li>Données exploitables : qui, quand, combien — tout est clair</li>
+        </ul>
+      </div>
+
+      <!-- Second wallet card showcase -->
+      <div style="display: flex; justify-content: center; align-items: center; padding: 40px 0;">
+        <div class="wallet-card" style="max-width: 320px; transform: rotate(3deg);">
+          <div class="wallet-header">
+            <div style="display: flex; align-items: center;">
+              <div>
+                <div class="wallet-brand-box">CRWN.</div>
+                <div class="wallet-brand-sub">BARBER SHOP</div>
+              </div>
+              <span class="wallet-brand-name">CRWN</span>
+            </div>
+            <div>
+              <div class="wallet-stamps-label">TAMPONS</div>
+              <div class="wallet-stamps-count">5 / 8</div>
+            </div>
+          </div>
+          <div class="wallet-big-logo">CRWN.</div>
+          <div class="wallet-loyalty-label">VOTRE FIDÉLITÉ</div>
+          <div class="wallet-crowns">
+            <span>👑</span><span>👑</span><span>👑</span><span>👑</span><span>👑</span>
+            <span class="wallet-crown-empty"></span>
+            <span class="wallet-crown-empty"></span>
+            <span class="wallet-crown-empty"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-label">Tarifs</span>
+      <h2 class="section-title">Un tarif clair, <em>sans surprise.</em></h2>
+      <p class="section-sub">Choisissez mensuel ou engagement annuel. Payé chaque mois dans les deux cas.</p>
+    </div>
+
+    <div class="pricing-toggle-wrap">
+      <div class="pricing-toggle">
+        <button class="toggle-btn active" id="toggle-monthly" onclick="togglePricing('monthly')">Mensuel</button>
+        <button class="toggle-btn" id="toggle-annual" onclick="togglePricing('annual')">Engagement 1 an<span class="toggle-badge">-15%</span></button>
+      </div>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Essentiel -->
+      <div class="plan">
+        <div class="plan-name">Essentiel</div>
+        <div class="plan-desc">Pour tester le concept et démarrer en douceur.</div>
+        <div class="plan-price">
+          <span class="plan-price-old" data-monthly="" data-annual="29€">29€</span>
+          <span class="plan-amount" data-monthly="29" data-annual="24,65">29</span>
+          <span class="plan-period">€/mois</span>
+        </div>
+        <div class="plan-extra" data-monthly="Sans engagement" data-annual="Engagement 12 mois">Sans engagement</div>
+        <ul class="plan-features">
+          <li>1 boutique</li>
+          <li>Jusqu'à 500 clients</li>
+          <li>Wallet Apple + Google</li>
+          <li>Dashboard temps réel</li>
+          <li>Support email</li>
+          <li class="muted">Notifications push</li>
+          <li class="muted">Personnalisation</li>
+        </ul>
+        <a href="#demo" class="plan-cta">Commencer gratuit</a>
+      </div>
+
+      <!-- Pro (featured) -->
+      <div class="plan featured">
+        <div class="plan-tag">Le plus populaire</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-desc">Pour fidéliser pour de vrai et aller plus loin.</div>
+        <div class="plan-price">
+          <span class="plan-price-old" data-monthly="" data-annual="59€">59€</span>
+          <span class="plan-amount" data-monthly="59" data-annual="50,15">59</span>
+          <span class="plan-period">€/mois</span>
+        </div>
+        <div class="plan-extra" data-monthly="Sans engagement" data-annual="Engagement 12 mois">Sans engagement</div>
+        <ul class="plan-features">
+          <li>1 boutique</li>
+          <li>Jusqu'à 2 000 clients</li>
+          <li>Wallet Apple + Google</li>
+          <li>Notifications push</li>
+          <li>Analytics avancés</li>
+          <li>Personnalisation complète</li>
+          <li>Support prioritaire</li>
+        </ul>
+        <a href="#demo" class="plan-cta">Commencer gratuit</a>
+      </div>
+
+      <!-- Multi-site -->
+      <div class="plan">
+        <div class="plan-name">Multi-site</div>
+        <div class="plan-desc">Pour les chaînes et réseaux multi-boutiques.</div>
+        <div class="plan-price">
+          <span class="plan-price-old" data-monthly="" data-annual="79€">79€</span>
+          <span class="plan-amount" data-monthly="79" data-annual="67,15">79</span>
+          <span class="plan-period">€/mois</span>
+        </div>
+        <div class="plan-extra" data-monthly="+ 29€ par boutique supplémentaire" data-annual="+ 24,65€ par boutique · -15%">+ 29€ par boutique</div>
+        <ul class="plan-features">
+          <li>Boutiques illimitées</li>
+          <li>Clients illimités</li>
+          <li>Dashboard réseau consolidé</li>
+          <li>Rapport PDF global</li>
+          <li>Notifications push</li>
+          <li>Analytics avancés</li>
+          <li>Account manager dédié</li>
+        </ul>
+        <a href="#demo" class="plan-cta">Nous contacter</a>
+      </div>
+    </div>
+
+    <p class="pricing-footer">
+      Engagement annuel : -15% mais contrat sur 12 mois, facturé mensuellement.<br>
+      Mensuel : annulable à tout moment. Tous les plans incluent 30 jours d'essai gratuit.
+    </p>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="faq" id="faq">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-label">Questions fréquentes</span>
+      <h2 class="section-title">Tout ce qu'on nous demande, <em>ou presque.</em></h2>
+    </div>
+
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>Mes clients doivent-ils télécharger une app ?</summary>
+        <div class="faq-item-body">
+          Non. Absolument aucune app à télécharger. Vos clients tapent leur téléphone sur votre tag NFC et la carte s'ajoute directement à Apple Wallet (iPhone) ou Google Wallet (Android) en une seconde.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Qu'est-ce qu'il me faut pour démarrer ?</summary>
+        <div class="faq-item-body">
+          Un smartphone ou ordinateur pour accéder à votre dashboard, et le tag NFC qu'on vous envoie. C'est tout. Pas de terminal spécial, pas de matériel coûteux. Notre équipe vous accompagne pour l'installation.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Ça fonctionne avec iPhone et Android ?</summary>
+        <div class="faq-item-body">
+          Oui, sur les deux. Pour les iPhone : Apple Wallet (intégré nativement). Pour les Android : Google Wallet (intégré nativement sur la quasi-totalité des Android récents). Vos clients n'ont rien à configurer.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Et la RGPD, comment ça se passe ?</summary>
+        <div class="faq-item-body">
+          Nuvy est 100% conforme RGPD. Les données sont hébergées en Europe, chiffrées, et vos clients gardent le contrôle total sur leurs informations (droit d'accès, suppression, portabilité). On vous fournit tous les documents légaux nécessaires.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Je peux annuler quand je veux ?</summary>
+        <div class="faq-item-body">
+          En plan mensuel, oui — annulable à tout moment, sans justification. En plan annuel (avec la remise de 15%), vous êtes engagé sur 12 mois, mais vous continuez à être facturé mensuellement pour lisser votre trésorerie.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Quelle est la différence avec une app de fidélité classique ?</summary>
+        <div class="faq-item-body">
+          Les apps de fidélité ont un taux d'adoption moyen de 5%. C'est-à-dire que 95% de vos clients ne l'installeront jamais. Avec Nuvy, on passe à 90%+ d'adoption car il n'y a aucune app à télécharger — juste un tap.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Et si j'ai plusieurs boutiques ?</summary>
+        <div class="faq-item-body">
+          Le plan Multi-site est fait pour ça. Dashboard consolidé pour l'ensemble du réseau, clients cumulés entre les boutiques, rapport PDF global. Idéal pour les chaînes de restaurants, salons ou cafés.
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="final-cta" id="demo">
+  <div class="container final-cta-content">
+    <h2>Prêt à <em>fidéliser pour de vrai ?</em></h2>
+    <p>30 minutes de démo, zéro engagement. On vous montre comment Nuvy peut transformer votre fidélisation.</p>
+    <a href="mailto:contact@nuvy.pro?subject=Demande%20de%20démo%20Nuvy" class="btn btn-primary">
+      Demander une démo
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h12m0 0L7 1m6 6l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="container footer-inner">
+    <a href="/" class="logo">Nuvy</a>
+    <div class="footer-links">
+      <a href="#features">Fonctionnalités</a>
+      <a href="#pricing">Tarifs</a>
+      <a href="#faq">FAQ</a>
+      <a href="/login">Espace commerçant</a>
+      <a href="mailto:contact@nuvy.pro">Contact</a>
+      <a href="/mentions-legales">Mentions légales</a>
+      <a href="/cgv">CGV</a>
+      <a href="/cgu">CGU</a>
+      <a href="/confidentialite">Confidentialité</a>
+    </div>
+    <div class="footer-copy">© 2026 Nuvy · Conçu en France</div>
+  </div>
+</footer>
+
+<script>
+  // Pricing toggle logic
+  function togglePricing(mode) {
+    const monthlyBtn = document.getElementById('toggle-monthly');
+    const annualBtn = document.getElementById('toggle-annual');
+
+    if (mode === 'monthly') {
+      monthlyBtn.classList.add('active');
+      annualBtn.classList.remove('active');
+    } else {
+      annualBtn.classList.add('active');
+      monthlyBtn.classList.remove('active');
+    }
+
+    document.querySelectorAll('.plan-amount').forEach(el => {
+      el.textContent = el.getAttribute('data-' + mode);
+    });
+
+    document.querySelectorAll('.plan-extra').forEach(el => {
+      el.textContent = el.getAttribute('data-' + mode);
+    });
+
+    document.querySelectorAll('.plan-price-old').forEach(el => {
+      const val = el.getAttribute('data-' + mode);
+      if (val) {
+        el.textContent = val;
+        el.classList.add('visible');
+      } else {
+        el.classList.remove('visible');
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

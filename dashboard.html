@@ -552,7 +552,7 @@
     const _originalFetch = window.fetch;
     window.fetch = async function(...args) {
         const res = await _originalFetch.apply(this, args);
-        if (res.status === 401) { localStorage.clear(); window.location.href = '/'; }
+        if (res.status === 401) { localStorage.clear(); window.location.href = '/login'; }
         return res;
     };
     const AUTH_HEADERS = { 'Authorization': 'Bearer ' + authToken };
@@ -1365,7 +1365,7 @@ async function toggleStrip() {
     document.getElementById('preview-strip').classList.toggle('hidden', !enabled);
 }
 
-    function deconnexion() { localStorage.clear(); window.location.href = '/'; }
+    function deconnexion() { localStorage.clear(); window.location.href = '/login'; }
   </script>
 </body>
 </html>

@@ -42,7 +42,10 @@ const limiterLogin = rateLimit({
 // ==========================================
 // PAGES HTML STATIQUES
 // ==========================================
-app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'login.html')));
+// Landing page publique (nouveau)
+app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'public', 'index.html')));
+// Page de connexion commerçant
+app.get('/login', (req, res) => res.sendFile(path.resolve(__dirname, 'login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.resolve(__dirname, 'dashboard.html')));
 app.get('/cgv', (req, res) => res.sendFile(path.resolve(__dirname, 'legal', 'cgv.html')));
 app.get('/cgu', (req, res) => res.sendFile(path.resolve(__dirname, 'legal', 'cgu.html')));
