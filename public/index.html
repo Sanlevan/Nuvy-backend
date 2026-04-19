@@ -240,6 +240,27 @@
     color: var(--ink-muted);
   }
 
+  /* Wallet image (vrai screenshot) */
+  .wallet-image {
+    position: relative;
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.05);
+    transform: rotate(-4deg);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2;
+    aspect-ratio: 3 / 4;  /* ratio portrait comme ton screenshot */
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  .wallet-image:hover { transform: rotate(-2deg) scale(1.02); }
+  .wallet-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
   /* ============ HERO VISUAL (product showcase) ============ */
   .hero-visual {
     position: relative;
@@ -1094,29 +1115,9 @@
   <!-- Hero Visual: Wallet + Dashboard -->
   <div class="hero-visual">
     <div class="hero-visual-wrap">
-      <!-- Wallet Card -->
-      <div class="wallet-card">
-        <div class="wallet-header">
-          <div style="display: flex; align-items: center;">
-            <div>
-              <div class="wallet-brand-box">CRWN.</div>
-              <div class="wallet-brand-sub">BARBER SHOP</div>
-            </div>
-            <span class="wallet-brand-name">CRWN</span>
-          </div>
-          <div>
-            <div class="wallet-stamps-label">TAMPONS</div>
-            <div class="wallet-stamps-count">5 / 8</div>
-          </div>
-        </div>
-        <div class="wallet-big-logo">CRWN.</div>
-        <div class="wallet-loyalty-label">VOTRE FIDÉLITÉ</div>
-        <div class="wallet-crowns">
-          <span>👑</span><span>👑</span><span>👑</span><span>👑</span><span>👑</span>
-          <span class="wallet-crown-empty"></span>
-          <span class="wallet-crown-empty"></span>
-          <span class="wallet-crown-empty"></span>
-        </div>
+      <!-- Wallet Card (vrai screenshot) -->
+      <div class="wallet-image">
+        <img src="/wallet-crwn.png" alt="Carte de fidélité CRWN dans Apple Wallet">
       </div>
 
       <!-- Dashboard Mockup -->
@@ -1298,30 +1299,10 @@
         </ul>
       </div>
 
-      <!-- Second wallet card showcase -->
+      <!-- Second wallet showcase (vrai screenshot) -->
       <div style="display: flex; justify-content: center; align-items: center; padding: 40px 0;">
-        <div class="wallet-card" style="max-width: 320px; transform: rotate(3deg);">
-          <div class="wallet-header">
-            <div style="display: flex; align-items: center;">
-              <div>
-                <div class="wallet-brand-box">CRWN.</div>
-                <div class="wallet-brand-sub">BARBER SHOP</div>
-              </div>
-              <span class="wallet-brand-name">CRWN</span>
-            </div>
-            <div>
-              <div class="wallet-stamps-label">TAMPONS</div>
-              <div class="wallet-stamps-count">5 / 8</div>
-            </div>
-          </div>
-          <div class="wallet-big-logo">CRWN.</div>
-          <div class="wallet-loyalty-label">VOTRE FIDÉLITÉ</div>
-          <div class="wallet-crowns">
-            <span>👑</span><span>👑</span><span>👑</span><span>👑</span><span>👑</span>
-            <span class="wallet-crown-empty"></span>
-            <span class="wallet-crown-empty"></span>
-            <span class="wallet-crown-empty"></span>
-          </div>
+        <div class="wallet-image" style="max-width: 280px; transform: rotate(3deg);">
+          <img src="/wallet-crwn.png" alt="Carte de fidélité CRWN">
         </div>
       </div>
     </div>
