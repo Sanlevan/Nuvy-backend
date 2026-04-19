@@ -1170,12 +1170,12 @@
                 <span class="dashboard-activity-time">16:03</span>
               </div>
               <div class="dashboard-activity">
-                <span class="dashboard-activity-name">Marie D.</span>
+                <span class="dashboard-activity-name">Enzo F.</span>
                 <span class="dashboard-activity-badge">+1 pt</span>
                 <span class="dashboard-activity-time">15:40</span>
               </div>
               <div class="dashboard-activity">
-                <span class="dashboard-activity-name">Xavier L.</span>
+                <span class="dashboard-activity-name">Erwan R.</span>
                 <span class="dashboard-activity-badge">+1 pt</span>
                 <span class="dashboard-activity-time">15:27</span>
               </div>
@@ -1416,6 +1416,338 @@
   </div>
 </section>
 
+/* ============ SIMULATOR ============ */
+  .simulator {
+    padding: 100px 0;
+    background: var(--white);
+    position: relative;
+  }
+  .simulator-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, var(--teal-bg) 0%, #fff 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    padding: 48px 40px;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 640px) {
+    .simulator-wrap { padding: 32px 24px; }
+  }
+  .simulator-head {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .simulator-head h3 {
+    font-family: var(--serif);
+    font-size: clamp(26px, 3vw, 38px);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+  }
+  .simulator-head h3 em { font-style: italic; color: var(--teal); font-weight: 400; }
+  .simulator-head p {
+    font-size: 16px;
+    color: var(--ink-soft);
+  }
+
+  .simulator-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 640px) {
+    .simulator-controls { grid-template-columns: 1fr; }
+  }
+  .sim-field {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+  }
+  .sim-field-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-muted);
+    margin-bottom: 14px;
+  }
+
+  /* Boutiques stepper */
+  .sim-stepper {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .sim-stepper-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--teal-bg);
+    border: 1px solid var(--line);
+    color: var(--teal);
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sim-stepper-btn:hover:not(:disabled) {
+    background: var(--teal);
+    color: white;
+    border-color: var(--teal);
+  }
+  .sim-stepper-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .sim-stepper-value {
+    flex: 1;
+    text-align: center;
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .sim-stepper-value-unit {
+    display: block;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    margin-top: 4px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* Cycle toggle */
+  .sim-cycle-toggle {
+    display: flex;
+    gap: 8px;
+  }
+  .sim-cycle-btn {
+    flex: 1;
+    padding: 11px 14px;
+    background: var(--teal-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .sim-cycle-btn.active {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+  }
+  .sim-cycle-btn-discount {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 2px;
+    opacity: 0.8;
+  }
+
+  /* Results */
+  .sim-results {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 768px) {
+    .sim-results { grid-template-columns: 1fr; }
+  }
+  .sim-plan {
+    background: white;
+    border: 2px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 20px 22px;
+    transition: all 0.25s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .sim-plan.recommended {
+    border-color: var(--teal);
+    background: linear-gradient(180deg, #fff 0%, var(--teal-bg) 100%);
+    box-shadow: var(--shadow-teal);
+  }
+  .sim-plan.unavailable {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .sim-plan-tag {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--teal);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .sim-plan-name {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--teal);
+    margin-bottom: 4px;
+  }
+  .sim-plan-desc {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-bottom: 18px;
+    min-height: 30px;
+  }
+  .sim-plan-amount {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .sim-plan-period {
+    font-size: 12px;
+    color: var(--ink-muted);
+    font-weight: 500;
+    margin-left: 2px;
+  }
+  .sim-plan-detail {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-top: 6px;
+    min-height: 16px;
+  }
+  .sim-plan-savings {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--teal);
+    background: var(--teal-light);
+    padding: 4px 8px;
+    border-radius: 100px;
+    display: inline-block;
+    margin-top: 10px;
+  }
+  .sim-plan-na {
+    font-size: 12px;
+    color: var(--ink-muted);
+    font-style: italic;
+    margin-top: 6px;
+  }
+
+  .simulator-cta {
+    text-align: center;
+    margin-top: 36px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+  }
+  .simulator-cta p {
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+
+  <!-- ============ SIMULATOR ============ -->
+<section class="simulator" id="simulator">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-label">Simulateur</span>
+      <h2 class="section-title">Combien ça va vous coûter<br><em>exactement ?</em></h2>
+      <p class="section-sub">Renseignez votre nombre de boutiques. On vous donne le prix précis, sans surprise.</p>
+    </div>
+
+    <div class="simulator-wrap">
+
+      <!-- Controls -->
+      <div class="simulator-controls">
+        <div class="sim-field">
+          <div class="sim-field-label">Vos boutiques</div>
+          <div class="sim-stepper">
+            <button class="sim-stepper-btn" id="sim-minus" onclick="simAdjust(-1)" aria-label="Diminuer">−</button>
+            <div>
+              <span class="sim-stepper-value" id="sim-count">1</span>
+              <span class="sim-stepper-value-unit" id="sim-count-unit">boutique</span>
+            </div>
+            <button class="sim-stepper-btn" id="sim-plus" onclick="simAdjust(1)" aria-label="Augmenter">+</button>
+          </div>
+        </div>
+
+        <div class="sim-field">
+          <div class="sim-field-label">Type d'engagement</div>
+          <div class="sim-cycle-toggle">
+            <button class="sim-cycle-btn active" id="sim-cycle-monthly" onclick="simSetCycle('monthly')">
+              Mensuel
+              <span class="sim-cycle-btn-discount" style="opacity: 0;">sans engagement</span>
+            </button>
+            <button class="sim-cycle-btn" id="sim-cycle-annual" onclick="simSetCycle('annual')">
+              Annuel
+              <span class="sim-cycle-btn-discount">−15%</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="sim-results">
+        <div class="sim-plan" id="sim-plan-essentiel">
+          <div class="sim-plan-name">Essentiel</div>
+          <div class="sim-plan-desc">1 boutique · 500 clients</div>
+          <div>
+            <span class="sim-plan-amount" id="sim-amount-essentiel">29</span>
+            <span class="sim-plan-period">€/mois</span>
+          </div>
+          <div class="sim-plan-detail" id="sim-detail-essentiel">Soit 348€/an</div>
+          <div class="sim-plan-na" id="sim-na-essentiel" style="display:none;">Indisponible pour plusieurs boutiques</div>
+        </div>
+
+        <div class="sim-plan recommended" id="sim-plan-pro">
+          <div class="sim-plan-tag">Recommandé</div>
+          <div class="sim-plan-name">Pro</div>
+          <div class="sim-plan-desc">1 boutique · 2 000 clients</div>
+          <div>
+            <span class="sim-plan-amount" id="sim-amount-pro">59</span>
+            <span class="sim-plan-period">€/mois</span>
+          </div>
+          <div class="sim-plan-detail" id="sim-detail-pro">Soit 708€/an</div>
+          <div class="sim-plan-na" id="sim-na-pro" style="display:none;">Indisponible pour plusieurs boutiques</div>
+        </div>
+
+        <div class="sim-plan" id="sim-plan-multisite">
+          <div class="sim-plan-name">Multi-site</div>
+          <div class="sim-plan-desc">Boutiques et clients illimités</div>
+          <div>
+            <span class="sim-plan-amount" id="sim-amount-multisite">79</span>
+            <span class="sim-plan-period">€/mois</span>
+          </div>
+          <div class="sim-plan-detail" id="sim-detail-multisite">Soit 948€/an</div>
+          <div id="sim-savings-multisite"></div>
+        </div>
+      </div>
+
+      <div class="simulator-cta">
+        <p>Envie de discuter d'une offre sur mesure ou d'un engagement adapté à votre réseau ?</p>
+        <a href="https://wa.me/33782526599?text=Bonjour%20Nuvy%20!%20J'ai%20utilisé%20votre%20simulateur%20et%20j'aimerais%20en%20discuter." target="_blank" rel="noopener" class="btn btn-primary">
+          En discuter sur WhatsApp
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <!-- ============ FAQ ============ -->
 <section class="faq" id="faq">
   <div class="container">
@@ -1540,6 +1872,127 @@
       }
     });
   }
+  // ============ SIMULATOR ============
+  let simCount = 1;
+  let simCycle = 'monthly';
+  const SIM_MAX = 20;
+
+  function simAdjust(delta) {
+    simCount = Math.max(1, Math.min(SIM_MAX, simCount + delta));
+    simRender();
+  }
+
+  function simSetCycle(cycle) {
+    simCycle = cycle;
+    document.getElementById('sim-cycle-monthly').classList.toggle('active', cycle === 'monthly');
+    document.getElementById('sim-cycle-annual').classList.toggle('active', cycle === 'annual');
+    document.querySelector('#sim-cycle-monthly .sim-cycle-btn-discount').style.opacity =
+      cycle === 'monthly' ? '0.8' : '0';
+    simRender();
+  }
+
+  function formatPrice(n) {
+    // 239.7 → "239,70" ; 108 → "108" ; 1125.3 → "1 125,30"
+    const rounded = Math.round(n * 100) / 100;
+    const [intPart, decPart] = rounded.toFixed(2).split('.');
+    const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return decPart === '00' ? intFormatted : `${intFormatted},${decPart}`;
+  }
+
+  function simRender() {
+    // Update stepper
+    document.getElementById('sim-count').innerText = simCount;
+    document.getElementById('sim-count-unit').innerText = simCount > 1 ? 'boutiques' : 'boutique';
+    document.getElementById('sim-minus').disabled = simCount <= 1;
+    document.getElementById('sim-plus').disabled = simCount >= SIM_MAX;
+
+    // Update monthly cycle label
+    document.querySelector('#sim-cycle-monthly .sim-cycle-btn-discount').innerText =
+      simCycle === 'monthly' ? 'sans engagement' : '';
+
+    // Pricing logic
+    const discount = simCycle === 'annual' ? 0.85 : 1;
+
+    // Essentiel & Pro = 1 boutique uniquement
+    const essentielMonthly = 29 * discount;
+    const proMonthly = 59 * discount;
+
+    // Multi-site = 79 + 29 × (N-1)
+    const multisiteBase = 79 * discount;
+    const multisiteExtra = 29 * discount;
+    const multisiteMonthly = multisiteBase + multisiteExtra * (simCount - 1);
+
+    // Update Essentiel
+    const essentielEl = document.getElementById('sim-plan-essentiel');
+    const essentielAmount = document.getElementById('sim-amount-essentiel');
+    const essentielDetail = document.getElementById('sim-detail-essentiel');
+    const essentielNA = document.getElementById('sim-na-essentiel');
+    if (simCount === 1) {
+      essentielEl.classList.remove('unavailable');
+      essentielAmount.innerText = formatPrice(essentielMonthly);
+      essentielDetail.style.display = 'block';
+      essentielDetail.innerText = `Soit ${formatPrice(essentielMonthly * 12)}€/an`;
+      essentielNA.style.display = 'none';
+    } else {
+      essentielEl.classList.add('unavailable');
+      essentielAmount.innerText = '—';
+      essentielDetail.style.display = 'none';
+      essentielNA.style.display = 'block';
+    }
+
+    // Update Pro
+    const proEl = document.getElementById('sim-plan-pro');
+    const proAmount = document.getElementById('sim-amount-pro');
+    const proDetail = document.getElementById('sim-detail-pro');
+    const proNA = document.getElementById('sim-na-pro');
+    if (simCount === 1) {
+      proEl.classList.remove('unavailable');
+      proAmount.innerText = formatPrice(proMonthly);
+      proDetail.style.display = 'block';
+      proDetail.innerText = `Soit ${formatPrice(proMonthly * 12)}€/an`;
+      proNA.style.display = 'none';
+    } else {
+      proEl.classList.add('unavailable');
+      proAmount.innerText = '—';
+      proDetail.style.display = 'none';
+      proNA.style.display = 'block';
+    }
+
+    // Update Multi-site
+    const multisiteEl = document.getElementById('sim-plan-multisite');
+    const multisiteAmount = document.getElementById('sim-amount-multisite');
+    const multisiteDetail = document.getElementById('sim-detail-multisite');
+    const savingsEl = document.getElementById('sim-savings-multisite');
+
+    multisiteAmount.innerText = formatPrice(multisiteMonthly);
+    multisiteDetail.innerText = simCount > 1
+      ? `${formatPrice(multisiteBase)}€ + ${simCount - 1} × ${formatPrice(multisiteExtra)}€ · Soit ${formatPrice(multisiteMonthly * 12)}€/an`
+      : `Soit ${formatPrice(multisiteMonthly * 12)}€/an`;
+
+    // Savings pill if annual
+    if (simCycle === 'annual') {
+      const fullPrice = 79 + 29 * (simCount - 1);
+      const savings = (fullPrice - multisiteMonthly) * 12;
+      savingsEl.innerHTML = `<div class="sim-plan-savings">Vous économisez ${formatPrice(savings)}€/an</div>`;
+    } else {
+      savingsEl.innerHTML = '';
+    }
+
+    // Recommandation dynamique : Pro si 1 boutique, sinon Multi-site
+    document.querySelectorAll('.sim-plan-tag').forEach(t => t.remove());
+    const recommendedPlanEl = simCount === 1 ? proEl : multisiteEl;
+    const tag = document.createElement('div');
+    tag.className = 'sim-plan-tag';
+    tag.innerText = 'Recommandé';
+    recommendedPlanEl.appendChild(tag);
+
+    // Reset all
+    [essentielEl, proEl, multisiteEl].forEach(el => el.classList.remove('recommended'));
+    recommendedPlanEl.classList.add('recommended');
+  }
+
+  // Init
+  simRender();
 </script>
 
 </body>
