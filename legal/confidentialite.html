@@ -11,6 +11,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Manrope', system-ui, sans-serif; background: #FAF8F5; color: #222; line-height: 1.65; -webkit-font-smoothing: antialiased; }
         .container { max-width: 780px; margin: 0 auto; padding: 40px 24px 80px; }
+        .beta-banner { background: #FFF4E5; border: 1px solid #F4B942; border-radius: 12px; padding: 16px 20px; margin-bottom: 32px; font-size: 14px; color: #8B6F1C; line-height: 1.5; }
+        .beta-banner strong { color: #6B5514; }
         .header { padding-bottom: 32px; border-bottom: 1px solid #E0DEDA; margin-bottom: 40px; }
         .brand { font-size: 24px; color: #2A8C9C; letter-spacing: -0.5px; text-decoration: none; display: inline-block; font-family: 'Bagel Fat One', cursive; }
         .brand:hover { opacity: 0.85; }
@@ -27,39 +29,39 @@
         table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
         th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #E0DEDA; }
         th { background: #F5F3EF; font-weight: 700; color: #1a1a1a; }
-        .placeholder { background: #FFF9E6; border-left: 3px solid #F4B942; padding: 12px 16px; margin: 16px 0; border-radius: 4px; font-size: 14px; color: #8B6F1C; }
-        .placeholder::before { content: "✏️ "; }
         footer { margin-top: 80px; padding-top: 32px; border-top: 1px solid #E0DEDA; text-align: center; font-size: 13px; color: #888; }
         footer a { color: #2A8C9C; margin: 0 8px; }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="beta-banner">
+            <strong>⚠ Phase bêta.</strong> Cette politique de confidentialité est en version provisoire pendant la période de test commercial de Nuvy. Elle sera remplacée par une version finalisée avant la mise en production commerciale complète. Vous serez notifié et invité à prendre connaissance des nouvelles conditions. Vous pouvez à tout moment demander la suppression de vos données en écrivant à contact@nuvy.pro.
+        </div>
+
         <header class="header">
             <a href="/" class="brand" style="font-family: 'Bagel Fat One', cursive;">Nuvy</a>
             <h1>Politique de confidentialité</h1>
-            <p class="meta">Dernière mise à jour : [À COMPLÉTER]</p>
+            <p class="meta">Dernière mise à jour : 21 avril 2026 — Version bêta v1.0</p>
         </header>
 
         <section>
             <h2>1. Introduction</h2>
-            <p>La protection de vos données personnelles est une priorité pour Nuvy. Cette politique de confidentialité décrit comment Nuvy collecte, utilise, conserve et protège vos données personnelles, dans le strict respect du Règlement Général sur la Protection des Données (RGPD) et de la loi française « Informatique et Libertés ».</p>
+            <p>La protection de vos données personnelles est une priorité pour Nuvy. Cette politique décrit comment Nuvy collecte, utilise, conserve et protège vos données personnelles, dans le respect du Règlement Général sur la Protection des Données (RGPD) et de la loi française « Informatique et Libertés ».</p>
         </section>
 
         <section>
             <h2>2. Responsables de traitement</h2>
             <p>Dans le cadre de l'utilisation de Nuvy, les responsabilités relatives au traitement de vos données sont réparties comme suit :</p>
             <ul>
-                <li><strong>Le commerçant partenaire</strong> (boutique dont vous êtes client) est <strong>responsable de traitement</strong> : il définit les finalités du programme de fidélité et collecte vos données dans ce cadre.</li>
-                <li><strong>Nuvy SASU</strong> est <strong>sous-traitant</strong> au sens de l'article 28 du RGPD : elle traite vos données pour le compte du commerçant, selon ses instructions et dans le cadre défini par les présentes.</li>
+                <li><strong>Le commerçant partenaire</strong> (la boutique dont vous êtes client) est <strong>responsable de traitement</strong> : il définit les finalités du programme de fidélité et collecte vos données dans ce cadre.</li>
+                <li><strong>Nuvy</strong> est <strong>sous-traitant</strong> au sens de l'article 28 du RGPD : elle traite vos données pour le compte du commerçant, selon ses instructions et dans le cadre défini par les présentes.</li>
             </ul>
-            <div class="placeholder">À rédiger : coordonnées complètes de Nuvy SASU (SIRET, adresse, représentant légal, email contact RGPD).</div>
+            <p>Nuvy est un projet porté par Tristan LE VAN, 4 Rue des Chardonnerets, 95220 Herblay-sur-Seine. Contact pour toute question RGPD : <a href="mailto:contact@nuvy.pro">contact@nuvy.pro</a>.</p>
         </section>
 
         <section>
             <h2>3. Données collectées</h2>
-            <p>Nuvy collecte les catégories de données suivantes :</p>
-
             <h3>3.1. Données d'identification</h3>
             <ul>
                 <li>Prénom et nom</li>
@@ -79,12 +81,12 @@
                 <li>Type d'appareil (iOS, Android, autre)</li>
                 <li>Numéro de série unique de votre carte Wallet (généré automatiquement)</li>
                 <li>Jeton d'authentification Apple / Google Wallet</li>
-                <li>Adresse IP (lors de la connexion)</li>
+                <li>Adresse IP lors des connexions</li>
             </ul>
 
             <h3>3.4. Données de consentement</h3>
             <ul>
-                <li>Date et heure d'acceptation des présentes conditions</li>
+                <li>Date et heure d'acceptation des conditions</li>
                 <li>Version acceptée des CGU et de la politique de confidentialité</li>
             </ul>
         </section>
@@ -101,20 +103,16 @@
                         <td>Exécution du contrat (art. 6.1.b RGPD)</td>
                     </tr>
                     <tr>
-                        <td>Envoi de notifications push via Apple / Google Wallet</td>
+                        <td>Envoi de notifications via Apple Wallet / Google Wallet</td>
                         <td>Exécution du contrat</td>
                     </tr>
                     <tr>
-                        <td>Statistiques anonymisées et analytics pour le commerçant</td>
+                        <td>Statistiques anonymisées pour le commerçant</td>
                         <td>Intérêt légitime</td>
                     </tr>
                     <tr>
                         <td>Sécurité et prévention de la fraude</td>
                         <td>Intérêt légitime</td>
-                    </tr>
-                    <tr>
-                        <td>Respect des obligations légales et comptables</td>
-                        <td>Obligation légale</td>
                     </tr>
                 </tbody>
             </table>
@@ -122,7 +120,7 @@
 
         <section>
             <h2>5. Destinataires des données</h2>
-            <p>Vos données sont traitées par Nuvy et les sous-traitants techniques suivants, tous contractuellement liés par des obligations de confidentialité et de sécurité :</p>
+            <p>Vos données sont traitées par Nuvy et les sous-traitants techniques suivants, tous contractuellement tenus par des obligations de confidentialité et de sécurité :</p>
             <table>
                 <thead>
                     <tr><th>Prestataire</th><th>Finalité</th><th>Localisation</th></tr>
@@ -136,11 +134,11 @@
                     <tr>
                         <td>Railway</td>
                         <td>Hébergement application</td>
-                        <td>[À VÉRIFIER : EU ou US avec TCN]</td>
+                        <td>États-Unis (TCN applicables)</td>
                     </tr>
                     <tr>
                         <td>Apple Inc.</td>
-                        <td>Service Apple Wallet et notifications push (APNs)</td>
+                        <td>Service Apple Wallet et notifications push</td>
                         <td>États-Unis (TCN applicables)</td>
                     </tr>
                     <tr>
@@ -148,14 +146,9 @@
                         <td>Service Google Wallet</td>
                         <td>États-Unis (TCN applicables)</td>
                     </tr>
-                    <tr>
-                        <td>Stripe</td>
-                        <td>Paiement des abonnements commerçants</td>
-                        <td>Union Européenne / États-Unis (TCN)</td>
-                    </tr>
                 </tbody>
             </table>
-            <p>Vos données ne sont jamais vendues à des tiers à des fins commerciales.</p>
+            <p><strong>Vos données ne sont jamais vendues ni partagées avec des tiers à des fins commerciales.</strong></p>
         </section>
 
         <section>
@@ -165,13 +158,13 @@
 
         <section>
             <h2>7. Durée de conservation</h2>
-            <div class="placeholder">À rédiger : durée de conservation en base active (ex: durée du programme de fidélité + 3 ans d'inactivité), durée d'archivage intermédiaire, anonymisation des données statistiques.</div>
             <ul>
-                <li><strong>Données de fidélité</strong> : [durée] en base active, puis archivage sécurisé pendant [durée] pour raisons légales</li>
+                <li><strong>Données de fidélité</strong> : conservées tant que vous utilisez le programme de fidélité, puis 3 ans après votre dernière visite pour permettre une éventuelle reprise du programme</li>
+                <li><strong>Données de consentement</strong> : conservées 5 ans pour preuve de consentement valide (recommandation CNIL)</li>
                 <li><strong>Logs techniques</strong> : 30 jours maximum</li>
                 <li><strong>Sauvegardes</strong> : 7 jours (Point-in-Time Recovery Supabase)</li>
-                <li><strong>Données comptables (factures)</strong> : 10 ans (obligation légale)</li>
             </ul>
+            <p>À l'issue de la phase bêta, les durées de conservation pourront être ajustées. Vous en serez informé.</p>
         </section>
 
         <section>
@@ -200,23 +193,18 @@
                 <li><strong>Droit d'opposition</strong> au traitement</li>
                 <li><strong>Droit de définir des directives post-mortem</strong> relatives à vos données</li>
             </ul>
-            <p>Pour exercer ces droits, vous pouvez contacter directement le commerçant partenaire (responsable de traitement) ou adresser votre demande à Nuvy à <a href="mailto:contact@nuvy.pro">contact@nuvy.pro</a>.</p>
+            <p>Pour exercer ces droits, vous pouvez contacter directement le commerçant partenaire (responsable de traitement) ou adresser votre demande à Nuvy à <a href="mailto:contact@nuvy.pro">contact@nuvy.pro</a>. Nous nous engageons à vous répondre sous 30 jours maximum.</p>
             <p>Vous disposez également du droit d'introduire une réclamation auprès de la Commission Nationale de l'Informatique et des Libertés (CNIL) : <a href="https://www.cnil.fr" target="_blank" rel="noopener">www.cnil.fr</a>.</p>
         </section>
 
         <section>
-            <h2>10. Cookies et technologies similaires</h2>
-            <div class="placeholder">À rédiger : cookies strictement nécessaires (session, authentification), absence de cookies de tracking, pas de cookies publicitaires.</div>
+            <h2>10. Cookies</h2>
+            <p>Nuvy utilise uniquement des cookies strictement nécessaires au fonctionnement du service (session, authentification). Aucun cookie de tracking publicitaire ou d'analyse tierce n'est déposé. Aucun consentement cookie n'est requis pour ces cookies techniques.</p>
         </section>
 
         <section>
-            <h2>11. Délégué à la protection des données</h2>
-            <p>Nuvy n'est pas soumise à l'obligation de désigner un Délégué à la Protection des Données (DPO). Toute question relative à la protection de vos données peut être adressée à : <a href="mailto:contact@nuvy.pro">contact@nuvy.pro</a>.</p>
-        </section>
-
-        <section>
-            <h2>12. Modification de la politique de confidentialité</h2>
-            <p>Nuvy se réserve le droit de modifier la présente politique. Toute modification substantielle vous sera notifiée par les moyens appropriés. La date de dernière mise à jour figure en haut du présent document.</p>
+            <h2>11. Modification de la politique</h2>
+            <p>Cette politique étant en version bêta, une version finalisée sera publiée à l'issue de la phase de test commercial. Vous serez notifié des modifications substantielles par les moyens appropriés (notification Wallet, email, ou lors de votre prochaine interaction avec le service). La date de dernière mise à jour figure en haut du présent document.</p>
         </section>
 
         <footer>
@@ -225,7 +213,7 @@
                 <a href="/cgv">CGV</a> ·
                 <a href="/cgu">CGU</a>
             </p>
-            <p style="margin-top: 12px;">© 2026 Nuvy SASU — Tous droits réservés</p>
+            <p style="margin-top: 12px;">© 2026 Nuvy — Tous droits réservés</p>
         </footer>
     </div>
 </body>

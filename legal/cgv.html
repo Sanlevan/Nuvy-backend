@@ -11,6 +11,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Manrope', system-ui, sans-serif; background: #FAF8F5; color: #222; line-height: 1.65; -webkit-font-smoothing: antialiased; }
         .container { max-width: 780px; margin: 0 auto; padding: 40px 24px 80px; }
+        .beta-banner { background: #FFF4E5; border: 1px solid #F4B942; border-radius: 12px; padding: 16px 20px; margin-bottom: 32px; font-size: 14px; color: #8B6F1C; line-height: 1.5; }
+        .beta-banner strong { color: #6B5514; }
         .header { padding-bottom: 32px; border-bottom: 1px solid #E0DEDA; margin-bottom: 40px; }
         .brand { font-size: 24px; color: #2A8C9C; letter-spacing: -0.5px; text-decoration: none; display: inline-block; font-family: 'Bagel Fat One', cursive; }
         .brand:hover { opacity: 0.85; }
@@ -24,106 +26,123 @@
         strong { font-weight: 700; color: #222; }
         a { color: #2A8C9C; font-weight: 600; text-decoration: none; }
         a:hover { text-decoration: underline; }
-        .placeholder { background: #FFF9E6; border-left: 3px solid #F4B942; padding: 12px 16px; margin: 16px 0; border-radius: 4px; font-size: 14px; color: #8B6F1C; }
-        .placeholder::before { content: "✏️ "; }
         footer { margin-top: 80px; padding-top: 32px; border-top: 1px solid #E0DEDA; text-align: center; font-size: 13px; color: #888; }
         footer a { color: #2A8C9C; margin: 0 8px; }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="beta-banner">
+            <strong>⚠ Phase bêta.</strong> Ces conditions de vente sont en version provisoire pendant la période de test commercial de Nuvy. Elles seront remplacées par une version finalisée avant la mise en production commerciale complète. Les commerçants partenaires en phase bêta bénéficient de conditions spécifiques définies dans un contrat de test signé séparément.
+        </div>
+
         <header class="header">
             <a href="/" class="brand" style="font-family: 'Bagel Fat One', cursive;">Nuvy</a>
             <h1>Conditions Générales de Vente</h1>
-            <p class="meta">Dernière mise à jour : [À COMPLÉTER]</p>
+            <p class="meta">Dernière mise à jour : 21 avril 2026 — Version bêta v1.0</p>
         </header>
 
         <section>
             <h2>1. Préambule</h2>
-            <div class="placeholder">À rédiger : présentation de Nuvy SASU, objet des CGV, définitions clés (Client, Utilisateur final, Service, Abonnement).</div>
             <p>Les présentes Conditions Générales de Vente (ci-après « CGV ») régissent les relations contractuelles entre :</p>
-            <p><strong>Nuvy SASU</strong>, société par actions simplifiée au capital de 1 000 euros, immatriculée au Registre du Commerce et des Sociétés sous le numéro [SIRET], dont le siège social est situé 4 Rue des Chardonnerets, 95220 Herblay-sur-Seine, représentée par son Président Tristan Le Van,</p>
+            <p><strong>Nuvy</strong>, projet porté par Tristan LE VAN, dont l'adresse est située 4 Rue des Chardonnerets, 95220 Herblay-sur-Seine, en cours d'immatriculation sous forme de SASU,</p>
             <p>ci-après dénommée « Nuvy », « l'Éditeur » ou « le Prestataire »,</p>
             <p>et toute personne physique ou morale, commerçant professionnel, qui souscrit à un abonnement aux services Nuvy, ci-après dénommée « le Client ».</p>
         </section>
 
         <section>
             <h2>2. Objet du contrat</h2>
-            <div class="placeholder">À rédiger : description précise du service Nuvy (plateforme SaaS de fidélité digitale, cartes Apple Wallet & Google Wallet, dashboard commerçant, notifications push, analytics).</div>
+            <p>Nuvy fournit au Client une plateforme SaaS de fidélité digitale composée de : cartes de fidélité hébergées dans Apple Wallet et Google Wallet, tableau de bord commerçant en temps réel, notifications push, analytics, et gestion de réseau multi-boutiques selon le plan souscrit.</p>
         </section>
 
         <section>
             <h2>3. Description des plans et tarifs</h2>
-            <h3>3.1. Plan Essentiel</h3>
-            <div class="placeholder">À rédiger : 29€/mois HT, 500 clients max, 1 boutique, fonctionnalités incluses.</div>
+            <h3>3.1. Plan Essentiel — 29€/mois HT</h3>
+            <p>1 boutique, jusqu'à 500 clients, dashboard temps réel, génération des cartes Apple et Google Wallet, support email standard.</p>
 
-            <h3>3.2. Plan Pro</h3>
-            <div class="placeholder">À rédiger : 59€/mois HT, 2000 clients max, 1 boutique, push notifications, analytics avancés, personnalisation carte.</div>
+            <h3>3.2. Plan Pro — 59€/mois HT</h3>
+            <p>1 boutique, jusqu'à 2 000 clients, inclut toutes les fonctionnalités du plan Essentiel + notifications push, analytics avancés (heures de pointe, distribution, évolution), personnalisation visuelle de la carte (couleurs, bandeau image, emojis).</p>
 
-            <h3>3.3. Plan Multi-site</h3>
-            <div class="placeholder">À rédiger : 79€/mois HT + 29€/boutique supplémentaire, clients illimités, dashboard réseau consolidé, rapport PDF global.</div>
+            <h3>3.3. Plan Multi-site — 79€/mois HT + 29€/mois HT par boutique supplémentaire</h3>
+            <p>Boutiques et clients illimités, dashboard réseau consolidé, rapport PDF global, toutes les fonctionnalités du plan Pro pour chaque boutique du réseau.</p>
+
+            <p>Les tarifs sont exprimés hors taxes. La TVA sera appliquée dès immatriculation effective de la SASU.</p>
         </section>
 
         <section>
             <h2>4. Souscription et durée de l'abonnement</h2>
-            <div class="placeholder">À rédiger : modalités de souscription en ligne, confirmation par email, engagement mensuel sans durée minimale vs engagement annuel, date d'effet.</div>
+            <p>La souscription s'effectue via le dashboard Nuvy ou après signature d'un contrat commercial. L'abonnement est conclu sans durée minimale sauf mention contraire (offre annuelle avec remise). La date d'effet correspond à la date de création du compte boutique.</p>
+            <p>Pendant la phase bêta, les conditions d'abonnement peuvent être négociées au cas par cas et font l'objet d'un contrat de test séparé.</p>
         </section>
 
         <section>
             <h2>5. Modalités de paiement</h2>
-            <div class="placeholder">À rédiger : prélèvement SEPA via Stripe, facturation mensuelle, renouvellement automatique, défaut de paiement, suspension du service.</div>
+            <p>Le paiement s'effectue par prélèvement mensuel via Stripe ou par virement SEPA. La facturation est mensuelle, d'avance, avec renouvellement automatique. En cas de défaut de paiement prolongé (plus de 15 jours), Nuvy peut suspendre l'accès au service après mise en demeure.</p>
+            <p>Pendant la phase bêta, certains commerçants partenaires peuvent bénéficier d'une gratuité ou d'un tarif préférentiel défini contractuellement.</p>
         </section>
 
         <section>
             <h2>6. Résiliation</h2>
-            <div class="placeholder">À rédiger : résiliation par le Client (préavis, modalités depuis le dashboard), résiliation par Nuvy (manquement grave), conséquences de la résiliation (réversibilité des données, export CSV).</div>
+            <p>Le Client peut résilier son abonnement à tout moment depuis le dashboard ou par email à <a href="mailto:contact@nuvy.pro">contact@nuvy.pro</a>, avec effet à la fin du mois en cours. Nuvy peut résilier l'abonnement en cas de manquement grave du Client (défaut de paiement, utilisation frauduleuse, non-respect des CGV). Les données du Client sont conservées 30 jours après résiliation pour permettre un export, puis définitivement supprimées.</p>
         </section>
 
         <section>
             <h2>7. Obligations du Client</h2>
-            <div class="placeholder">À rédiger : obligation d'information des clients finaux, respect de la réglementation fidélité, conformité RGPD en tant que responsable de traitement, usage loyal de la plateforme.</div>
+            <p>Le Client s'engage à :</p>
+            <ul>
+                <li>informer ses clients finaux de l'existence du programme de fidélité et de la collecte de données associée,</li>
+                <li>respecter la réglementation applicable aux programmes de fidélité,</li>
+                <li>agir en tant que responsable de traitement RGPD pour les données de ses clients finaux,</li>
+                <li>utiliser la plateforme de manière loyale, sans tenter de contourner ses mécanismes techniques ou commerciaux.</li>
+            </ul>
         </section>
 
         <section>
             <h2>8. Obligations de Nuvy</h2>
-            <div class="placeholder">À rédiger : disponibilité du service (engagement de moyen 99%), maintenance, support, sauvegardes, sécurité (JWT, rate limiting, chiffrement).</div>
+            <p>Nuvy s'engage à une obligation de moyens concernant :</p>
+            <ul>
+                <li>la disponibilité du service (objectif de disponibilité 99% hors maintenance planifiée),</li>
+                <li>la maintenance et les mises à jour de la plateforme,</li>
+                <li>le support client (réponse sous 48h ouvrées),</li>
+                <li>les sauvegardes quotidiennes des données,</li>
+                <li>la sécurité des données (JWT, rate limiting, chiffrement bcrypt, HTTPS/TLS).</li>
+            </ul>
+            <p>Pendant la phase bêta, certaines fonctionnalités peuvent évoluer ou être temporairement indisponibles.</p>
         </section>
 
         <section>
             <h2>9. Propriété intellectuelle</h2>
-            <div class="placeholder">À rédiger : Nuvy conserve la propriété du code et de la marque. Le Client conserve la propriété de ses données clients et de son contenu (logo, images bandeau).</div>
+            <p>Nuvy conserve la propriété exclusive du code source, de la marque Nuvy et de l'ensemble des éléments composant la plateforme. Le Client conserve la propriété de ses données clients ainsi que des éléments visuels qu'il téléverse (logo, images bandeau).</p>
         </section>
 
         <section>
             <h2>10. Données personnelles et sous-traitance RGPD</h2>
-            <p>Nuvy agit en qualité de sous-traitant au sens de l'article 28 du Règlement Général sur la Protection des Données (RGPD) pour le traitement des données des clients finaux du Client. Les obligations respectives sont détaillées dans le Contrat de Sous-Traitance annexé aux présentes.</p>
-            <div class="placeholder">À rédiger : renvoi vers le DPA (annexe ou document séparé), mesures de sécurité, liste des sous-sous-traitants (Supabase, Railway, Apple APNs, Google Wallet), hébergement UE.</div>
-            <p>Pour plus d'informations, consultez notre <a href="/confidentialite">Politique de confidentialité</a>.</p>
+            <p>Nuvy agit en qualité de <strong>sous-traitant</strong> au sens de l'article 28 du RGPD pour le traitement des données des clients finaux du Client. Le Client agit en tant que responsable de traitement. Les engagements respectifs sont détaillés dans la <a href="/confidentialite">Politique de confidentialité</a> et feront l'objet d'un Contrat de Sous-Traitance Dédié (DPA) à la sortie de la phase bêta.</p>
         </section>
 
         <section>
             <h2>11. Limitation de responsabilité</h2>
-            <div class="placeholder">À rédiger : plafond de responsabilité = montant annuel payé par le Client, exclusions (cas de force majeure, dommages indirects, pertes d'exploitation).</div>
+            <p>La responsabilité de Nuvy est limitée au montant annuel payé par le Client au titre de l'abonnement. Sont exclus de toute indemnisation : les dommages indirects, les pertes d'exploitation, les pertes de chiffre d'affaires, les cas de force majeure.</p>
         </section>
 
         <section>
             <h2>12. Réversibilité des données</h2>
-            <div class="placeholder">À rédiger : export CSV des données clients à la demande, délai de conservation post-résiliation (30 jours), modalités de destruction.</div>
+            <p>Le Client peut à tout moment demander l'export de ses données clients au format CSV depuis le dashboard ou sur simple demande à <a href="mailto:contact@nuvy.pro">contact@nuvy.pro</a>. À l'issue de la période de conservation post-résiliation (30 jours), les données sont définitivement supprimées des bases de production.</p>
         </section>
 
         <section>
             <h2>13. Évolution des CGV</h2>
-            <div class="placeholder">À rédiger : modification unilatérale avec préavis de 30 jours, droit de résiliation du Client en cas de refus.</div>
+            <p>Ces CGV étant en version bêta, elles seront remplacées par une version finalisée à l'issue de la phase de test commercial. Le Client sera informé 30 jours avant l'entrée en vigueur des nouvelles conditions et pourra résilier son abonnement sans frais en cas de désaccord.</p>
         </section>
 
         <section>
             <h2>14. Droit applicable et juridiction compétente</h2>
-            <p>Les présentes CGV sont soumises au droit français. Tout litige relatif à leur interprétation ou à leur exécution relèvera de la compétence exclusive des tribunaux du ressort du siège social de Nuvy, sauf disposition légale contraire.</p>
+            <p>Les présentes CGV sont soumises au droit français. Tout litige relatif à leur interprétation ou à leur exécution relèvera de la compétence exclusive des tribunaux du ressort du siège de Nuvy.</p>
         </section>
 
         <section>
             <h2>15. Contact</h2>
-            <p>Pour toute question relative aux présentes CGV, vous pouvez contacter Nuvy à l'adresse : <a href="mailto:contact@nuvy.pro">contact@nuvy.pro</a>.</p>
+            <p>Pour toute question relative aux présentes CGV : <a href="mailto:contact@nuvy.pro">contact@nuvy.pro</a>.</p>
         </section>
 
         <footer>
@@ -132,7 +151,7 @@
                 <a href="/cgu">CGU</a> ·
                 <a href="/confidentialite">Confidentialité</a>
             </p>
-            <p style="margin-top: 12px;">© 2026 Nuvy SASU — Tous droits réservés</p>
+            <p style="margin-top: 12px;">© 2026 Nuvy — Tous droits réservés</p>
         </footer>
     </div>
 </body>
