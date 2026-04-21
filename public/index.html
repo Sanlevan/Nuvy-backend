@@ -1359,7 +1359,7 @@
       </a>
       <a href="#how" class="btn btn-secondary">Voir comment ça marche</a>
     </div>
-    <p class="hero-trust">14 jours d'essai gratuit · Sans carte bancaire · Installation en 5 minutes</p>
+    <p class="hero-trust">Démo personnalisée · Sans engagement · Installation en 5 minutes</p>
   </div>
 
   <!-- Hero Visual: Wallet + Dashboard -->
@@ -1482,10 +1482,10 @@
 
       <div class="feature">
         <div class="feature-icon">
-          <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M7 3v4M13 3v4M3 9h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 3l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4l2-4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         </div>
-        <h3>Essai 14 jours</h3>
-        <p>Testez sans engagement, sans carte bancaire. Si ça ne vous convient pas, on s'arrête là. Tout simplement.</p>
+        <h3>Démo sur mesure</h3>
+        <p>On vous présente le produit en conditions réelles, chez vous. Vous voyez exactement ce que vos clients verront.</p>
       </div>
 
       <div class="feature">
@@ -1646,7 +1646,7 @@
 
     <p class="pricing-footer">
       Engagement annuel : -10% mais contrat sur 12 mois, facturé mensuellement.<br>
-      Mensuel : annulable à tout moment. Tous les plans incluent 14 jours d'essai gratuit.
+      Mensuel : annulable à tout moment. Démarrage après démo et onboarding avec notre équipe.
     </p>
   </div>
 </section>
@@ -1903,7 +1903,7 @@
       simCycle === 'monthly' ? 'sans engagement' : '';
 
     // Pricing logic
-    const discount = simCycle === 'annual' ? 0.85 : 1;
+    const discount = simCycle === 'annual' ? 0.90 : 1;
 
     // Essentiel & Pro = 1 boutique uniquement
     const essentielMonthly = 29 * discount;
@@ -1919,17 +1919,30 @@
     const essentielAmount = document.getElementById('sim-amount-essentiel');
     const essentielDetail = document.getElementById('sim-detail-essentiel');
     const essentielNA = document.getElementById('sim-na-essentiel');
+    let essentielSavingsEl = document.getElementById('sim-savings-essentiel');
+    if (!essentielSavingsEl) {
+      essentielSavingsEl = document.createElement('div');
+      essentielSavingsEl.id = 'sim-savings-essentiel';
+      essentielEl.appendChild(essentielSavingsEl);
+    }
     if (simCount === 1) {
       essentielEl.classList.remove('unavailable');
       essentielAmount.innerText = formatPrice(essentielMonthly);
       essentielDetail.style.display = 'block';
       essentielDetail.innerText = `Soit ${formatPrice(essentielMonthly * 12)}€/an`;
       essentielNA.style.display = 'none';
+      if (simCycle === 'annual') {
+        const savings = (29 - essentielMonthly) * 12;
+        essentielSavingsEl.innerHTML = `<div class="sim-plan-savings">Vous économisez ${formatPrice(savings)}€/an</div>`;
+      } else {
+        essentielSavingsEl.innerHTML = '';
+      }
     } else {
       essentielEl.classList.add('unavailable');
       essentielAmount.innerText = '—';
       essentielDetail.style.display = 'none';
       essentielNA.style.display = 'block';
+      essentielSavingsEl.innerHTML = '';
     }
 
     // Update Pro
@@ -1937,17 +1950,30 @@
     const proAmount = document.getElementById('sim-amount-pro');
     const proDetail = document.getElementById('sim-detail-pro');
     const proNA = document.getElementById('sim-na-pro');
+    let proSavingsEl = document.getElementById('sim-savings-pro');
+    if (!proSavingsEl) {
+      proSavingsEl = document.createElement('div');
+      proSavingsEl.id = 'sim-savings-pro';
+      proEl.appendChild(proSavingsEl);
+    }
     if (simCount === 1) {
       proEl.classList.remove('unavailable');
       proAmount.innerText = formatPrice(proMonthly);
       proDetail.style.display = 'block';
       proDetail.innerText = `Soit ${formatPrice(proMonthly * 12)}€/an`;
       proNA.style.display = 'none';
+      if (simCycle === 'annual') {
+        const savings = (59 - proMonthly) * 12;
+        proSavingsEl.innerHTML = `<div class="sim-plan-savings">Vous économisez ${formatPrice(savings)}€/an</div>`;
+      } else {
+        proSavingsEl.innerHTML = '';
+      }
     } else {
       proEl.classList.add('unavailable');
       proAmount.innerText = '—';
       proDetail.style.display = 'none';
       proNA.style.display = 'block';
+      proSavingsEl.innerHTML = '';
     }
 
     // Update Multi-site
