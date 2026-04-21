@@ -1581,8 +1581,8 @@
         <div class="plan-name">Essentiel</div>
         <div class="plan-desc">Pour tester le concept et démarrer en douceur.</div>
         <div class="plan-price">
-          <span class="plan-price-old" data-monthly="" data-annual="49€">49€</span>
-          <span class="plan-amount" data-monthly="49" data-annual="44,10">49</span>
+          <span class="plan-price-old" data-monthly="" data-annual="29€">29€</span>
+          <span class="plan-amount" data-monthly="29" data-annual="26,10">29</span>
           <span class="plan-period">€/mois</span>
         </div>
         <div class="plan-extra" data-monthly="Sans engagement" data-annual="Engagement 12 mois">Sans engagement</div>
@@ -1604,8 +1604,8 @@
         <div class="plan-name">Pro</div>
         <div class="plan-desc">Pour fidéliser pour de vrai et aller plus loin.</div>
         <div class="plan-price">
-          <span class="plan-price-old" data-monthly="" data-annual="99€">99€</span>
-          <span class="plan-amount" data-monthly="99" data-annual="89,10">99</span>
+          <span class="plan-price-old" data-monthly="" data-annual="59€">59€</span>
+          <span class="plan-amount" data-monthly="59" data-annual="53,10">59</span>
           <span class="plan-period">€/mois</span>
         </div>
         <div class="plan-extra" data-monthly="Sans engagement" data-annual="Engagement 12 mois">Sans engagement</div>
@@ -1626,11 +1626,11 @@
         <div class="plan-name">Multi-site</div>
         <div class="plan-desc">Pour les chaînes et réseaux multi-boutiques.</div>
         <div class="plan-price">
-          <span class="plan-price-old" data-monthly="" data-annual="149€">149€</span>
-          <span class="plan-amount" data-monthly="149" data-annual="134,10">149</span>
+          <span class="plan-price-old" data-monthly="" data-annual="79€">79€</span>
+          <span class="plan-amount" data-monthly="79" data-annual="71,10">79</span>
           <span class="plan-period">€/mois</span>
         </div>
-        <div class="plan-extra" data-monthly="+ 29€ par boutique supplémentaire" data-annual="+ 26,10€ par boutique · -10%">+ 29€ par boutique</div><div class="plan-extra" data-monthly="+ 29€ par boutique supplémentaire" data-annual="+ 26,10€ par boutique · -10%">+ 29€ par boutique</div><div class="plan-extra" data-monthly="+ 49€ par boutique supplémentaire" data-annual="+ 44,10€ par boutique · -10%">+ 49€ par boutique</div>
+        <div class="plan-extra" data-monthly="+ 29€ par boutique supplémentaire" data-annual="+ 26,10€ par boutique · -10%">+ 29€ par boutique</div>
         <ul class="plan-features">
           <li>Boutiques illimitées</li>
           <li>Clients illimités</li>
@@ -1906,12 +1906,12 @@
     const discount = simCycle === 'annual' ? 0.90 : 1;
 
     // Essentiel & Pro = 1 boutique uniquement
-    const essentielMonthly = 49 * discount;
-    const proMonthly = 99 * discount;
+    const essentielMonthly = 29 * discount;
+    const proMonthly = 59 * discount;
 
-    // Multi-site = 149 + 49 × (N-1)
-    const multisiteBase = 149 * discount;
-    const multisiteExtra = 49 * discount;
+    // Multi-site = 79 + 29 × (N-1)
+    const multisiteBase = 79 * discount;
+    const multisiteExtra = 29 * discount;
     const multisiteMonthly = multisiteBase + multisiteExtra * (simCount - 1);
 
     // Update Essentiel
@@ -1932,7 +1932,7 @@
       essentielDetail.innerText = `Soit ${formatPrice(essentielMonthly * 12)}€/an`;
       essentielNA.style.display = 'none';
       if (simCycle === 'annual') {
-        const savings = (49 - essentielMonthly) * 12;
+        const savings = (29 - essentielMonthly) * 12;
         essentielSavingsEl.innerHTML = `<div class="sim-plan-savings">Vous économisez ${formatPrice(savings)}€/an</div>`;
       } else {
         essentielSavingsEl.innerHTML = '';
@@ -1963,7 +1963,7 @@
       proDetail.innerText = `Soit ${formatPrice(proMonthly * 12)}€/an`;
       proNA.style.display = 'none';
       if (simCycle === 'annual') {
-        const savings = (99 - proMonthly) * 12;
+        const savings = (59 - proMonthly) * 12;
         proSavingsEl.innerHTML = `<div class="sim-plan-savings">Vous économisez ${formatPrice(savings)}€/an</div>`;
       } else {
         proSavingsEl.innerHTML = '';
@@ -1989,7 +1989,7 @@
 
     // Savings pill if annual
     if (simCycle === 'annual') {
-      const fullPrice = 149 + 49 * (simCount - 1);
+      const fullPrice = 79 + 29 * (simCount - 1);
       const savings = (fullPrice - multisiteMonthly) * 12;
       savingsEl.innerHTML = `<div class="sim-plan-savings">Vous économisez ${formatPrice(savings)}€/an</div>`;
     } else {
