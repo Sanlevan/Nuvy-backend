@@ -778,22 +778,23 @@
             if (data.pdfBase64) {
                 try {
                     const byteChars = atob(data.pdfBase64);
-                    const byteNumbers = new Array(byteChars.length);
-                    for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-                    const byteArray = new Uint8Array(byteNumbers);
+                    const byteArray = new Uint8Array(byteChars.length);
+                    for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
                     const blob = new Blob([byteArray], { type: 'application/pdf' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Manuel Nuvy (${nom}).pdf`;
+                    a.download = `Manuel Nuvy - ${data.boutique.nom}.pdf`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
                     setTimeout(() => URL.revokeObjectURL(url), 1000);
                 } catch (pdfErr) {
                     console.error("Erreur téléchargement PDF:", pdfErr);
-                    alert("⚠️ Boutique créée mais le manuel PDF n'a pas pu être téléchargé. Contactez le support technique.");
                 }
+            } else {
+                console.warn("⚠️ pdfBase64 absent de la réponse. Réponse complète :", data);
+                alert("⚠️ Boutique créée mais le PDF n'a pas été généré. Vérifiez les logs Railway.");
             }
 
             // Succès ! On ferme la modale et on vide le formulaire
