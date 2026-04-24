@@ -14,7 +14,7 @@ function requireCeoKey(req, res, next) {
 
 router.post('/create-boutique', async (req, res) => {
     try {
-        const { nom, username, password, ceoKey, categorie, logo_url, max_tampons, plan } = req.body;
+        const { nom, username, password, ceoKey, categorie, logo_url, max_tampons, plan, engagement } = req.body;
         if (ceoKey !== MASTER_CEO_KEY) return res.status(403).json({ message: "Clé CEO invalide." });
 
         const slug = nom.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '');
@@ -25,33 +25,40 @@ router.post('/create-boutique', async (req, res) => {
         const finalExpiration = parseInt(req.body.expiration_jours) || 0;
         const plansValides = ['essentiel', 'pro', 'multi-site'];
         const finalPlan = plansValides.includes(plan) ? plan : 'essentiel';
+        const finalEngagement = engagement === 'annuel' ? 'annuel' : 'mensuel';
+
+        // Récupérer le bon Price ID
+        const priceMap = {
+            'essentiel_mensuel': process.env.STRIPE_PRICE_ESSENTIEL_MENSUEL,
+            'essentiel_annuel': process.env.STRIPE_PRICE_ESSENTIEL_ANNUEL,
+            'pro_mensuel': process.env.STRIPE_PRICE_PRO_MENSUEL,
+            'pro_annuel': process.env.STRIPE_PRICE_PRO_ANNUEL,
+            'multi-site_mensuel': process.env.STRIPE_PRICE_MULTISITE_MENSUEL,
+            'multi-site_annuel': process.env.STRIPE_PRICE_MULTISITE_ANNUEL
+        };
+        const priceKey = `${finalPlan}_${finalEngagement}`;
+        const priceId = priceMap[priceKey];
+
+        if (!priceId) {
+            throw new Error(`Price ID manquant pour ${priceKey}`);
+        }
 
         // Créer le customer Stripe
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
         const stripeCustomer = await stripe.customers.create({
             email: req.body.email || `${slug}@nuvy.pro`,
             name: nom,
             metadata: { boutique_name: nom, slug: slug }
         });
 
-        // Créer la subscription Stripe
-        const planPrices = {
-            'essentiel': process.env.STRIPE_PRICE_ESSENTIEL,
-            'pro': process.env.STRIPE_PRICE_PRO,
-            'multi-site': process.env.STRIPE_PRICE_MULTISITE
-        };
-        const priceId = planPrices[finalPlan];
-
-        if (!priceId) {
-            throw new Error(`Price ID manquant pour le plan ${finalPlan}`);
-        }
-
+        // Créer la subscription
         const subscription = await stripe.subscriptions.create({
             customer: stripeCustomer.id,
             items: [{ price: priceId }],
-            metadata: { plan: finalPlan }
+            metadata: { plan: finalPlan, engagement: finalEngagement }
         });
 
-        // Insérer en base avec les IDs Stripe
+        // Insérer en base
         const { data, error } = await supabase.from('boutiques').insert([{
             nom, slug, username, password: hashedPassword, categorie, logo_url, join_url,
             color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons,
@@ -63,7 +70,7 @@ router.post('/create-boutique', async (req, res) => {
 
         if (error) throw error;
 
-        // Génération du manuel PDF personnalisé
+        // Générer le PDF
         let pdfBase64 = null;
         try {
             const pdfBuffer = await generateManuelPdf({
