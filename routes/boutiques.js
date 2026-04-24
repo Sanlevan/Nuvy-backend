@@ -127,6 +127,8 @@ router.get('/:id/activites-du-jour', verifyAuthOwner, async (req, res) => {
 });
 
 router.get('/:id/segments', verifyAuthOwner, async (req, res) => {
+    const allowed = await requireFeature(req, res, 'segments');
+    if (allowed !== true) return;
     try {
         const { data: clients } = await supabase.from('clients')
             .select('id, nom, telephone, tampons, recompenses, total_historique, last_visit')

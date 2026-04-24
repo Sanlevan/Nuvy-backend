@@ -31,6 +31,10 @@
     .safe-area-inset-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
     @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
     .animate-ping { animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+    .opacity-60 { opacity: 0.6; }
+    .nav-item.opacity-60 { cursor: pointer; }
+    .nav-item.opacity-60:hover { opacity: 0.8; }
     
     /* GESTION DES VUES */
     .view { display: none !important; animation: fadeIn 0.4s ease; }
@@ -1067,20 +1071,165 @@ async function changerMotDePasse() {
         } catch (e) { console.error('Erreur ROI:', e); }
     }
     function applyPlanGating(plan, limits) {
-        // Push notifications
-        if (!limits.push_notifications) {
-            document.querySelectorAll('[onclick*="view-push"]').forEach(el => el.remove());
-            const pushSection = document.getElementById('view-push');
-            if (pushSection) pushSection.remove();
-        }
-        // Analytics avancés (heures de pointe, distribution) — masquer pour essentiel
-        if (!limits.analytics_avances) {
-            document.querySelectorAll('#view-analytics .bg-white').forEach((card, i) => {
-                // Garder les 3 KPI cards (index 0,1,2) + évolution, masquer heures de pointe et distribution
-                if (i === 3 || i === 4) card.style.display = 'none'; // peak + distri
-            });
-        }
+    const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+
+    // Stocker pour usage global
+    window.currentPlan = plan;
+    window.currentLimits = limits;
+
+    // 1. NOTIFICATIONS PUSH
+    if (!limits.push_notifications) {
+        lockNavItem('view-push', 'Pro');
+        lockSection('view-push', 'Notifications Push', 'Pro', 
+            'Envoyez des notifications à tous vos clients en un clic.');
     }
+
+    // 2. APPARENCE / PERSONNALISATION
+    if (!limits.personnalisation) {
+        lockNavItem('view-appearance', 'Pro');
+        // La section appearance a déjà son propre lock côté loadAppearance(), donc on n'y touche pas
+    }
+
+    // 3. SEGMENTS
+    if (!limits.segments) {
+        lockNavItem('view-segments', 'Pro');
+        lockSection('view-segments', 'Segments Clients', 'Pro',
+            'Identifiez vos VIP, clients réguliers et dormants pour des actions ciblées.');
+    }
+
+    // 4. ANALYTICS AVANCÉS (heures de pointe + distribution)
+    if (!limits.analytics_avances) {
+        const peakCard = document.getElementById('peakChart')?.closest('.bg-white');
+        const distriCard = document.getElementById('distriChart')?.closest('.bg-white');
+        if (peakCard) lockCard(peakCard, 'Pro', 'Analyser les heures d\'affluence');
+        if (distriCard) lockCard(distriCard, 'Pro', 'Voir la distribution des tampons');
+    }
+}
+
+// Verrouille une entrée de nav (sidebar + bottom nav mobile) avec un cadenas
+function lockNavItem(viewId, requiredPlan) {
+    document.querySelectorAll(`[onclick*="${viewId}"]`).forEach(btn => {
+        // Ajoute un cadenas à droite
+        const lockBadge = document.createElement('span');
+        lockBadge.innerHTML = '🔒';
+        lockBadge.className = 'ml-auto text-xs opacity-60';
+        lockBadge.title = `Plan ${requiredPlan} requis`;
+        // Pour la sidebar desktop seulement (les btn mobile sont trop petits)
+        if (btn.closest('aside') || window.innerWidth >= 1024) {
+            const existing = btn.querySelector('.ml-auto');
+            if (!existing) btn.appendChild(lockBadge);
+        }
+        // Override le onclick
+        btn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showUpgradeModal(requiredPlan, viewId);
+            return false;
+        };
+        btn.classList.add('opacity-60');
+    });
+}
+
+// Verrouille la section entière avec un overlay
+function lockSection(sectionId, title, requiredPlan, description) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    section.innerHTML = `
+        <div class="bg-white shadow-sm border border-gray-100 rounded-2xl p-8 lg:p-12 text-center max-w-2xl mx-auto">
+            <div class="text-5xl mb-4">🔒</div>
+            <h2 class="text-2xl font-extrabold text-gray-900 mb-2">${title}</h2>
+            <p class="text-gray-500 mb-6">${description}</p>
+            <div class="bg-gradient-to-r from-nuvy/10 to-nuvy-gold/10 rounded-xl p-4 mb-6 border border-nuvy/20">
+                <p class="text-sm text-gray-700">Cette fonctionnalité est incluse dans le plan <strong class="text-nuvy">${requiredPlan}</strong>.</p>
+            </div>
+            <button onclick="showUpgradeModal('${requiredPlan}', '${sectionId}')" 
+                class="h-12 px-8 bg-nuvy hover:bg-nuvy-dark text-white font-bold rounded-xl shadow-md active:scale-95 transition-all">
+                Passer au plan ${requiredPlan} →
+            </button>
+        </div>
+    `;
+}
+
+// Verrouille une carte individuelle (pour les charts)
+function lockCard(card, requiredPlan, description) {
+    card.style.position = 'relative';
+    card.style.overflow = 'hidden';
+    const overlay = document.createElement('div');
+    overlay.className = 'absolute inset-0 bg-white/85 backdrop-blur-sm flex flex-col items-center justify-center cursor-pointer rounded-2xl';
+    overlay.style.zIndex = '5';
+    overlay.innerHTML = `
+        <div class="text-3xl mb-2">🔒</div>
+        <p class="text-sm font-bold text-gray-700 mb-1">${description}</p>
+        <p class="text-xs text-gray-500 mb-3">Plan ${requiredPlan} requis</p>
+        <button class="h-9 px-5 bg-nuvy text-white text-xs font-bold rounded-lg hover:bg-nuvy-dark transition">
+            Débloquer →
+        </button>
+    `;
+    overlay.onclick = () => showUpgradeModal(requiredPlan, 'analytics');
+    card.appendChild(overlay);
+}
+
+// Modale d'upgrade
+function showUpgradeModal(requiredPlan, source) {
+    const existing = document.getElementById('upgrade-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'upgrade-modal';
+    modal.className = 'fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+            <div class="p-6 lg:p-8 text-center">
+                <div class="text-5xl mb-3">🚀</div>
+                <h3 class="text-2xl font-extrabold text-gray-900 mb-2">Passez au plan ${requiredPlan}</h3>
+                <p class="text-gray-500 mb-6 text-sm">Débloquez toutes les fonctionnalités pour booster votre fidélisation.</p>
+                
+                <div class="bg-gray-50 rounded-2xl p-5 mb-6 text-left space-y-3">
+                    <div class="flex items-start gap-3">
+                        <span class="text-nuvy">✓</span>
+                        <span class="text-sm text-gray-700">Notifications push illimitées</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="text-nuvy">✓</span>
+                        <span class="text-sm text-gray-700">Personnalisation visuelle (couleurs, logo, bandeau)</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="text-nuvy">✓</span>
+                        <span class="text-sm text-gray-700">Segmentation VIP / Réguliers / Dormants</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="text-nuvy">✓</span>
+                        <span class="text-sm text-gray-700">Statistiques avancées (heures de pointe, distribution)</span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="text-nuvy">✓</span>
+                        <span class="text-sm text-gray-700">Jusqu'à 2 000 clients</span>
+                    </div>
+                </div>
+
+                <button onclick="contacterUpgrade('${requiredPlan}')" 
+                    class="w-full h-12 bg-nuvy hover:bg-nuvy-dark text-white font-bold rounded-xl shadow-md active:scale-95 transition-all mb-3">
+                    Demander un upgrade
+                </button>
+                <button onclick="document.getElementById('upgrade-modal').remove()" 
+                    class="w-full h-10 text-gray-400 hover:text-gray-600 font-semibold text-sm">
+                    Plus tard
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+// Action quand l'utilisateur clique sur "Demander un upgrade"
+function contacterUpgrade(plan) {
+    // À adapter selon ton flow : email, formulaire, redirect Stripe, etc.
+    const subject = encodeURIComponent(`Demande upgrade plan ${plan}`);
+    const body = encodeURIComponent(`Bonjour,\n\nJe souhaite passer au plan ${plan} pour ma boutique "${boutiqueNom}".\n\nMerci de me contacter.`);
+    window.location.href = `mailto:contact@nuvy.pro?subject=${subject}&body=${body}`;
+    document.getElementById('upgrade-modal')?.remove();
+}
     let segmentsData = null;
     async function chargerSegments() {
         try {

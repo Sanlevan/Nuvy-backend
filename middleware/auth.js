@@ -24,26 +24,54 @@ function verifyAuthOwner(req, res, next) {
     });
 }
 
+// Labels lisibles pour les messages d'erreur côté frontend
+const FEATURE_LABELS = {
+    push_notifications: 'Notifications push',
+    analytics_avances: 'Statistiques avancées',
+    segments: 'Segmentation clients',
+    personnalisation: 'Personnalisation visuelle',
+    geolocalisation: 'Géolocalisation',
+    rapport_pdf: 'Rapports PDF',
+};
+
 async function requireFeature(req, res, feature) {
-    const boutiqueId = req.params.id || req.params.boutiqueId;
-    const { data: boutique } = await supabase
-        .from('boutiques')
-        .select('plan')
-        .eq('id', boutiqueId)
-        .single();
+    try {
+        const boutiqueId = req.params.id || req.params.boutiqueId || req.auth?.boutiqueId;
+        
+        if (!boutiqueId) {
+            res.status(400).json({ error: "Identifiant boutique manquant." });
+            return false;
+        }
 
-    const plan = boutique?.plan || 'essentiel';
-    const limits = PLAN_LIMITS[plan];
+        const { data: boutique, error } = await supabase
+            .from('boutiques')
+            .select('plan')
+            .eq('id', boutiqueId)
+            .single();
 
-    if (!limits || !limits[feature]) {
-        return res.status(403).json({
-            error: "Cette fonctionnalité nécessite un plan supérieur.",
-            feature,
-            plan_actuel: plan,
-            upgrade_required: plan === 'essentiel' ? 'pro' : 'multi-site',
-        });
+        if (error || !boutique) {
+            res.status(404).json({ error: "Boutique introuvable." });
+            return false;
+        }
+
+        const plan = boutique.plan || 'essentiel';
+        const limits = PLAN_LIMITS[plan];
+
+        if (!limits || !limits[feature]) {
+            res.status(403).json({
+                error: `${FEATURE_LABELS[feature] || feature} : fonctionnalité non incluse dans votre plan.`,
+                feature,
+                plan_actuel: plan,
+                upgrade_required: plan === 'essentiel' ? 'pro' : 'multi-site',
+            });
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error("Erreur requireFeature:", e);
+        res.status(500).json({ error: "Erreur lors de la vérification du plan." });
+        return false;
     }
-    return true;
 }
 
 module.exports = { verifyAuth, verifyAuthOwner, requireFeature };

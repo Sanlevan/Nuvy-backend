@@ -54,18 +54,30 @@ const SYMBOLS = {
 const PLAN_LIMITS = {
     essentiel: {
         max_clients: 500, max_boutiques: 1,
-        push_notifications: false, analytics_avances: false,
-        geolocalisation: false, rapport_pdf: false, personnalisation: false,
+        push_notifications: false,
+        analytics_avances: false,
+        segments: false,
+        geolocalisation: false,
+        rapport_pdf: false,
+        personnalisation: false,
     },
     pro: {
         max_clients: 2000, max_boutiques: 1,
-        push_notifications: true, analytics_avances: true,
-        geolocalisation: false, rapport_pdf: false, personnalisation: true,
+        push_notifications: true,
+        analytics_avances: true,
+        segments: true,
+        geolocalisation: false,
+        rapport_pdf: false,
+        personnalisation: true,
     },
     'multi-site': {
         max_clients: Infinity, max_boutiques: Infinity,
-        push_notifications: true, analytics_avances: true,
-        geolocalisation: true, rapport_pdf: true, personnalisation: true,
+        push_notifications: true,
+        analytics_avances: true,
+        segments: true,
+        geolocalisation: true,
+        rapport_pdf: true,
+        personnalisation: true,
     },
 };
 
