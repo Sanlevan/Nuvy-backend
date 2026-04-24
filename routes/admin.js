@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const { supabase, MASTER_CEO_KEY, STEREOTYPES } = require('../config');
 const { refreshAllPasses } = require('../services/applePass');
+const { generateManuelPdf } = require('../services/manuelPdf');
 
 const router = express.Router();
 
@@ -32,7 +33,25 @@ router.post('/create-boutique', async (req, res) => {
         }]).select().single();
 
         if (error) throw error;
-        res.json({ success: true, boutique: data });
+
+        // Génération du manuel PDF personnalisé (avec mot de passe en clair, utilisé une seule fois ici)
+        let pdfBase64 = null;
+        try {
+            const pdfBuffer = await generateManuelPdf({
+                nom: data.nom,
+                username: data.username,
+                passwordPlain: password,
+                plan: data.plan,
+                max_tampons: data.max_tampons,
+                slug: data.slug
+            });
+            pdfBase64 = pdfBuffer.toString('base64');
+        } catch (pdfErr) {
+            console.error("⚠️ Erreur génération PDF manuel:", pdfErr.message);
+            // On ne bloque pas la création de boutique si le PDF échoue
+        }
+
+        res.json({ success: true, boutique: data, pdfBase64 });
     } catch (e) { res.status(400).json({ message: e.message }); }
 });
 

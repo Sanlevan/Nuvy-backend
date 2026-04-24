@@ -774,6 +774,28 @@
             
             if(!res.ok) throw new Error(data.message || "Erreur de création serveur");
 
+            // Téléchargement automatique du manuel PDF personnalisé
+            if (data.pdfBase64) {
+                try {
+                    const byteChars = atob(data.pdfBase64);
+                    const byteNumbers = new Array(byteChars.length);
+                    for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Manuel Nuvy (${nom}).pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                } catch (pdfErr) {
+                    console.error("Erreur téléchargement PDF:", pdfErr);
+                    alert("⚠️ Boutique créée mais le manuel PDF n'a pas pu être téléchargé. Contactez le support technique.");
+                }
+            }
+
             // Succès ! On ferme la modale et on vide le formulaire
             closeModalCreate();
             document.getElementById('new-nom').value = '';
