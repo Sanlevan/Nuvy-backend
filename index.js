@@ -6,6 +6,9 @@ const fs = require('fs');
 const { Server } = require('socket.io');
 const http = require('http');
 const rateLimit = require('express-rate-limit');
+const Stripe = require('stripe');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
 // Services
 const { generatePassBuffer, refreshAllPasses, sendPushToDevices } = require('./services/applePass');
@@ -26,6 +29,71 @@ const app = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: ["https://nuvy.pro", "https://nuvy-production.up.railway.app"] } });
+
+// ==========================================
+// WEBHOOK STRIPE (doit être AVANT express.json())
+// ==========================================
+app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+        logger.error('Webhook signature vérification échouée:', err.message);
+        return res.sendStatus(400);
+    }
+
+    try {
+        switch (event.type) {
+            case 'customer.subscription.created':
+            case 'customer.subscription.updated': {
+                const subscription = event.data.object;
+                const customerId = subscription.customer;
+                const status = subscription.status;
+                const plan = subscription.metadata?.plan || 'essentiel';
+
+                await supabase
+                    .from('boutiques')
+                    .update({
+                        stripe_customer_id: customerId,
+                        stripe_subscription_id: subscription.id,
+                        plan: plan,
+                        plan_status: status === 'active' || status === 'trialing' ? 'active' : 'inactive'
+                    })
+                    .eq('stripe_customer_id', customerId);
+
+                logger.info(`Subscription ${subscription.id} => ${status}`);
+                break;
+            }
+
+            case 'customer.subscription.deleted': {
+                const subscription = event.data.object;
+                const customerId = subscription.customer;
+
+                await supabase
+                    .from('boutiques')
+                    .update({
+                        plan_status: 'inactive'
+                    })
+                    .eq('stripe_customer_id', customerId);
+
+                logger.info(`Subscription ${subscription.id} supprimée`);
+                break;
+            }
+
+            default:
+                logger.info(`Event non traité: ${event.type}`);
+        }
+
+        res.json({ received: true });
+    } catch (err) {
+        logger.error('Erreur traitement webhook Stripe:', err);
+        res.sendStatus(500);
+    }
+});
+
+app.use(express.json());
 
 app.use(express.json());
 app.use(express.static('public'));

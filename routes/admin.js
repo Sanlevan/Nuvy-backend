@@ -26,15 +26,44 @@ router.post('/create-boutique', async (req, res) => {
         const plansValides = ['essentiel', 'pro', 'multi-site'];
         const finalPlan = plansValides.includes(plan) ? plan : 'essentiel';
 
+        // Créer le customer Stripe
+        const stripeCustomer = await stripe.customers.create({
+            email: req.body.email || `${slug}@nuvy.pro`,
+            name: nom,
+            metadata: { boutique_name: nom, slug: slug }
+        });
+
+        // Créer la subscription Stripe
+        const planPrices = {
+            'essentiel': process.env.STRIPE_PRICE_ESSENTIEL,
+            'pro': process.env.STRIPE_PRICE_PRO,
+            'multi-site': process.env.STRIPE_PRICE_MULTISITE
+        };
+        const priceId = planPrices[finalPlan];
+
+        if (!priceId) {
+            throw new Error(`Price ID manquant pour le plan ${finalPlan}`);
+        }
+
+        const subscription = await stripe.subscriptions.create({
+            customer: stripeCustomer.id,
+            items: [{ price: priceId }],
+            metadata: { plan: finalPlan }
+        });
+
+        // Insérer en base avec les IDs Stripe
         const { data, error } = await supabase.from('boutiques').insert([{
             nom, slug, username, password: hashedPassword, categorie, logo_url, join_url,
             color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons,
-            expiration_jours: finalExpiration, plan: finalPlan
+            expiration_jours: finalExpiration, plan: finalPlan,
+            stripe_customer_id: stripeCustomer.id,
+            stripe_subscription_id: subscription.id,
+            plan_status: subscription.status === 'active' || subscription.status === 'trialing' ? 'active' : 'inactive'
         }]).select().single();
 
         if (error) throw error;
 
-        // Génération du manuel PDF personnalisé (avec mot de passe en clair, utilisé une seule fois ici)
+        // Génération du manuel PDF personnalisé
         let pdfBase64 = null;
         try {
             const pdfBuffer = await generateManuelPdf({
@@ -48,11 +77,12 @@ router.post('/create-boutique', async (req, res) => {
             pdfBase64 = pdfBuffer.toString('base64');
         } catch (pdfErr) {
             console.error("⚠️ Erreur génération PDF manuel:", pdfErr.message);
-            // On ne bloque pas la création de boutique si le PDF échoue
         }
 
         res.json({ success: true, boutique: data, pdfBase64 });
-    } catch (e) { res.status(400).json({ message: e.message }); }
+    } catch (e) { 
+        res.status(400).json({ message: e.message }); 
+    }
 });
 
 router.post('/force-reset-password', async (req, res) => {
