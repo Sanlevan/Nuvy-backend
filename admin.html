@@ -559,8 +559,24 @@
             if (ctxCeo) {
                 new Chart(ctxCeo.getContext('2d'), {
                     type: 'line',
-                    data: { labels: stats.chartLabels, datasets: [{ data: stats.chartData, borderColor: '#2A8C9C', tension: 0.4, fill: true, backgroundColor: 'rgba(42,140,156,0.05)', pointRadius: 0 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                    data: { labels: stats.chartLabels, datasets: [{ data: stats.chartData, borderColor: '#2A8C9C', tension: 0.4, fill: true, backgroundColor: 'rgba(42,140,156,0.05)', pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#2A8C9C', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(17,24,39,0.95)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                padding: 10,
+                                cornerRadius: 8,
+                                displayColors: false,
+                                callbacks: { label: ctx => `${ctx.parsed.y.toLocaleString()} scan${ctx.parsed.y > 1 ? 's' : ''}` }
+                            }
+                        }
+                    }
                 });
             }
 
@@ -602,8 +618,23 @@
                 const devValues = [stats.deviceData.iphone, stats.deviceData.android, stats.deviceData.autre];
                 dcDeviceChart = new Chart(ctxDevice.getContext('2d'), {
                     type: 'doughnut',
-                    data: { labels: devLabels, datasets: [{ data: devValues, backgroundColor: devColors, borderWidth: 0, hoverOffset: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false } } }
+                    data: { labels: devLabels, datasets: [{ data: devValues, backgroundColor: devColors, borderWidth: 0, hoverOffset: 8 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, cutout: '68%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(17,24,39,0.95)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                padding: 10,
+                                cornerRadius: 8,
+                                displayColors: true,
+                                callbacks: { label: ctx => ` ${ctx.label} : ${ctx.parsed}%` }
+                            }
+                        }
+                    }
                 });
                 const legendEl = el('dc-device-legend');
                 if (legendEl) legendEl.innerHTML = devLabels.map((l, i) => `
