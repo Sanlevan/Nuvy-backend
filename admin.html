@@ -407,6 +407,24 @@
                           <option value="multi-site">Multi-site — 79€/mois</option>
                       </select>
                   </div>
+                  <div>
+                      <label class="text-xs font-bold uppercase text-gray-500">Engagement</label>
+                      <select id="new-engagement" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30 bg-white font-bold">
+                          <option value="mensuel">Mensuel</option>
+                          <option value="annuel">Annuel (-10%)</option>
+                      </select>
+                  </div>
+                  <div>
+                      <label class="text-xs font-bold uppercase text-gray-500">Catégorie (Design)</label>
+                      <select id="new-categorie" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30 bg-white">
+                          <option value="default">Standard (Bleu Nuvy)</option>
+                          <option value="boulangerie">Boulangerie (Doré)</option>
+                          <option value="pizza">Pizzeria (Rouge)</option>
+                          <option value="onglerie">Institut / Onglerie (Rose)</option>
+                          <option value="coiffeur">Coiffeur / Barbier (Bleu Nuit)</option>
+                          <option value="cafe">Café / Salon (Marron)</option>
+                      </select>
+                  </div>
                   <div class="col-span-2">
                       <label class="text-xs font-bold uppercase text-gray-500">URL du Logo (Optionnel)</label>
                       <input type="text" id="new-logo" placeholder="https://..." class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
@@ -414,7 +432,25 @@
               </div>
 
               <p id="modal-error" class="text-red-500 text-xs font-bold hidden text-center"></p>
+              <div>
+                  <label>Engagement :</label>
+                  <select id="engagementSelect">
+                      <option value="mensuel">Mensuel</option>
+                      <option value="annuel">Annuel (-10%)</option>
+                  </select>
+              </div>
 
+              <div>
+                  <label>Catégorie :</label>
+                  <select id="categorieSelect">
+                      <option value="restaurant">Restaurant</option>
+                      <option value="boulangerie">Boulangerie</option>
+                      <option value="coiffeur">Coiffeur</option>
+                      <option value="café">Café</option>
+                      <option value="onglerie">Onglerie</option>
+                      <option value="default">Autre</option>
+                  </select>
+              </div>
               <button id="btn-create" onclick="creerBoutique()" class="w-full h-12 bg-nuvy text-white font-extrabold rounded-xl shadow-lg mt-2 transition-all active:scale-95 flex items-center justify-center gap-2">
                   GÉNÉRER L'ACCÈS BOUTIQUE
               </button>
@@ -739,6 +775,7 @@
         const username = document.getElementById('new-username').value.trim();
         const password = document.getElementById('new-password').value.trim();
         const categorie = document.getElementById('new-categorie').value;
+        const engagement = document.getElementById('new-engagement').value; 
         const max_tampons = document.getElementById('new-max').value;
         const logo_url = document.getElementById('new-logo').value.trim();
         const expiration_jours = document.getElementById('new-expiration').value || 0;
@@ -766,7 +803,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     nom, username, password, categorie, max_tampons, logo_url, expiration_jours, plan,
-                    ceoKey: CEO_KEY
+                    ceoKey: CEO_KEY,
+                    engagement: engagement,
                 })
             });
 
