@@ -210,33 +210,23 @@ function generateManuelPdf(boutique) {
         };
         const pal = palettes[variant];
         const padding = 12;
-        const boxW = CONTENT_W;
-        const innerW = boxW - padding * 2;
         const linesArr = Array.isArray(lines) ? lines : [lines];
-
-        // Mesure hauteur
-        doc.fontSize(10.5).font('Helvetica-Bold');
-        const titleH = doc.heightOfString(title, { width: innerW });
-        doc.fontSize(10).font('Helvetica');
-        let bodyH = 0;
-        linesArr.forEach(l => {
-            bodyH += doc.heightOfString(l, { width: innerW, lineGap: 2 }) + 4;
-        });
-        const totalH = titleH + bodyH + padding * 2 + 4;
+        const totalH = 20 + linesArr.length * 22 + padding * 2;
 
         if (doc.y + totalH > doc.page.height - BOTTOM - 10) doc.addPage();
 
         resetX();
         const topY = doc.y;
-        doc.rect(MARGIN, topY, boxW, totalH).fillAndStroke(pal.bg, pal.border);
+        doc.rect(MARGIN, topY, CONTENT_W, totalH).fillAndStroke(pal.bg, pal.border);
 
         doc.fillColor(pal.titleColor).font('Helvetica-Bold').fontSize(10.5)
-           .text(title, MARGIN + padding, topY + padding, { width: innerW });
-        let cursorY = topY + padding + titleH + 4;
+        .text(title, MARGIN + padding, topY + padding, { width: CONTENT_W - padding * 2 });
+
+        let cursorY = topY + padding + 18;
         doc.fillColor(COLORS.gray700).font('Helvetica').fontSize(10);
         linesArr.forEach(l => {
-            doc.text(l, MARGIN + padding, cursorY, { width: innerW, lineGap: 2 });
-            cursorY += doc.heightOfString(l, { width: innerW, lineGap: 2 }) + 4;
+            doc.text(l, MARGIN + padding, cursorY, { width: CONTENT_W - padding * 2, lineGap: 2 });
+            cursorY += 18;
         });
         doc.y = topY + totalH + 8;
         resetX();
@@ -265,15 +255,8 @@ function generateManuelPdf(boutique) {
         const padding = 8;
 
         rows.forEach(([label, desc]) => {
-            doc.fontSize(10).font('Helvetica-Bold');
-            const labelH = doc.heightOfString(label, { width: leftW - padding * 2 });
-            doc.font('Helvetica');
             const descLines = Array.isArray(desc) ? desc : [desc];
-            let descH = 0;
-            descLines.forEach(l => {
-                descH += doc.heightOfString(l, { width: rightW - padding * 2, lineGap: 2 }) + 3;
-            });
-            const rowH = Math.max(labelH, descH) + padding * 2;
+            const rowH = Math.max(30, descLines.length * 18) + padding * 2;
 
             if (doc.y + rowH > doc.page.height - BOTTOM - 10) doc.addPage();
 
@@ -283,13 +266,13 @@ function generateManuelPdf(boutique) {
             doc.rect(MARGIN + leftW, topY, rightW, rowH).fillAndStroke('#FFFFFF', COLORS.gray300);
 
             doc.fillColor(COLORS.sidebar).font('Helvetica-Bold').fontSize(10)
-               .text(label, MARGIN + padding, topY + padding, { width: leftW - padding * 2 });
+            .text(label, MARGIN + padding, topY + padding, { width: leftW - padding * 2 });
 
             let cursorY = topY + padding;
             doc.fillColor(COLORS.gray700).font('Helvetica').fontSize(10);
             descLines.forEach(l => {
                 doc.text(l, MARGIN + leftW + padding, cursorY, { width: rightW - padding * 2, lineGap: 2 });
-                cursorY += doc.heightOfString(l, { width: rightW - padding * 2, lineGap: 2 }) + 3;
+                cursorY += 18;
             });
 
             doc.y = topY + rowH;
