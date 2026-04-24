@@ -238,14 +238,24 @@ function generateManuelPdf(boutique) {
         const labelW = 180;
         const valueW = CONTENT_W - labelW;
         const y = doc.y;
+        const lineH = 16;
+        
+        // Rect de fond
+        doc.rect(MARGIN, y, CONTENT_W, lineH + 8).fillAndStroke(COLORS.gray50, COLORS.gray300);
+        
+        // Label à gauche
         doc.fontSize(10.5).fillColor(COLORS.gray700).font('Helvetica-Bold')
-           .text(label, MARGIN, y, { width: labelW, lineBreak: false });
+        .text(label, MARGIN + 8, y + 4, { width: labelW - 16, lineBreak: false });
+        
+        // Séparateur vertical
+        doc.moveTo(MARGIN + labelW, y).lineTo(MARGIN + labelW, y + lineH + 8)
+        .strokeColor(COLORS.gray300).lineWidth(0.5).stroke();
+        
+        // Value à droite
         doc.fontSize(11).fillColor(COLORS.nuvyDark).font('Helvetica-Bold')
-           .text(value, MARGIN + labelW, y, { width: valueW, lineBreak: false, ellipsis: true });
-        const afterY = y + 16;
-        doc.moveTo(MARGIN + labelW, afterY + 1).lineTo(MARGIN + labelW + valueW, afterY + 1)
-           .strokeColor(COLORS.gray300).lineWidth(0.5).stroke();
-        doc.y = afterY + 8;
+        .text(value, MARGIN + labelW + 8, y + 4, { width: valueW - 16, lineBreak: false, ellipsis: true });
+        
+        doc.y = y + lineH + 12;
         resetX();
     }
 
