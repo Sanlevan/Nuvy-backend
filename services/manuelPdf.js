@@ -21,6 +21,56 @@ const COLORS = {
     greenBorder: '#10B981'
 };
 
+// Titre de section
+const h2 = (doc, text) => {
+    doc.moveDown(1.5);
+    doc.fillColor(COLORS.nuvy).font('Helvetica-Bold').fontSize(16)
+       .text(text, MARGIN);
+    doc.moveDown(0.5);
+};
+
+// Paragraphe standard
+const para = (doc, text) => {
+    doc.fillColor(COLORS.gray800).font('Helvetica').fontSize(11)
+       .text(text, { align: 'justify', width: doc.page.width - MARGIN * 2 });
+    doc.moveDown(0.8);
+};
+
+// Liste numérotée
+const numbered = (doc, index, text) => {
+    const currentY = doc.y;
+    doc.fillColor(COLORS.nuvy).font('Helvetica-Bold').fontSize(11)
+       .text(`${index}.`, MARGIN);
+    doc.fillColor(COLORS.gray800).font('Helvetica').fontSize(11)
+       .text(text, MARGIN + 20, currentY, { width: doc.page.width - MARGIN * 2 - 20 });
+    doc.moveDown(0.5);
+};
+
+// Bloc de mise en valeur (Success / Warning)
+const callout = (doc, title, items, type = 'success') => {
+    const bgColor = type === 'success' ? COLORS.successLight : COLORS.warningLight;
+    const borderColor = type === 'success' ? COLORS.success : COLORS.warning;
+    
+    doc.moveDown(0.5);
+    const startY = doc.y;
+    
+    // On dessine le rectangle de fond (hauteur temporaire)
+    doc.rect(MARGIN, startY, doc.page.width - MARGIN * 2, 100) 
+       .fillAndStroke(bgColor, borderColor);
+
+    doc.fillColor(borderColor).font('Helvetica-Bold').fontSize(10)
+       .text(title.toUpperCase(), MARGIN + 15, startY + 12);
+
+    let currentY = startY + 28;
+    items.forEach(item => {
+        doc.fillColor(COLORS.gray800).font('Helvetica').fontSize(9)
+           .text(`• ${item}`, MARGIN + 15, currentY, { width: doc.page.width - MARGIN * 2 - 30 });
+        currentY += 14;
+    });
+
+    doc.y = currentY + 10; // On replace le curseur après le bloc
+};
+
 const MARGIN = 50;
 const TOP = 60;
 const BOTTOM = 60;
@@ -131,21 +181,21 @@ function generateManuelPdf(boutique) {
     // PAGE D'ACTIVATION (insérée si checkoutUrl fourni)
     // ============================================================
     if (checkoutUrl) {
-        h2('Activez votre abonnement Nuvy');
+        h2(doc, 'Activez votre abonnement Nuvy');
 
         para("Avant de pouvoir utiliser votre tableau de bord, vous devez activer votre abonnement en renseignant un moyen de paiement (carte bancaire ou prélèvement SEPA).");
 
-        callout('Période d\'essai gratuite de 14 jours', [
+        callout(doc, 'Période d\'essai gratuite de 14 jours', [
             "Aucun débit immédiat. Vous pouvez tester Nuvy gratuitement pendant 14 jours.",
             "Vous pouvez résilier à tout moment depuis votre espace de facturation, sans frais.",
             "À l'issue des 14 jours, votre abonnement sera automatiquement activé."
         ], 'success');
 
-        h2('Comment activer en 2 minutes');
-        numbered(1, "Cliquez sur le lien ci-dessous (ou copiez-le dans votre navigateur).");
-        numbered(2, "Renseignez votre carte bancaire OU votre IBAN (prélèvement SEPA).");
-        numbered(3, "Acceptez les conditions générales Stripe et validez.");
-        numbered(4, "Vous recevrez une confirmation et pourrez vous connecter à votre tableau de bord.");
+        h2(doc, 'Comment activer en 2 minutes');
+        numbered(doc, 1, "Cliquez sur le lien ci-dessous (ou copiez-le dans votre navigateur).");
+        numbered(doc, 2, "Renseignez votre carte bancaire OU votre IBAN (prélèvement SEPA).");
+        numbered(doc, 3, "Acceptez les conditions générales Stripe et validez.");
+        numbered(doc, 4, "Vous recevrez une confirmation et pourrez vous connecter à votre tableau de bord.");
 
         // Lien Checkout dans une boîte mise en valeur
         doc.moveDown(0.5);
@@ -163,7 +213,7 @@ function generateManuelPdf(boutique) {
            });
         doc.y = linkBoxY + linkBoxH + 14;
 
-        callout('Important', [
+        callout(doc, 'Important', [
             "Ce lien est personnel et valide pendant 24 heures pour des raisons de sécurité.",
             "Si vous le perdez ou s'il expire, contactez-nous à contact@nuvy.pro pour en obtenir un nouveau."
         ], 'warning');
