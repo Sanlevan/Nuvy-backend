@@ -1,3 +1,4 @@
+const { createCustomer, createCheckoutSession, getPriceId } = require('../services/stripe');
 const express = require('express');
 const bcrypt = require('bcrypt');
 const { supabase, MASTER_CEO_KEY, STEREOTYPES } = require('../config');
