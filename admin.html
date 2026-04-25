@@ -414,23 +414,12 @@
                           <option value="annuel">Annuel (-10%)</option>
                       </select>
                   </div>
-                  <div>
-                      <label class="text-xs font-bold uppercase text-gray-500">Catégorie (Design)</label>
-                      <select id="new-categorie" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30 bg-white">
-                          <option value="default">Standard (Bleu Nuvy)</option>
-                          <option value="boulangerie">Boulangerie (Doré)</option>
-                          <option value="pizza">Pizzeria (Rouge)</option>
-                          <option value="onglerie">Institut / Onglerie (Rose)</option>
-                          <option value="coiffeur">Coiffeur / Barbier (Bleu Nuit)</option>
-                          <option value="cafe">Café / Salon (Marron)</option>
-                      </select>
-                  </div>
                   <div class="col-span-2">
                       <label class="text-xs font-bold uppercase text-gray-500">URL du Logo (Optionnel)</label>
                       <input type="text" id="new-logo" placeholder="https://..." class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
                   </div>
               </div>
-
+              <div id="modal-error" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-bold text-center"></div>
               <button id="btn-create" onclick="creerBoutique()" class="w-full h-12 bg-nuvy text-white font-extrabold rounded-xl shadow-lg mt-2 transition-all active:scale-95 flex items-center justify-center gap-2">
                   GÉNÉRER L'ACCÈS BOUTIQUE
               </button>
