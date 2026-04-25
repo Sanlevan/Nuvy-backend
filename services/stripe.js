@@ -81,9 +81,10 @@ async function createCheckoutSession({
         success_url: `${BASE_URL}/login?paid=1&slug=${slug}`,
         cancel_url: `${BASE_URL}/`,
         locale: 'fr',
-        consent_collection: {
+        /* consent_collection: {
             terms_of_service: 'required'
         },
+        */
         allow_promotion_codes: true,
         expires_at: expiresAt
     });
