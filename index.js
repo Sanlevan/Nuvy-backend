@@ -37,6 +37,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
     const sig = req.headers['stripe-signature'];
     let event;
 
+    // 1. Vérification de signature
     try {
         event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
     } catch (err) {
@@ -44,155 +45,147 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
         return res.sendStatus(400);
     }
 
+    // 2. Idempotence : on a déjà traité cet event ?
+    const { data: existingEvent } = await supabase
+        .from('stripe_webhook_events')
+        .select('id')
+        .eq('stripe_event_id', event.id)
+        .maybeSingle();
+
+    if (existingEvent) {
+        logger.info(`Event ${event.id} déjà traité, skip.`);
+        return res.json({ received: true, duplicate: true });
+    }
+
+    // 3. Mapping Stripe status → notre plan_status
+    const mapStripeStatus = (status) => {
+        const map = {
+            'trialing': 'trialing',
+            'active': 'active',
+            'past_due': 'past_due',
+            'canceled': 'canceled',
+            'unpaid': 'past_due',
+            'incomplete': 'pending_payment',
+            'incomplete_expired': 'inactive'
+        };
+        return map[status] || 'inactive';
+    };
+
+    // 4. Traitement
     try {
         switch (event.type) {
+
+            // -------- CHECKOUT TERMINÉ : le merchant a payé / setup CB --------
             case 'checkout.session.completed': {
-    // ✅ Le commerçant vient de payer ! On active sa boutique
-    const session = event.data.object;
-    const customerId = session.customer;
-    const boutiqueId = session.metadata?.boutique_id;
-    
-    if (boutiqueId) {
-        await supabase
-            .from('boutiques')
-            .update({
-                plan_status: 'active',
-                stripe_subscription_id: session.subscription
-            })
-            .eq('id', boutiqueId);
-        
-        logger.info(`✅ Boutique ${boutiqueId} activée après paiement`);
-    }
-    break;
-}
+                const session = event.data.object;
+                const customerId = session.customer;
+                const subscriptionId = session.subscription;
+                const boutiqueId = session.metadata?.boutique_id;
 
-case 'invoice.payment_failed': {
-    // ⚠️ Un paiement a échoué
-    const invoice = event.data.object;
-    const customerId = invoice.customer;
-    const attemptCount = invoice.attempt_count || 1;
-    
-    logger.warn(`💳 Paiement échoué (tentative ${attemptCount}) pour customer ${customerId}`);
-    
-    // Récupérer la boutique
-    const { data: boutique } = await supabase
-        .from('boutiques')
-        .select('id, nom, username, plan_status')
-        .eq('stripe_customer_id', customerId)
-        .single();
-    
-    if (!boutique) break;
-    
-    // Mettre à jour le statut selon le nombre de tentatives
-    let newStatus = 'payment_warning'; // 1ère tentative
-    if (attemptCount >= 3) {
-        newStatus = 'suspended'; // 🚨 SUSPENSION après 3 échecs
-        logger.error(`🚫 Boutique ${boutique.nom} (ID ${boutique.id}) SUSPENDUE`);
-    }
-    
-    await supabase
-        .from('boutiques')
-        .update({
-            plan_status: newStatus,
-            payment_failed_count: attemptCount,
-            payment_failed_at: new Date().toISOString()
-        })
-        .eq('id', boutique.id);
-    
-    break;
-}
+                if (!subscriptionId || !boutiqueId) {
+                    logger.warn(`checkout.session.completed sans subscription/boutique_id (session ${session.id})`);
+                    break;
+                }
 
-case 'invoice.payment_succeeded': {
-    // ✅ Paiement régularisé : on réactive
-    const invoice = event.data.object;
-    const customerId = invoice.customer;
-    
-    const { data: boutique } = await supabase
-        .from('boutiques')
-        .select('id, nom, plan_status')
-        .eq('stripe_customer_id', customerId)
-        .single();
-    
-    if (!boutique) break;
-    
-    // Si la boutique était suspendue ou en warning, on réactive
-    if (['suspended', 'payment_warning'].includes(boutique.plan_status)) {
-        await supabase
-            .from('boutiques')
-            .update({
-                plan_status: 'active',
-                payment_failed_count: 0,
-                payment_failed_at: null
-            })
-            .eq('id', boutique.id);
-        
-        logger.info(`✅ Boutique ${boutique.nom} RÉACTIVÉE après régularisation`);
-    }
-    break;
-}
-
-case 'customer.subscription.updated': {
-    const subscription = event.data.object;
-    const customerId = subscription.customer;
-    const status = subscription.status;
-    const plan = subscription.metadata?.plan || 'essentiel';
-
-    await supabase
-        .from('boutiques')
-        .update({
-            plan: plan,
-            plan_status: (status === 'active' || status === 'trialing') ? 'active' : 'inactive'
-        })
-        .eq('stripe_customer_id', customerId);
-
-    logger.info(`Subscription ${subscription.id} => ${status}`);
-    break;
-}
-
-case 'customer.subscription.deleted': {
-    const subscription = event.data.object;
-    const customerId = subscription.customer;
-
-    await supabase
-        .from('boutiques')
-        .update({ plan_status: 'inactive' })
-        .eq('stripe_customer_id', customerId);
-
-    logger.info(`Subscription ${subscription.id} supprimée`);
-    break;
-}
-            case 'customer.subscription.updated': {
-                const subscription = event.data.object;
-                const customerId = subscription.customer;
-                const status = subscription.status;
-                const plan = subscription.metadata?.plan || 'essentiel';
+                // Récupérer la subscription pour avoir status + trial_end
+                const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+                const trialEndsAt = subscription.trial_end
+                    ? new Date(subscription.trial_end * 1000).toISOString()
+                    : null;
 
                 await supabase
                     .from('boutiques')
                     .update({
                         stripe_customer_id: customerId,
-                        stripe_subscription_id: subscription.id,
-                        plan: plan,
-                        plan_status: status === 'active' || status === 'trialing' ? 'active' : 'inactive'
+                        stripe_subscription_id: subscriptionId,
+                        plan_status: mapStripeStatus(subscription.status),
+                        trial_ends_at: trialEndsAt
                     })
-                    .eq('stripe_customer_id', customerId);
+                    .eq('id', boutiqueId);
 
-                logger.info(`Subscription ${subscription.id} => ${status}`);
+                logger.info(`✅ Boutique ${boutiqueId} activée (subscription ${subscriptionId}, status ${subscription.status})`);
                 break;
             }
 
-            case 'customer.subscription.deleted': {
+            // -------- SUBSCRIPTION CRÉÉE OU MISE À JOUR --------
+            case 'customer.subscription.created':
+            case 'customer.subscription.updated': {
                 const subscription = event.data.object;
                 const customerId = subscription.customer;
+                const plan = subscription.metadata?.plan;
+
+                const updatePayload = {
+                    stripe_subscription_id: subscription.id,
+                    plan_status: mapStripeStatus(subscription.status)
+                };
+                if (plan) updatePayload.plan = plan;
+                if (subscription.trial_end) {
+                    updatePayload.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString();
+                }
+
+                await supabase
+                    .from('boutiques')
+                    .update(updatePayload)
+                    .eq('stripe_customer_id', customerId);
+
+                logger.info(`Subscription ${subscription.id} => ${subscription.status} (plan_status: ${updatePayload.plan_status})`);
+                break;
+            }
+
+            // -------- SUBSCRIPTION SUPPRIMÉE --------
+            case 'customer.subscription.deleted': {
+                const subscription = event.data.object;
+                await supabase
+                    .from('boutiques')
+                    .update({ plan_status: 'canceled' })
+                    .eq('stripe_customer_id', subscription.customer);
+
+                logger.info(`Subscription ${subscription.id} supprimée`);
+                break;
+            }
+
+            // -------- PAIEMENT RÉUSSI --------
+            case 'invoice.payment_succeeded': {
+                const invoice = event.data.object;
+                await supabase
+                    .from('boutiques')
+                    .update({
+                        plan_status: 'active',
+                        last_payment_error: null,
+                        payment_failed_at: null,
+                        payment_failed_count: 0
+                    })
+                    .eq('stripe_customer_id', invoice.customer);
+
+                logger.info(`💰 Paiement réussi customer ${invoice.customer} (${invoice.amount_paid / 100}€)`);
+                break;
+            }
+
+            // -------- PAIEMENT ÉCHOUÉ : warning → suspended après 3 tentatives --------
+            case 'invoice.payment_failed': {
+                const invoice = event.data.object;
+                const attemptCount = invoice.attempt_count || 1;
+                const errorMsg = invoice.last_finalization_error?.message
+                    || invoice.last_payment_error?.message
+                    || 'Paiement refusé';
+
+                const newStatus = attemptCount >= 3 ? 'suspended' : 'payment_warning';
 
                 await supabase
                     .from('boutiques')
                     .update({
-                        plan_status: 'inactive'
+                        plan_status: newStatus,
+                        last_payment_error: errorMsg,
+                        payment_failed_at: new Date().toISOString(),
+                        payment_failed_count: attemptCount
                     })
-                    .eq('stripe_customer_id', customerId);
+                    .eq('stripe_customer_id', invoice.customer);
 
-                logger.info(`Subscription ${subscription.id} supprimée`);
+                if (newStatus === 'suspended') {
+                    logger.error(`🚫 Customer ${invoice.customer} SUSPENDU (tentative ${attemptCount}): ${errorMsg}`);
+                } else {
+                    logger.warn(`⚠️ Paiement échoué customer ${invoice.customer} (tentative ${attemptCount}): ${errorMsg}`);
+                }
                 break;
             }
 
@@ -200,14 +193,22 @@ case 'customer.subscription.deleted': {
                 logger.info(`Event non traité: ${event.type}`);
         }
 
+        // 5. Marquer l'event comme traité (idempotence)
+        await supabase
+            .from('stripe_webhook_events')
+            .insert({
+                stripe_event_id: event.id,
+                event_type: event.type,
+                payload: event.data.object
+            });
+
         res.json({ received: true });
     } catch (err) {
         logger.error('Erreur traitement webhook Stripe:', err);
+        // On ne marque PAS l'event comme traité → Stripe va retry
         res.sendStatus(500);
     }
 });
-
-app.use(express.json());
 
 app.use(express.json());
 app.use(express.static('public'));
