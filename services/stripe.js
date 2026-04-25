@@ -54,7 +54,7 @@ async function createCheckoutSession({
 
     // Lien valide 30 jours (max Stripe). Permet au merchant de cliquer
     // dans le PDF même plusieurs jours après la démo.
-    const expiresAt = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+    const expiresAt = Math.floor(Date.now() / 1000) + (23 * 60 * 60);
 
     const session = await stripe.checkout.sessions.create({
         mode: 'subscription',

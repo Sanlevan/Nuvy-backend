@@ -164,7 +164,7 @@ function generateManuelPdf(boutique) {
         doc.y = linkBoxY + linkBoxH + 14;
 
         callout('Important', [
-            "Ce lien est personnel et valide pendant 30 jours.",
+            "Ce lien est personnel et valide pendant 24 heures pour des raisons de sécurité.",
             "Si vous le perdez ou s'il expire, contactez-nous à contact@nuvy.pro pour en obtenir un nouveau."
         ], 'warning');
 
