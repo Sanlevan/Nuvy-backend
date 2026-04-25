@@ -66,6 +66,71 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
     break;
 }
 
+case 'invoice.payment_failed': {
+    // ⚠️ Un paiement a échoué
+    const invoice = event.data.object;
+    const customerId = invoice.customer;
+    const attemptCount = invoice.attempt_count || 1;
+    
+    logger.warn(`💳 Paiement échoué (tentative ${attemptCount}) pour customer ${customerId}`);
+    
+    // Récupérer la boutique
+    const { data: boutique } = await supabase
+        .from('boutiques')
+        .select('id, nom, username, plan_status')
+        .eq('stripe_customer_id', customerId)
+        .single();
+    
+    if (!boutique) break;
+    
+    // Mettre à jour le statut selon le nombre de tentatives
+    let newStatus = 'payment_warning'; // 1ère tentative
+    if (attemptCount >= 3) {
+        newStatus = 'suspended'; // 🚨 SUSPENSION après 3 échecs
+        logger.error(`🚫 Boutique ${boutique.nom} (ID ${boutique.id}) SUSPENDUE`);
+    }
+    
+    await supabase
+        .from('boutiques')
+        .update({
+            plan_status: newStatus,
+            payment_failed_count: attemptCount,
+            payment_failed_at: new Date().toISOString()
+        })
+        .eq('id', boutique.id);
+    
+    break;
+}
+
+case 'invoice.payment_succeeded': {
+    // ✅ Paiement régularisé : on réactive
+    const invoice = event.data.object;
+    const customerId = invoice.customer;
+    
+    const { data: boutique } = await supabase
+        .from('boutiques')
+        .select('id, nom, plan_status')
+        .eq('stripe_customer_id', customerId)
+        .single();
+    
+    if (!boutique) break;
+    
+    // Si la boutique était suspendue ou en warning, on réactive
+    if (['suspended', 'payment_warning'].includes(boutique.plan_status)) {
+        await supabase
+            .from('boutiques')
+            .update({
+                plan_status: 'active',
+                payment_failed_count: 0,
+                payment_failed_at: null
+            })
+            .eq('id', boutique.id);
+        
+        logger.info(`✅ Boutique ${boutique.nom} RÉACTIVÉE après régularisation`);
+    }
+    break;
+}
+
 case 'customer.subscription.updated': {
     const subscription = event.data.object;
     const customerId = subscription.customer;

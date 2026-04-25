@@ -1,6 +1,6 @@
 const { jwt, JWT_SECRET, supabase, PLAN_LIMITS } = require('../config');
 
-function verifyAuth(req, res, next) {
+async function verifyAuth(req, res, next) {
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: "Non authentifié. Token manquant." });
@@ -8,7 +8,22 @@ function verifyAuth(req, res, next) {
     try {
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.auth = decoded; // { boutiqueId, slug, nom }
+        req.auth = decoded;
+        
+        // 🆕 Vérifier le statut de la boutique
+        const { data: boutique } = await supabase
+            .from('boutiques')
+            .select('plan_status')
+            .eq('id', decoded.boutiqueId)
+            .single();
+        
+        if (boutique?.plan_status === 'suspended') {
+            return res.status(402).json({ 
+                error: "Votre boutique est suspendue suite à un défaut de paiement. Régularisez votre situation pour réactiver l'accès.",
+                suspended: true
+            });
+        }
+        
         next();
     } catch (e) {
         return res.status(401).json({ error: "Session expirée. Reconnectez-vous." });

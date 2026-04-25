@@ -556,9 +556,64 @@
     const _originalFetch = window.fetch;
     window.fetch = async function(...args) {
         const res = await _originalFetch.apply(this, args);
-        if (res.status === 401) { localStorage.clear(); window.location.href = '/login'; }
+        
+        // Token expiré
+        if (res.status === 401) { 
+            localStorage.clear(); 
+            window.location.href = '/login'; 
+        }
+        
+        // 🆕 Boutique suspendue
+        if (res.status === 402) {
+            const data = await res.clone().json().catch(() => ({}));
+            if (data.suspended) {
+                afficherEcranSuspension();
+            }
+        }
+        
         return res;
     };
+
+    function afficherEcranSuspension() {
+        // Évite de réafficher si déjà visible
+        if (document.getElementById('suspension-screen')) return;
+        
+        const screen = document.createElement('div');
+        screen.id = 'suspension-screen';
+        screen.className = 'fixed inset-0 z-[9999] bg-white flex items-center justify-center p-4';
+        screen.innerHTML = `
+            <div class="max-w-md w-full text-center">
+                <div class="text-6xl mb-4">⚠️</div>
+                <h1 class="text-2xl font-extrabold text-gray-900 mb-3">Compte suspendu</h1>
+                <p class="text-gray-600 mb-6">
+                    Votre boutique a été suspendue suite à plusieurs échecs de prélèvement.
+                    Pour réactiver votre accès, mettez à jour votre moyen de paiement.
+                </p>
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">
+                    <p class="text-xs font-bold text-amber-800 uppercase mb-2">📋 Conformément aux CGV</p>
+                    <p class="text-sm text-amber-700">
+                        Les mensualités restantes de votre engagement annuel restent dues.
+                        Une régularisation rapide évite des frais supplémentaires.
+                    </p>
+                </div>
+                <button onclick="contacterSupport()" 
+                    class="w-full h-12 bg-nuvy hover:bg-nuvy-dark text-white font-bold rounded-xl shadow-md active:scale-95 transition-all mb-3">
+                    Régulariser ma situation
+                </button>
+                <button onclick="deconnexion()" 
+                    class="w-full h-10 text-gray-400 hover:text-gray-600 font-semibold text-sm">
+                    Se déconnecter
+                </button>
+            </div>
+        `;
+        document.body.appendChild(screen);
+    }
+
+    function contacterSupport() {
+        const subject = encodeURIComponent("Régularisation paiement Nuvy");
+        const body = encodeURIComponent(`Bonjour,\n\nJe souhaite régulariser mon paiement pour ma boutique "${boutiqueNom}".\n\nMerci de me contacter rapidement.`);
+        window.location.href = `mailto:contact@nuvy.pro?subject=${subject}&body=${body}`;
+    }
     const AUTH_HEADERS = { 'Authorization': 'Bearer ' + authToken };
     let currentClient = null;
     let dailyGoal = localStorage.getItem('nuvy_daily_goal') || 20;
