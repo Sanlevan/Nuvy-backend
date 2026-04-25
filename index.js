@@ -46,7 +46,56 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
 
     try {
         switch (event.type) {
-            case 'customer.subscription.created':
+            case 'checkout.session.completed': {
+    // ✅ Le commerçant vient de payer ! On active sa boutique
+    const session = event.data.object;
+    const customerId = session.customer;
+    const boutiqueId = session.metadata?.boutique_id;
+    
+    if (boutiqueId) {
+        await supabase
+            .from('boutiques')
+            .update({
+                plan_status: 'active',
+                stripe_subscription_id: session.subscription
+            })
+            .eq('id', boutiqueId);
+        
+        logger.info(`✅ Boutique ${boutiqueId} activée après paiement`);
+    }
+    break;
+}
+
+case 'customer.subscription.updated': {
+    const subscription = event.data.object;
+    const customerId = subscription.customer;
+    const status = subscription.status;
+    const plan = subscription.metadata?.plan || 'essentiel';
+
+    await supabase
+        .from('boutiques')
+        .update({
+            plan: plan,
+            plan_status: (status === 'active' || status === 'trialing') ? 'active' : 'inactive'
+        })
+        .eq('stripe_customer_id', customerId);
+
+    logger.info(`Subscription ${subscription.id} => ${status}`);
+    break;
+}
+
+case 'customer.subscription.deleted': {
+    const subscription = event.data.object;
+    const customerId = subscription.customer;
+
+    await supabase
+        .from('boutiques')
+        .update({ plan_status: 'inactive' })
+        .eq('stripe_customer_id', customerId);
+
+    logger.info(`Subscription ${subscription.id} supprimée`);
+    break;
+}
             case 'customer.subscription.updated': {
                 const subscription = event.data.object;
                 const customerId = subscription.customer;

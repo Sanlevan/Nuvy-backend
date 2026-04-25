@@ -14,7 +14,7 @@ function requireCeoKey(req, res, next) {
 
 router.post('/create-boutique', async (req, res) => {
     try {
-        const { nom, username, password, ceoKey, categorie, logo_url, max_tampons, plan, engagement } = req.body;
+        const { nom, username, password, ceoKey, categorie, logo_url, max_tampons, plan, engagement, email } = req.body;
         if (ceoKey !== MASTER_CEO_KEY) return res.status(403).json({ message: "Clé CEO invalide." });
 
         const slug = nom.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '');
@@ -42,34 +42,49 @@ router.post('/create-boutique', async (req, res) => {
             throw new Error(`Price ID manquant pour ${priceKey}`);
         }
 
-        // Créer le customer Stripe
         const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+        // 1. Créer le customer Stripe
         const stripeCustomer = await stripe.customers.create({
-            email: req.body.email || `${slug}@nuvy.pro`,
+            email: email || `${slug}@nuvy.pro`,
             name: nom,
             metadata: { boutique_name: nom, slug: slug }
         });
 
-        // Créer la subscription
-        const subscription = await stripe.subscriptions.create({
-            customer: stripeCustomer.id,
-            items: [{ price: priceId }],
-            metadata: { plan: finalPlan, engagement: finalEngagement }
-        });
-
-        // Insérer en base
+        // 2. Insérer la boutique en DB avec status "pending_payment"
         const { data, error } = await supabase.from('boutiques').insert([{
             nom, slug, username, password: hashedPassword, categorie, logo_url, join_url,
             color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons,
             plan: finalPlan,
             stripe_customer_id: stripeCustomer.id,
-            stripe_subscription_id: subscription.id,
-            plan_status: subscription.status === 'active' || subscription.status === 'trialing' ? 'active' : 'inactive'
+            plan_status: 'pending_payment' // ← En attente de paiement
         }]).select().single();
 
         if (error) throw error;
 
-        // Générer le PDF
+        // 3. Créer la session Checkout Stripe
+        const checkoutSession = await stripe.checkout.sessions.create({
+            customer: stripeCustomer.id,
+            mode: 'subscription',
+            line_items: [{ price: priceId, quantity: 1 }],
+            success_url: `https://nuvy.pro/login?paid=1&slug=${slug}`,
+            cancel_url: `https://nuvy.pro/`,
+            metadata: { 
+                plan: finalPlan, 
+                engagement: finalEngagement, 
+                boutique_id: data.id,
+                boutique_slug: slug
+            },
+            subscription_data: {
+                metadata: { 
+                    plan: finalPlan, 
+                    engagement: finalEngagement,
+                    boutique_id: data.id
+                }
+            }
+        });
+
+        // 4. Générer le PDF manuel
         let pdfBase64 = null;
         try {
             const pdfBuffer = await generateManuelPdf({
@@ -78,15 +93,23 @@ router.post('/create-boutique', async (req, res) => {
                 passwordPlain: password,
                 plan: data.plan,
                 max_tampons: data.max_tampons,
-                slug: data.slug
+                slug: data.slug,
+                checkoutUrl: checkoutSession.url // ← On peut l'inclure dans le PDF !
             });
             pdfBase64 = pdfBuffer.toString('base64');
         } catch (pdfErr) {
             console.error("⚠️ Erreur génération PDF manuel:", pdfErr.message);
         }
 
-        res.json({ success: true, boutique: data, pdfBase64 });
+        // 5. Renvoyer la réponse avec le lien Checkout
+        res.json({ 
+            success: true, 
+            boutique: data, 
+            pdfBase64,
+            checkout_url: checkoutSession.url // ← À copier/envoyer
+        });
     } catch (e) { 
+        console.error("Erreur create-boutique:", e);
         res.status(400).json({ message: e.message }); 
     }
 });

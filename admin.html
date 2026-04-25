@@ -25,6 +25,69 @@
         }
       }
     }
+    function afficherLienPaiement(nomBoutique, checkoutUrl) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
+            <div class="p-6 lg:p-8">
+                <div class="text-center mb-6">
+                    <div class="text-5xl mb-3">✅</div>
+                    <h3 class="text-2xl font-extrabold text-gray-900">Boutique créée !</h3>
+                    <p class="text-gray-500 mt-2 text-sm">Voici le lien de paiement à envoyer à <strong>${nomBoutique}</strong></p>
+                </div>
+                
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                    <p class="text-xs font-bold text-amber-800 uppercase mb-2">⚠️ Important</p>
+                    <p class="text-sm text-amber-700">La boutique reste <strong>inactive</strong> tant que le commerçant n'a pas payé via ce lien.</p>
+                </div>
+
+                <div class="bg-gray-50 rounded-xl p-4 mb-5">
+                    <p class="text-xs font-bold text-gray-500 uppercase mb-2">Lien de paiement Stripe</p>
+                    <div class="flex gap-2">
+                        <input type="text" readonly value="${checkoutUrl}" id="checkout-link" 
+                            class="flex-1 h-10 px-3 bg-white border border-gray-200 rounded-lg text-xs font-mono text-gray-700 outline-none">
+                        <button onclick="copierLien()" id="btn-copy-link"
+                            class="h-10 px-4 bg-nuvy hover:bg-nuvy-dark text-white text-sm font-bold rounded-lg transition-all active:scale-95">
+                            Copier
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <a href="${checkoutUrl}" target="_blank"
+                        class="flex-1 h-11 bg-white border-2 border-nuvy text-nuvy hover:bg-nuvy/5 font-bold rounded-xl flex items-center justify-center text-sm transition-all">
+                        Tester le lien
+                    </a>
+                    <a href="mailto:?subject=Votre%20acc%C3%A8s%20Nuvy&body=Bonjour,%0A%0AVoici%20votre%20lien%20de%20paiement%20pour%20activer%20votre%20boutique%20Nuvy%20:%0A${encodeURIComponent(checkoutUrl)}%0A%0AMerci%20!"
+                        class="flex-1 h-11 bg-nuvy hover:bg-nuvy-dark text-white font-bold rounded-xl flex items-center justify-center text-sm transition-all active:scale-95">
+                        Envoyer par mail
+                    </a>
+                </div>
+                
+                <button onclick="this.closest('.fixed').remove()" 
+                    class="w-full h-10 mt-3 text-gray-400 hover:text-gray-600 font-semibold text-sm">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function copierLien() {
+    const input = document.getElementById('checkout-link');
+    input.select();
+    document.execCommand('copy');
+    const btn = document.getElementById('btn-copy-link');
+    const original = btn.innerText;
+    btn.innerText = '✓ Copié !';
+    btn.classList.add('bg-green-600');
+    setTimeout(() => {
+        btn.innerText = original;
+        btn.classList.remove('bg-green-600');
+    }, 2000);
+}
   </script>
   <style>
     body { background-color: #F9FAFB; }
@@ -371,6 +434,11 @@
                   <div class="col-span-2">
                       <label class="text-xs font-bold uppercase text-gray-500">Nom de la boutique *</label>
                       <input type="text" id="new-nom" placeholder="Ex: Pizzeria Napoli" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
+                  </div>
+                  <div class="col-span-2">
+                      <label class="text-xs font-bold uppercase text-gray-500">Email du commerçant *</label>
+                      <input type="email" id="new-email" placeholder="contact@boutique.fr" class="w-full mt-1 h-11 border rounded-xl px-4 text-sm outline-none focus:ring-2 focus:ring-nuvy/30">
+                      <p class="text-[10px] text-gray-400 mt-1">📧 Stripe enverra les reçus de paiement à cet email</p>
                   </div>
                   <div>
                       <label class="text-xs font-bold uppercase text-gray-500">Identifiant (Username) *</label>
@@ -737,6 +805,7 @@
     });
     async function creerBoutique() {
         const nom = document.getElementById('new-nom').value.trim();
+        const email = document.getElementById('new-email').value.trim();
         const username = document.getElementById('new-username').value.trim();
         const password = document.getElementById('new-password').value.trim();
         const categorie = document.getElementById('new-categorie').value;
@@ -749,8 +818,16 @@
         const btn = document.getElementById('btn-create');
 
         // Sécurité de base
-        if(!nom || !username || !password) {
-            errorEl.innerText = "🚨 Le nom, l'identifiant et le mot de passe sont obligatoires.";
+        if(!nom || !email || !username || !password) {
+            errorEl.innerText = "🚨 Le nom, l'email, l'identifiant et le mot de passe sont obligatoires.";
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        // Validation email basique
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            errorEl.innerText = "🚨 L'email n'est pas valide.";
             errorEl.classList.remove('hidden');
             return;
         }
@@ -766,7 +843,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    nom, username, password, categorie, max_tampons, logo_url, plan,
+                    nom, email, username, password, categorie, max_tampons, logo_url, plan,
                     ceoKey: CEO_KEY,
                     engagement: engagement,
                 })
@@ -776,7 +853,7 @@
             
             if(!res.ok) throw new Error(data.message || "Erreur de création serveur");
 
-            // Téléchargement automatique du manuel PDF personnalisé
+           // Téléchargement automatique du manuel PDF personnalisé
             if (data.pdfBase64) {
                 try {
                     const byteChars = atob(data.pdfBase64);
@@ -794,21 +871,22 @@
                 } catch (pdfErr) {
                     console.error("Erreur téléchargement PDF:", pdfErr);
                 }
-            } else {
-                console.warn("⚠️ pdfBase64 absent de la réponse. Réponse complète :", data);
-                alert("⚠️ Boutique créée mais le PDF n'a pas été généré. Vérifiez les logs Railway.");
+            }
+
+            // 🆕 Afficher le lien de paiement Stripe
+            if (data.checkout_url) {
+                afficherLienPaiement(data.boutique.nom, data.checkout_url);
             }
 
             // Succès ! On ferme la modale et on vide le formulaire
             closeModalCreate();
             document.getElementById('new-nom').value = '';
+            document.getElementById('new-email').value = '';
             document.getElementById('new-username').value = '';
             document.getElementById('new-password').value = '';
             document.getElementById('new-logo').value = '';
-            
-            // On recharge la liste des commerçants pour voir le nouveau client apparaître instantanément !
-            chargerFlotteCommercants();
 
+            chargerFlotteCommercants();
         } catch (e) {
             errorEl.innerText = "❌ " + e.message;
             errorEl.classList.remove('hidden');
