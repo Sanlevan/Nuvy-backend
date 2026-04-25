@@ -13,20 +13,10 @@ router.post('/:id/tampon', verifyAuth, async (req, res) => {
         const pointsAjoutes = parseInt(req.body.nb);
 
         const { data: client } = await supabase.from('clients')
-            .select('*, boutiques(max_tampons, expiration_jours)')
+            .select('*, boutiques(max_tampons)')
             .eq('id', req.params.id).single();
 
         const maxT = client.boutiques.max_tampons || 10;
-        const expirationJours = client.boutiques.expiration_jours || 0;
-
-        if (expirationJours > 0 && client.last_visit) {
-            const joursDepuis = (Date.now() - new Date(client.last_visit).getTime()) / 86400000;
-            if (joursDepuis > expirationJours) {
-                console.log(`⏰ [EXPIRATION] Tampons de ${client.nom} expirés`);
-                await supabase.from('clients').update({ tampons: 0 }).eq('id', req.params.id);
-                client.tampons = 0;
-            }
-        }
 
         let finalTampons = client.tampons || 0;
         let finalRecompenses = client.recompenses || 0;

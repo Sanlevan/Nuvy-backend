@@ -22,7 +22,6 @@ router.post('/create-boutique', async (req, res) => {
         const join_url = `nuvy.pro/tap/${slug}`;
         const finalMaxTampons = parseInt(max_tampons) || 10;
         const hashedPassword = await bcrypt.hash(password, 10);
-        const finalExpiration = parseInt(req.body.expiration_jours) || 0;
         const plansValides = ['essentiel', 'pro', 'multi-site'];
         const finalPlan = plansValides.includes(plan) ? plan : 'essentiel';
         const finalEngagement = engagement === 'annuel' ? 'annuel' : 'mensuel';
@@ -62,7 +61,7 @@ router.post('/create-boutique', async (req, res) => {
         const { data, error } = await supabase.from('boutiques').insert([{
             nom, slug, username, password: hashedPassword, categorie, logo_url, join_url,
             color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons,
-            expiration_jours: finalExpiration, plan: finalPlan,
+            plan: finalPlan,
             stripe_customer_id: stripeCustomer.id,
             stripe_subscription_id: subscription.id,
             plan_status: subscription.status === 'active' || subscription.status === 'trialing' ? 'active' : 'inactive'
