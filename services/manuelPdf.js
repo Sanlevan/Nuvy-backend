@@ -53,6 +53,7 @@ function generateManuelPdf(boutique) {
         username = '—',
         passwordPlain = '—',
         plan = 'essentiel',
+        checkoutUrl = null,
         max_tampons = 10,
         slug = ''
     } = boutique;
@@ -124,6 +125,50 @@ function generateManuelPdf(boutique) {
         if (doc.y + minRemaining > doc.page.height - BOTTOM - 20) {
             doc.addPage();
         }
+    }
+
+    // ============================================================
+    // PAGE D'ACTIVATION (insérée si checkoutUrl fourni)
+    // ============================================================
+    if (checkoutUrl) {
+        h2('Activez votre abonnement Nuvy');
+
+        para("Avant de pouvoir utiliser votre tableau de bord, vous devez activer votre abonnement en renseignant un moyen de paiement (carte bancaire ou prélèvement SEPA).");
+
+        callout('Période d\'essai gratuite de 14 jours', [
+            "Aucun débit immédiat. Vous pouvez tester Nuvy gratuitement pendant 14 jours.",
+            "Vous pouvez résilier à tout moment depuis votre espace de facturation, sans frais.",
+            "À l'issue des 14 jours, votre abonnement sera automatiquement activé."
+        ], 'success');
+
+        h2('Comment activer en 2 minutes');
+        numbered(1, "Cliquez sur le lien ci-dessous (ou copiez-le dans votre navigateur).");
+        numbered(2, "Renseignez votre carte bancaire OU votre IBAN (prélèvement SEPA).");
+        numbered(3, "Acceptez les conditions générales Stripe et validez.");
+        numbered(4, "Vous recevrez une confirmation et pourrez vous connecter à votre tableau de bord.");
+
+        // Lien Checkout dans une boîte mise en valeur
+        doc.moveDown(0.5);
+        const linkBoxY = doc.y;
+        const linkBoxH = 60;
+        doc.rect(MARGIN, linkBoxY, doc.page.width - MARGIN * 2, linkBoxH)
+           .fillAndStroke(COLORS.nuvyLight, COLORS.nuvy);
+        doc.fillColor(COLORS.nuvyDark).font('Helvetica-Bold').fontSize(11)
+           .text('Votre lien d\'activation sécurisé :', MARGIN + 12, linkBoxY + 10);
+        doc.fillColor(COLORS.nuvy).font('Helvetica').fontSize(9)
+           .text(checkoutUrl, MARGIN + 12, linkBoxY + 28, {
+               width: doc.page.width - MARGIN * 2 - 24,
+               link: checkoutUrl,
+               underline: true
+           });
+        doc.y = linkBoxY + linkBoxH + 14;
+
+        callout('Important', [
+            "Ce lien est personnel et valide pendant 30 jours.",
+            "Si vous le perdez ou s'il expire, contactez-nous à contact@nuvy.pro pour en obtenir un nouveau."
+        ], 'warning');
+
+        doc.addPage();
     }
 
     function h1(text) {

@@ -6,9 +6,7 @@ const fs = require('fs');
 const { Server } = require('socket.io');
 const http = require('http');
 const rateLimit = require('express-rate-limit');
-const Stripe = require('stripe');
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+const { stripe, verifyWebhookSignature, mapStripeStatus, getSubscription } = require('./services/stripe');
 
 // Services
 const { generatePassBuffer, refreshAllPasses, sendPushToDevices } = require('./services/applePass');
@@ -39,7 +37,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
 
     // 1. Vérification de signature
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+        event = verifyWebhookSignature(req.body, sig);
     } catch (err) {
         logger.error('Webhook signature vérification échouée:', err.message);
         return res.sendStatus(400);

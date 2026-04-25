@@ -57,31 +57,18 @@ router.post('/create-boutique', async (req, res) => {
             color_bg: da.bg, color_text: da.text, max_tampons: finalMaxTampons,
             plan: finalPlan,
             stripe_customer_id: stripeCustomer.id,
-            plan_status: 'pending_payment' // ← En attente de paiement
+            plan_status: 'pending_payment'
         }]).select().single();
 
         if (error) throw error;
 
-        // 3. Créer la session Checkout Stripe
-        const checkoutSession = await stripe.checkout.sessions.create({
-            customer: stripeCustomer.id,
-            mode: 'subscription',
-            line_items: [{ price: priceId, quantity: 1 }],
-            success_url: `https://nuvy.pro/login?paid=1&slug=${slug}`,
-            cancel_url: `https://nuvy.pro/`,
-            metadata: { 
-                plan: finalPlan, 
-                engagement: finalEngagement, 
-                boutique_id: data.id,
-                boutique_slug: slug
-            },
-            subscription_data: {
-                metadata: { 
-                    plan: finalPlan, 
-                    engagement: finalEngagement,
-                    boutique_id: data.id
-                }
-            }
+        // 3. Créer la session Checkout Stripe (trial 14j, CB + SEPA, locale FR)
+        const checkoutSession = await createCheckoutSession({
+            customerId: stripeCustomer.id,
+            boutiqueId: data.id,
+            plan: finalPlan,
+            engagement: finalEngagement,
+            slug
         });
 
         // 4. Générer le PDF manuel
