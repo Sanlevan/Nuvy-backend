@@ -17,7 +17,9 @@
         input:focus { border-color: #2A8C9C; background: #FFF; }
         button { width: 100%; padding: 20px; background: #2A8C9C; color: white; border: none; border-radius: 14px; cursor: pointer; font-weight: 800; font-size: 16px; margin-top: 10px; transition: 0.3s; }
         button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(42, 140, 156, 0.2); }
-        .error-message { color: #C62828; font-size: 13px; font-weight: 800; margin-top: 15px; display: none; }
+        .error-message { color: #C62828; font-size: 13px; font-weight: 600; margin-top: 15px; display: none; line-height: 1.5; padding: 12px 14px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 12px; text-align: left; }
+        .error-message.warning { color: #92400E; background: #FFFBEB; border-color: #FDE68A; }
+        .error-message a { color: inherit; font-weight: 800; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -27,7 +29,7 @@
         <input type="text" id="username" placeholder="Identifiant boutique">
         <input type="password" id="password" placeholder="Mot de passe">
         <button onclick="authentifier()">SE CONNECTER</button>
-        <div id="error-msg" class="error-message">Identifiants incorrects. Veuillez réessayer.</div>
+        <div id="error-msg" class="error-message"></div>
     </div>
     <div style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 11px; color: #999; font-weight: 600;">
         <a href="/mentions-legales" style="color: #999; text-decoration: none; margin: 0 8px;">Mentions légales</a> ·
@@ -36,19 +38,86 @@
         <a href="/confidentialite" style="color: #999; text-decoration: none; margin: 0 8px;">Confidentialité</a>
     </div>
     <script>
-        async function authentifier() {
-            const user = document.getElementById('username').value; const pass = document.getElementById('password').value; const errorDiv = document.getElementById('error-msg'); const btn = document.querySelector('button');
-            if (!user || !pass) { errorDiv.innerText = "Veuillez remplir tous les champs."; errorDiv.style.display = 'block'; return; }
-            btn.innerText = "CONNEXION..."; btn.disabled = true;
-            try {
-                const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: user, pass: pass }) });
-                if (res.ok) {
-                    const data = await res.json();
-                    localStorage.setItem('nuvy_boutique_id', data.boutiqueId); localStorage.setItem('nuvy_boutique_slug', data.slug); localStorage.setItem('nuvy_boutique_nom', data.nom); localStorage.setItem('nuvy_max_tampons', data.maxTampons); localStorage.setItem('nuvy_jwt', data.token);localStorage.setItem('nuvy_plan', data.plan || 'essentiel');
-                    window.location.href = '/dashboard';
-                } else { errorDiv.innerText = "Identifiants incorrects."; errorDiv.style.display = 'block'; btn.innerText = "SE CONNECTER"; btn.disabled = false; }
-            } catch (error) { errorDiv.innerText = "Erreur de connexion."; errorDiv.style.display = 'block'; btn.innerText = "SE CONNECTER"; btn.disabled = false; }
+        function afficherErreur(message, type = 'error') {
+            const errorDiv = document.getElementById('error-msg');
+            errorDiv.innerHTML = message;
+            errorDiv.classList.remove('warning');
+            if (type === 'warning') errorDiv.classList.add('warning');
+            errorDiv.style.display = 'block';
         }
+
+        function resetButton() {
+            const btn = document.querySelector('button');
+            btn.innerText = "SE CONNECTER";
+            btn.disabled = false;
+        }
+
+        async function authentifier() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error-msg');
+            const btn = document.querySelector('button');
+
+            errorDiv.style.display = 'none';
+
+            if (!user || !pass) {
+                afficherErreur("Veuillez remplir tous les champs.");
+                return;
+            }
+
+            btn.innerText = "CONNEXION...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user: user, pass: pass })
+                });
+
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok) {
+                    localStorage.setItem('nuvy_boutique_id', data.boutiqueId);
+                    localStorage.setItem('nuvy_boutique_slug', data.slug);
+                    localStorage.setItem('nuvy_boutique_nom', data.nom);
+                    localStorage.setItem('nuvy_max_tampons', data.maxTampons);
+                    localStorage.setItem('nuvy_jwt', data.token);
+                    localStorage.setItem('nuvy_plan', data.plan || 'essentiel');
+                    localStorage.setItem('nuvy_plan_status', data.plan_status || 'active');
+                    window.location.href = '/dashboard';
+                    return;
+                }
+
+                // 403 = boutique bloquée pour cause d'abonnement (pending_payment, suspended, canceled, inactive)
+                if (res.status === 403 && data.blocked) {
+                    const msg = (data.error || "Votre boutique n'est pas accessible.")
+                        + '<br><br>Une question ? <a href="mailto:contact@nuvy.pro">contact@nuvy.pro</a>';
+                    afficherErreur(msg, 'warning');
+                    resetButton();
+                    return;
+                }
+
+                // 401 = identifiants invalides
+                if (res.status === 401) {
+                    afficherErreur(data.error || "Identifiant ou mot de passe incorrect.");
+                    resetButton();
+                    return;
+                }
+
+                // Autre erreur serveur
+                afficherErreur(data.error || "Une erreur est survenue. Réessayez dans quelques instants.");
+                resetButton();
+            } catch (error) {
+                afficherErreur("Erreur de connexion. Vérifiez votre réseau et réessayez.");
+                resetButton();
+            }
+        }
+
+        // Permet de soumettre avec la touche Entrée
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') authentifier();
+        });
     </script>
 </body>
 </html>
