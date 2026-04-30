@@ -224,6 +224,70 @@ async function ensureClassExists(boutique, access_token) {
 }
 
 // ============================================================
+// updateGoogleWalletClassForBoutique
+// Met à jour la classe Google Wallet d'une boutique
+// Appelé quand le commerçant change couleurs, logo, adresse, etc.
+// Fire and forget — pas de await côté appelant
+// ============================================================
+async function updateGoogleWalletClassForBoutique(boutiqueId) {
+    if (!googleCredentials) return;
+    try {
+        const { data: boutique } = await supabase
+            .from('boutiques')
+            .select('slug, nom, color_bg, logo_url, latitude, longitude, google_review_url, adresse, telephone, categorie')
+            .eq('id', boutiqueId)
+            .single();
+
+        if (!boutique) return;
+
+        const classId = buildClassId(boutique.slug);
+        const bgColor = resolveBackgroundColor(boutique);
+        const access_token = await getGoogleAccessToken();
+
+        const updateBody = {
+            hexBackgroundColor: bgColor,
+            programName: boutique.nom || 'Fidélité',
+            reviewStatus: 'APPROVED',
+            locations: (boutique.latitude && boutique.longitude)
+                ? [{ latitude: parseFloat(boutique.latitude), longitude: parseFloat(boutique.longitude) }]
+                : [],
+            linksModuleData: {
+                uris: [
+                    {
+                        uri: `https://nuvy.pro/join/${boutique.slug}`,
+                        description: 'Programme de fidélité',
+                        id: 'link-fidelite'
+                    },
+                    ...(boutique.google_review_url ? [{
+                        uri: boutique.google_review_url,
+                        description: 'Laisser un avis Google',
+                        id: 'link-avis'
+                    }] : [])
+                ]
+            }
+        };
+
+        if (boutique.logo_url) {
+            updateBody.programLogo = { sourceUri: { uri: boutique.logo_url } };
+        }
+
+        await fetch(
+            `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass/${encodeURIComponent(classId)}`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateBody)
+            }
+        );
+    } catch (e) {
+        console.error('updateGoogleWalletClassForBoutique error:', e.message);
+    }
+}
+
+// ============================================================
 // generateGoogleWalletLink
 // Génère le lien "Save to Google Wallet" (JWT signé)
 // Appelé dans routes/wallet.js GET /google-pass/:token
@@ -459,5 +523,6 @@ module.exports = {
     generateGoogleWalletLink,
     updateGoogleWalletPass,
     pushMessageToAllGoogleCards,
-    pushMessageToSingleGoogleCard
+    pushMessageToSingleGoogleCard,
+    updateGoogleWalletClassForBoutique
 };

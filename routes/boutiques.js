@@ -2,7 +2,7 @@ const express = require('express');
 const { supabase, PLAN_LIMITS, STEREOTYPES, SYMBOLS, uploadStrip, logger } = require('../config');
 const { verifyAuth, verifyAuthOwner, requireFeature } = require('../middleware/auth');
 const { refreshAllPasses, sendPushToDevices } = require('../services/applePass');
-const { updateGoogleWalletPass, pushMessageToAllGoogleCards } = require('../services/googleWallet');
+const { updateGoogleWalletPass, pushMessageToAllGoogleCards, updateGoogleWalletClassForBoutique } = require('../services/googleWallet');
 const { isValidInteger } = require('../utils/validation');
 const sharp = require('sharp');
 
@@ -319,6 +319,7 @@ router.patch('/:id/colors', verifyAuthOwner, async (req, res) => {
         const { error } = await supabase.from('boutiques').update({ color_bg, color_text, color_label }).eq('id', req.params.id);
         if (error) throw error;
         refreshAllPasses(req.params.id);
+        updateGoogleWalletClassForBoutique(req.params.id); // pas de await — fire and forget
         res.json({ success: true, message: "Couleurs mises à jour. Vos clients recevront la mise à jour visuelle dans quelques instants." });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -355,6 +356,7 @@ router.post('/:id/strip', verifyAuthOwner, uploadStrip.single('strip'), async (r
         if (dbErr) throw dbErr;
 
         refreshAllPasses(req.params.id);
+        updateGoogleWalletClassForBoutique(req.params.id); // pas de await — fire and forget
         res.json({ success: true, url: publicUrl, message: "Bandeau ajouté. Mise à jour envoyée à vos clients." });
     } catch (e) {
         console.error("Erreur upload strip:", e);
@@ -370,6 +372,7 @@ router.patch('/:id/strip/toggle', verifyAuthOwner, async (req, res) => {
         const { error } = await supabase.from('boutiques').update({ strip_enabled: !!enabled }).eq('id', req.params.id);
         if (error) throw error;
         refreshAllPasses(req.params.id);
+        updateGoogleWalletClassForBoutique(req.params.id); // pas de await — fire and forget
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -386,6 +389,7 @@ router.patch('/:id/emojis', verifyAuthOwner, async (req, res) => {
         if (error) throw error;
 
         refreshAllPasses(req.params.id);
+        updateGoogleWalletClassForBoutique(req.params.id); // pas de await — fire and forget
         res.json({ success: true, message: "Emojis mis à jour. Vos clients recevront la mise à jour dans quelques instants." });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
