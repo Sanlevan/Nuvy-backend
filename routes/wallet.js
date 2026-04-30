@@ -44,7 +44,7 @@ router.get('/google-pass/:token', async (req, res) => {
         }
         client._rang = vraiRang;
 
-        const googleLink = generateGoogleWalletLink(client, client.boutiques);
+        const googleLink = await generateGoogleWalletLink(client, client.boutiques);
         res.redirect(googleLink);
     } catch (e) {
         console.error("❌ Erreur Google Wallet :", e.message);
