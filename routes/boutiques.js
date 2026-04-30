@@ -131,9 +131,20 @@ router.get('/:id/segments', verifyAuthOwner, async (req, res) => {
     if (allowed !== true) return;
     try {
         const { data: clients } = await supabase.from('clients')
-            .select('id, nom, telephone, tampons, recompenses, total_historique, last_visit')
+            .select('id, nom, telephone, tampons, recompenses, total_historique, last_visit, serial_number, device_type')
             .eq('boutique_id', req.params.id);
         if (!clients || clients.length === 0) return res.json({ vip: [], reguliers: [], dormants: [] });
+
+        // Récupérer les serial_numbers qui ont au moins 1 push_token actif (iOS)
+        const serials = (clients || []).map(c => c.serial_number).filter(Boolean);
+        let serialsAvecPushToken = new Set();
+        if (serials.length > 0) {
+            const { data: devicesActifs } = await supabase
+                .from('devices')
+                .select('serial_number')
+                .in('serial_number', serials);
+            (devicesActifs || []).forEach(d => serialsAvecPushToken.add(d.serial_number));
+        }
 
         const now = Date.now();
         const jour14 = 14 * 86400000, jour30 = 30 * 86400000;
@@ -144,7 +155,21 @@ router.get('/:id/segments', verifyAuthOwner, async (req, res) => {
         const vip = [], reguliers = [], dormants = [];
         clients.forEach(c => {
             const lastVisit = c.last_visit ? now - new Date(c.last_visit).getTime() : Infinity;
-            const item = { id: c.id, nom: c.nom, telephone: c.telephone, tampons: c.tampons, recompenses: c.recompenses, total_historique: c.total_historique || 0, derniere_visite: c.last_visit };
+            const peutRecevoirApple = c.serial_number && serialsAvecPushToken.has(c.serial_number) && c.device_type === 'ios';
+        const peutRecevoirGoogle = c.serial_number && c.device_type === 'android';
+        const item = {
+            id: c.id,
+            nom: c.nom,
+            telephone: c.telephone,
+            tampons: c.tampons,
+            recompenses: c.recompenses,
+            total_historique: c.total_historique || 0,
+            derniere_visite: c.last_visit,
+            serial_number: c.serial_number,
+            device_type: c.device_type,
+            has_push_token: peutRecevoirApple || peutRecevoirGoogle,
+            notification_channel: peutRecevoirApple ? 'apple' : peutRecevoirGoogle ? 'google' : null
+        };
             if (vipIds.has(c.id)) vip.push(item);
             if (lastVisit < jour14) reguliers.push(item);
             if (lastVisit > jour30 && lastVisit !== Infinity) dormants.push(item);

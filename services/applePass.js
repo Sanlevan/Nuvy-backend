@@ -258,5 +258,48 @@ async function sendPushToDevices(serialNumbers) {
     provider.shutdown();
     return { sent, total: devices.length };
 }
+// ============================================================
+// sendAlertToDevices : envoie un message texte visible
+// dans le centre de notifications iOS (relances individuelles)
+// Différent de sendPushToDevices qui envoie un signal silencieux
+// de mise à jour de carte.
+// ============================================================
+async function sendAlertToDevices(serialNumbers, message) {
+    if (!serialNumbers || serialNumbers.length === 0) return { sent: 0 };
+    const { data: devices } = await supabase.from('devices').select('push_token').in('serial_number', serialNumbers);
+    if (!devices || devices.length === 0) return { sent: 0 };
 
-module.exports = { generatePassBuffer, refreshAllPasses, sendPushToDevices };
+    const p8Key = process.env.APN_KEY
+        ? Buffer.from(process.env.APN_KEY, 'base64').toString('utf8')
+        : fs.readFileSync(path.resolve(__dirname, '..', 'AuthKey_RM6P22PX7A.p8')).toString('utf8');
+
+    const provider = new apn.Provider({
+        token: {
+            key: p8Key,
+            keyId: process.env.APPLE_KEY_ID || 'RM6P22PX7A',
+            teamId: process.env.APPLE_TEAM_ID || 'Q762BTBA98'
+        },
+        production: true
+    });
+
+    // Notification avec alert = message visible dans le centre de notifs
+    const notification = new apn.Notification();
+    notification.topic = 'pass.pro.nuvy.loyalty';
+    notification.payload = { action: "update_pass" };
+    notification.alert = message;        // ← texte visible
+    notification.sound = 'default';      // ← son de notification standard
+
+    let sent = 0;
+    for (const d of devices) {
+        if (!d.push_token) continue;
+        try {
+            await provider.send(notification, d.push_token);
+            sent++;
+        } catch (e) {
+            console.error("Alert push error:", e.message);
+        }
+    }
+    provider.shutdown();
+    return { sent, total: devices.length };
+}
+module.exports = { generatePassBuffer, refreshAllPasses, sendPushToDevices, sendAlertToDevices };

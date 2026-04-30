@@ -170,4 +170,78 @@ async function pushMessageToAllGoogleCards(boutiqueId, message) {
     }
 }
 
-module.exports = { generateGoogleWalletLink, updateGoogleWalletPass, pushMessageToAllGoogleCards };
+// ============================================================
+// pushMessageToSingleGoogleCard
+// Envoie un message de relance à une carte Google Wallet individuelle
+// Le message apparaît dans le bandeau de la carte lors de la prochaine ouverture
+// ============================================================
+async function pushMessageToSingleGoogleCard(serialNumber, message) {
+    try {
+        // Récupérer le client via son serial_number
+        const { supabase } = require('../config');
+        const { data: client } = await supabase
+            .from('clients')
+            .select('id, token, boutique_id')
+            .eq('serial_number', serialNumber)
+            .maybeSingle();
+
+        if (!client) return { success: false, reason: 'Client introuvable' };
+
+        // Récupérer la boutique pour le Google Issuer ID
+        const { data: boutique } = await supabase
+            .from('boutiques')
+            .select('slug')
+            .eq('id', client.boutique_id)
+            .single();
+
+        if (!boutique) return { success: false, reason: 'Boutique introuvable' };
+
+        // Construire l'Object ID Google Wallet
+        // Format : {issuerId}.{slug}-{token}
+        const GOOGLE_ISSUER_ID = process.env.GOOGLE_ISSUER_ID;
+        const objectId = `${GOOGLE_ISSUER_ID}.${boutique.slug}-${client.token}`;
+
+        // Authentification Google
+        const { GoogleAuth } = require('google-auth-library');
+        const credentials = JSON.parse(
+            process.env.GOOGLE_CREDENTIALS ||
+            require('fs').readFileSync(require('path').resolve(__dirname, '..', 'google-credentials.json'), 'utf8')
+        );
+        const auth = new GoogleAuth({
+            credentials,
+            scopes: ['https://www.googleapis.com/auth/wallet_object.issuer']
+        });
+        const authClient = await auth.getClient();
+        const accessToken = (await authClient.getAccessToken()).token;
+
+        // Appel API Google Wallet — PATCH pour mettre à jour le message
+        const url = `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}`;
+        const response = await fetch(url, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                textModulesData: [{
+                    header: 'Message de votre boutique',
+                    body: message,
+                    id: 'relance_message'
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            console.error(`Google Wallet patch error pour ${objectId}:`, err);
+            return { success: false, reason: err };
+        }
+
+        return { success: true };
+    } catch (e) {
+        console.error('pushMessageToSingleGoogleCard error:', e.message);
+        return { success: false, reason: e.message };
+    }
+}
+
+module.exports = { generateGoogleWalletLink, updateGoogleWalletPass, pushMessageToAllGoogleCards, pushMessageToSingleGoogleCard };
